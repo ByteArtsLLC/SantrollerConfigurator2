@@ -24,6 +24,7 @@ const FEATURE_REPORTS = [
   proto.ReportId.ReportIdUpdateFirmware,
   proto.ReportId.ReportIdUploadFirmware,
   proto.ReportId.ReportIdGetType,
+  proto.ReportId.ReportIdConfigInfoSaved,
 ];
 const REPORT_SIZE = 63;
 

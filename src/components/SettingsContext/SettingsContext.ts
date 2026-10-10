@@ -66,6 +66,11 @@ function withHidTimeout<T>(operation: Promise<T>, description: string): Promise<
   });
 }
 
+// For logging what a report actually contained
+function hexBytes(bytes: Uint8Array): string {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(' ');
+}
+
 function delay(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
@@ -2316,12 +2321,13 @@ export const useConfigStore = create<ConfigState & Actions>()(
           console.log(e);
         }
         let activeProfiles: number[] = [];
+        let payload: Uint8Array | undefined;
         try {
           const profileData = await receiveFeatureReport(
             device,
             proto.ReportId.ReportIdGetActiveProfiles
           );
-          const payload = new Uint8Array(
+          payload = new Uint8Array(
             profileData.buffer,
             profileData.byteOffset,
             profileData.byteLength
@@ -2330,7 +2336,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
             activeProfiles = proto.GetActiveProfiles.decodeDelimited(payload).profiles || [];
           }
         } catch (e) {
-          console.error('Failed to get active profiles', e);
+          console.error(
+            `Failed to get active profiles (${payload?.length ?? 0} bytes: ${hexBytes(payload ?? new Uint8Array())})`,
+            e
+          );
         }
         let deviceType = 'pico_w';
         try {
@@ -2417,11 +2426,17 @@ async function fetchConfigData(device: HIDDevice, saved: boolean) {
     device,
     saved ? proto.ReportId.ReportIdConfigInfoSaved : proto.ReportId.ReportIdConfigInfo
   );
-  const info = proto.ConfigInfo.decode(
-    withoutPadding(
-      new Uint8Array(infoData.buffer, infoData.byteOffset + 1, infoData.byteLength - 1)
-    )
+  const infoBytes = withoutPadding(
+    new Uint8Array(infoData.buffer, infoData.byteOffset + 1, infoData.byteLength - 1)
   );
+  let info: proto.ConfigInfo;
+  try {
+    info = proto.ConfigInfo.decode(infoBytes);
+  } catch (e) {
+    throw new ConfigReadError(
+      `${saved ? 'saved' : 'current'} config info was unreadable (${infoBytes.length} bytes: ${hexBytes(infoBytes)}): ${e}`
+    );
+  }
   if (info.magic >>> 0 !== magic) {
     console.log('magic didnt match!');
   }
