@@ -27,27 +27,27 @@ export function InactivitySettings({ ledOnly }: { ledOnly?: boolean }) {
   if (ledOnly) {
     return ledTimeout;
   }
-  const canSleep = (inactivity?.wakePin ?? -1) >= 0;
+  const sleepConfigured = (inactivity?.sleepTimeoutSec ?? 0) > 0;
   return (
     <>
       {ledTimeout}
       <Space h="md" />
-      <PinBox
-        label="main.inactivity.wake_pin"
-        pin={inactivity?.wakePin ?? -1}
-        valid={AllPinsNamed}
-        dispatch={(wakePin) => update({ wakePin })}
+      <NumberInput
+        label={t('main.inactivity.sleep_timeout.label')}
+        description={t('main.inactivity.sleep_timeout.description')}
+        suffix=" s"
+        min={0}
+        value={inactivity?.sleepTimeoutSec ?? 0}
+        onChange={(val) => update({ sleepTimeoutSec: Number(val) || 0 })}
       />
-      {canSleep && (
+      {sleepConfigured && (
         <>
           <Space h="xs" />
-          <NumberInput
-            label={t('main.inactivity.sleep_timeout.label')}
-            description={t('main.inactivity.sleep_timeout.description')}
-            suffix=" s"
-            min={0}
-            value={inactivity?.sleepTimeoutSec ?? 0}
-            onChange={(val) => update({ sleepTimeoutSec: Number(val) || 0 })}
+          <PinBox
+            label="main.inactivity.wake_pin"
+            pin={inactivity?.wakePin ?? -1}
+            valid={AllPinsNamed}
+            dispatch={(wakePin) => update({ wakePin })}
           />
           <Space h="xs" />
           <Switch
