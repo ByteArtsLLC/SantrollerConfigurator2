@@ -46,6 +46,7 @@ export function InactivitySettings({ ledOnly }: { ledOnly?: boolean }) {
           <PinBox
             label="main.inactivity.wake_pin"
             pin={inactivity?.wakePin ?? -1}
+            optional
             valid={AllPinsNamed}
             dispatch={(wakePin) => update({ wakePin })}
           />

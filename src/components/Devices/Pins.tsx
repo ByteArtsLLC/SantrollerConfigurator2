@@ -16,6 +16,7 @@ export function PinBox({
   label,
   dispatch,
   deviceId,
+  optional,
 }: {
   pin: number;
   valid: { [pin: number]: { label: string; channel?: string; pin: number } };
@@ -23,6 +24,8 @@ export function PinBox({
   label: string;
   dispatch?: (pin: number) => void;
   deviceId?: string;
+  // Lets the pin be cleared back to none (-1), and doesn't flag an unset pin as an error
+  optional?: boolean;
 }) {
   const { t } = useTranslation();
   const contextDeviceId = useContext(DeviceContext);
@@ -64,7 +67,7 @@ export function PinBox({
     );
   }
 
-  const actualError = valid[pin]?.label ? error : 'invalid_pin_message';
+  const actualError = valid[pin]?.label || optional ? error : 'invalid_pin_message';
   const mainElement = (
     <InputBase
       error={actualError && t(actualError)}
@@ -101,6 +104,13 @@ export function PinBox({
 
       <Combobox.Dropdown>
         <Combobox.Options mah={200} style={{ overflowY: 'auto' }}>
+          {combobox.dropdownOpened && optional && (
+            <Combobox.Option value="-1" selected={!valid[pin]?.label}>
+              <Text fz="sm" span>
+                {t('invalid_pin')}
+              </Text>
+            </Combobox.Option>
+          )}
           {combobox.dropdownOpened &&
             Object.entries(valid).map((item) => (
               <Combobox.Option value={item[0]} key={item[0]} selected={pin === item[1].pin}>

@@ -1280,6 +1280,7 @@ function XboxOneAuthDevice({ id }: { id: string }) {
       <PinBox
         label="xboxOneAuth.reset.pin"
         pin={xboxOneAuth.resetPin ?? -1}
+        optional
         valid={AllPinsNamed}
         dispatch={(pin) =>
           updateDevice(
@@ -1770,6 +1771,7 @@ function Xbox360RfDevice({ id }: { id: string }) {
       <PinBox
         label="xbox360Rf.sync_pin"
         pin={rf.syncPin ?? -1}
+        optional
         valid={AllPinsNamed}
         dispatch={(syncPin) => update({ syncPin })}
       />
@@ -1827,6 +1829,7 @@ function PowerManagementDevice({ id }: { id: string }) {
       <PinBox
         label="powerManagement.pin"
         pin={power.heartbeatPin ?? -1}
+        optional
         valid={AllPinsNamed}
         dispatch={(heartbeatPin) => update({ heartbeatPin })}
       />
@@ -1856,6 +1859,7 @@ function PowerManagementDevice({ id }: { id: string }) {
       <PinBox
         label="powerManagement.pin"
         pin={power.inactivityPin ?? -1}
+        optional
         valid={AllPinsNamed}
         dispatch={(inactivityPin) => update({ inactivityPin })}
       />
@@ -2453,6 +2457,7 @@ function BluetoothDevice({ id }: { id: string }) {
       <PinBox
         label="devices.bluetooth_sync_pin"
         pin={bt.syncPin ?? -1}
+        optional
         valid={AllPinsNamed}
         dispatch={(syncPin) =>
           updateDevice({ deviceid: parseInt(id, 10), bt: { ...bt, syncPin } }, id)
