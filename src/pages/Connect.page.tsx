@@ -110,7 +110,8 @@ export function ConnectPage() {
             {t('connect.connect')}
           </Button>
         )}
-        {bluetoothSupported && !connected && (
+        {/* Only for browsers without WebHID (like Android), as USB works everywhere else */}
+        {bluetoothSupported && !navigator.hid && !connected && (
           <>
             <Space h="md" />
             <Button disabled={updating} onClick={connectBluetooth}>
