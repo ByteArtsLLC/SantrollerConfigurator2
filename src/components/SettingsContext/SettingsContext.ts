@@ -294,6 +294,8 @@ export class DeviceStatus {
   rebooting?: boolean = false;
   // Battery devices: the battery percentage, once they have read it
   battery?: number;
+  // Bluetooth: whether a host (PC, phone, console, or the configurator over BLE) is connected to this controller
+  hostConnected?: boolean;
   device: proto.IDevice;
   parentId?: string;
   wiiExtType: proto.WiiExtType;
@@ -1339,6 +1341,8 @@ export const useConfigStore = create<ConfigState & Actions>()(
               ) {
                 state.deviceStatus[deviceEvent.device!.id].battery = deviceEvent.device!.battery;
               }
+              state.deviceStatus[deviceEvent.device!.id].hostConnected =
+                deviceEvent.device!.hostConnected ?? undefined;
               if (
                 deviceEvent.device!.rebooting !== undefined &&
                 deviceEvent.device!.rebooting !== null

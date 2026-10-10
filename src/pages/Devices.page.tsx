@@ -194,6 +194,9 @@ function DeviceCard({
   image,
   children,
   deleteDevice,
+  connectedLabel,
+  disconnectedLabel,
+  extraBadge,
 }: {
   connected?: boolean;
   id?: string;
@@ -203,6 +206,11 @@ function DeviceCard({
   image: string;
   children: React.ReactNode;
   deleteDevice: () => void;
+  // Overrides the status badge text, for cards where "connected" is ambiguous
+  connectedLabel?: string;
+  disconnectedLabel?: string;
+  // Shown next to the status badge
+  extraBadge?: React.ReactNode;
 }) {
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
@@ -210,14 +218,18 @@ function DeviceCard({
     () =>
       connected ? (
         <Badge size="md" color="blue">
-          {type ? t('connected_with_type', { type: t(`${type_prefix}.${type}`) }) : t('connected')}
+          {connectedLabel
+            ? t(connectedLabel)
+            : type
+              ? t('connected_with_type', { type: t(`${type_prefix}.${type}`) })
+              : t('connected')}
         </Badge>
       ) : (
         <Badge size="md" color="red">
-          {t('disconnected')}
+          {t(disconnectedLabel ?? 'disconnected')}
         </Badge>
       ),
-    [connected, type]
+    [connected, type, connectedLabel, disconnectedLabel]
   );
   return (
     <>
@@ -255,7 +267,12 @@ function DeviceCard({
             {id ? t(title, { id }) : t(title)}
           </Title>{' '}
         </Flex>
-        <Center>{connected === null || connected === undefined ? null : badge}</Center>
+        <Center>
+          <Group gap="xs">
+            {connected === null || connected === undefined ? null : badge}
+            {extraBadge}
+          </Group>
+        </Center>
         {children}
       </Card>
     </>
@@ -2453,6 +2470,19 @@ function BluetoothDevice({ id }: { id: string }) {
       title="devices.bt"
       image="covers/devices/bluetooth.png"
       deleteDevice={() => deleteDevice(id)}
+      connectedLabel="devices.bluetooth_adapter_connected"
+      disconnectedLabel="devices.bluetooth_adapter_disconnected"
+      extraBadge={
+        status.connected && status.hostConnected !== undefined ? (
+          <Badge size="md" color={status.hostConnected ? 'green' : 'gray'}>
+            {t(
+              status.hostConnected
+                ? 'devices.bluetooth_host_connected'
+                : 'devices.bluetooth_host_disconnected'
+            )}
+          </Badge>
+        ) : null
+      }
     >
       <PinBox
         label="devices.bluetooth_sync_pin"
