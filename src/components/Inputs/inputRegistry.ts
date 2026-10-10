@@ -1,4 +1,5 @@
 import { proto } from '@/components/SettingsContext/config';
+import { MIDI_PERCUSSION_CHANNEL } from '@/devices/midi';
 
 export type InputKind = keyof proto.IInput;
 
@@ -877,8 +878,6 @@ export function isAnalogInput(input: proto.IInput) {
   const kind = getSelectedInput(input)?.kind;
   return kind ? (inputRegistry[kind]?.isAnalog?.(input) ?? false) : false;
 }
-
-export const MIDI_PERCUSSION_CHANNEL = 10;
 
 export function isDrumInput(input: proto.IInput): boolean {
   if (input.crkdDrum) {

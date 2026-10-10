@@ -1050,7 +1050,7 @@ function OutputBox({
       return <></>;
   }
 }
-// What a MIDI instrument profile's mappings send. Channels are stored 0 - 15 but shown 1 - 16.
+// What a MIDI instrument profile's mappings send
 function MidiOutputBox({
   mapping,
   actions,
@@ -1072,7 +1072,7 @@ function MidiOutputBox({
             ? 'note'
             : null;
   const channel =
-    mapping?.midiNote?.channel ?? mapping?.midiControl?.channel ?? mapping?.midiPitchBend ?? 0;
+    mapping?.midiNote?.channel ?? mapping?.midiControl?.channel ?? mapping?.midiPitchBend ?? 1;
   const note = mapping?.midiNote ?? { channel, note: 60 };
   const control = mapping?.midiControl ?? { channel, control: 4 };
   const setNote = (value: proto.IMidiNoteOutput) =>
@@ -1132,8 +1132,8 @@ function MidiOutputBox({
           description={t('midiOutput.channel_desc')}
           min={1}
           max={16}
-          value={channel + 1}
-          onChange={(value) => setChannel(clamp(value, 1, 16) - 1)}
+          value={channel}
+          onChange={(value) => setChannel(clamp(value, 1, 16))}
         />
       )}
       {kind === 'note' && (

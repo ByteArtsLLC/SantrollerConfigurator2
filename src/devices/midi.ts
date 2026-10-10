@@ -58,20 +58,21 @@ export const GM_PERCUSSION: Record<number, string> = {
   81: 'Open Triangle',
 };
 
-export const MIDI_PERCUSSION_CHANNEL = 9;
+// Channels count from 1, as they do on MIDI gear
+export const MIDI_PERCUSSION_CHANNEL = 10;
 
-// A short name for a MIDI output, with channels counted from 1 like MIDI gear shows them
+// A short name for a MIDI output
 export function midiOutputLabel(output: proto.IOutput): string | undefined {
   if (output.midiNote) {
     const { channel, note } = output.midiNote;
     const name = (channel === MIDI_PERCUSSION_CHANNEL && GM_PERCUSSION[note]) || midiNoteName(note);
-    return `${name} (Ch ${channel + 1})`;
+    return `${name} (Ch ${channel})`;
   }
   if (output.midiControl) {
-    return `CC ${output.midiControl.control} (Ch ${output.midiControl.channel + 1})`;
+    return `CC ${output.midiControl.control} (Ch ${output.midiControl.channel})`;
   }
   if (output.midiPitchBend != null) {
-    return `Pitch Bend (Ch ${output.midiPitchBend + 1})`;
+    return `Pitch Bend (Ch ${output.midiPitchBend})`;
   }
   return undefined;
 }
