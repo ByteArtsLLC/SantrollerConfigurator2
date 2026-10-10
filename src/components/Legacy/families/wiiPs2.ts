@@ -9,6 +9,7 @@ const LIB = legacy.InstrumentButtonType;
 const WII = legacy.WiiInputType;
 const PS2 = legacy.Ps2InputType;
 const PT = proto.PS2ControllerType;
+const WET = proto.WiiExtType;
 const A2D = legacy.AnalogToDigitalType;
 const GB = proto.GamepadButtonType;
 
@@ -49,16 +50,6 @@ function bindingBody(output: legacy.ISerializedOutput) {
 // Wii extensions
 // ---------------------------------------------------------------------------
 
-function wiiDevice(
-  ctx: LegacyImportContext,
-  sda?: number | null,
-  scl?: number | null,
-  peripheral?: boolean | null
-) {
-  warnPeripheral(ctx, peripheral, 'A Wii extension');
-  return ctx.addDevice('wii', `${sda},${scl}`, (dev) => setI2c(dev.i2c, sda, scl));
-}
-
 // Old inputs that were signed, these read the same as the new ones moved up by 32768. Every other
 // input reads the same raw value as before.
 const WII_SIGNED = new Set([
@@ -85,7 +76,7 @@ function wiiInput(
   deviceid: number,
   type: legacy.WiiInputType | null | undefined
 ): ConvertedInput | undefined {
-  const name = (WII[type ?? 0] ?? '').replace(/^WiiInputType_/, '');
+  const name = wiiTypeName(type ?? 0);
   if (name.startsWith('NunchukAcceleration')) {
     ctx.warn(
       'Nunchuk acceleration bindings were skipped, the new firmware reads them on a different scale.'
@@ -94,6 +85,13 @@ function wiiInput(
   }
   if (name === 'GuitarTapBar' || name === 'GuitarTapAll') {
     warnTapBar(ctx);
+    return undefined;
+  }
+  const extension = wiiState(ctx).extension;
+  if (extensionOf(name) !== extension) {
+    ctx.warn(
+      `Wii bindings for other extensions than the ${WII_EXTENSION_NAMES[extension]} were skipped, as a profile only uses one type of extension now. Add a profile for each other extension you use.`
+    );
     return undefined;
   }
   const axis = proto.WiiAxisType[`WiiAxis${name}` as keyof typeof proto.WiiAxisType];
@@ -131,15 +129,25 @@ const WII_EXTENSION_NAMES: Record<WiiExtension, string> = {
   TaTaCon: 'Taiko drum',
 };
 
-function wiiExtension(input: proto.IInput): WiiExtension | undefined {
-  const name = input.wiiAxis
-    ? proto.WiiAxisType[input.wiiAxis.axis]
-    : input.wiiButton
-      ? proto.WiiButtonType[input.wiiButton.button]
-      : undefined;
-  const short = name?.replace(/^Wii(Axis|Button)/, '').replace(/^DjHero/, 'Dj');
-  return WII_EXTENSIONS.find((ext) => short?.startsWith(ext));
+// The extension an input name (without the WiiInputType_ / WiiAxis / WiiButton prefix) is on
+function extensionOf(name: string): WiiExtension | undefined {
+  const short = name.replace(/^DjHero/, 'Dj');
+  return WII_EXTENSIONS.find((ext) => short.startsWith(ext));
 }
+
+const wiiTypeName = (type: legacy.WiiInputType) => (WII[type] ?? '').replace(/^WiiInputType_/, '');
+
+// The extension types a slot for each old extension matches
+const WII_EXTENSION_TYPES: Record<WiiExtension, proto.WiiExtType[]> = {
+  Classic: [WET.WiiClassicController, WET.WiiClassicControllerPro],
+  Nunchuk: [WET.WiiNunchuk],
+  Guitar: [WET.WiiGuitarHeroGuitar],
+  Drum: [WET.WiiGuitarHeroDrums],
+  Dj: [WET.WiiDjHeroTurntable],
+  UDraw: [WET.WiiThqUdrawTablet],
+  Drawsome: [WET.WiiUbisoftDrawsomeTablet],
+  TaTaCon: [WET.WiiTaikoNoTatsujinController],
+};
 
 function preferredWiiExtension(ctx: LegacyImportContext): WiiExtension | undefined {
   switch (ctx.subType) {
@@ -159,70 +167,91 @@ function preferredWiiExtension(ctx: LegacyImportContext): WiiExtension | undefin
   }
 }
 
-// Whether a mapping does something while its input reads 0, which is what the new firmware reads
-// from every extension other than the one plugged in
-function activeAtZero(m: proto.IMapping) {
-  if (m.trigger != null) {
-    const value = m.triggerValue ?? 0;
-    let pressed = false;
-    switch (m.trigger) {
-      case proto.AnalogToDigitalTriggerType.JoyLow:
-        pressed = value > 0;
-        break;
-      case proto.AnalogToDigitalTriggerType.Exact:
-        pressed = value === 0;
-        break;
-      case proto.AnalogToDigitalTriggerType.Range:
-        pressed = value < 0 && (m.maxTriggerValue ?? 0) > 0;
-        break;
-    }
-    return pressed !== !!m.inverted;
-  }
-  if (m.input?.wiiButton || m.pressed != null) {
-    return !!m.inverted;
-  }
-  const min = m.min ?? 0;
-  const max = m.max ?? 65535;
-  const deadzone = m.deadzone ?? 0;
-  if (m.section != null || !m.center) {
-    // calibrated like a trigger
-    return min > max ? min - deadzone >= 0 : min + deadzone < 0;
-  }
-  return m.center >= deadzone;
-}
-
-// The old firmware only read the inputs of the extension that was plugged in, while the new one
-// reads every mapping, getting 0 from the other extensions. Analog bindings that react to that
-// would fight the plugged in extension, so only one extension's ones can be kept.
-function resolveWiiConflicts(ctx: LegacyImportContext, deviceid: number, start: number) {
-  const conflicts = new Map<WiiExtension, proto.IMapping[]>();
-  for (const m of ctx.mappings.slice(start)) {
-    const input = m.input?.wiiAxis ?? m.input?.wiiButton;
-    const ext = input?.deviceid === deviceid ? wiiExtension(m.input!) : undefined;
-    if (ext && activeAtZero(m)) {
-      conflicts.set(ext, [...(conflicts.get(ext) ?? []), m]);
-    }
-  }
-  if (conflicts.size < 2) {
+// Every old Wii input in the config that was in use
+function collectWiiInputs(node: unknown, found: string[]) {
+  if (!node || typeof node !== 'object') {
     return;
   }
-  const preferred = preferredWiiExtension(ctx);
-  const keep =
-    preferred && conflicts.has(preferred)
-      ? preferred
-      : WII_EXTENSIONS.filter((ext) => conflicts.has(ext)).reduce((best, ext) =>
-          conflicts.get(ext)!.length > conflicts.get(best)!.length ? ext : best
-        );
-  const remove = new Set([...conflicts].filter(([ext]) => ext !== keep).flatMap(([, ms]) => ms));
-  for (let i = ctx.mappings.length - 1; i >= start; i--) {
-    if (remove.has(ctx.mappings[i])) {
-      ctx.mappings.splice(i, 1);
+  if (Array.isArray(node)) {
+    node.forEach((n) => collectWiiInputs(n, found));
+    return;
+  }
+  const obj = node as Record<string, unknown>;
+  if (obj.enabled === false) {
+    return;
+  }
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === 'serializedWiiInput' || key === 'serializedWiiInputCombined') {
+      const type = ((value as Record<string, unknown> | null)?.type as legacy.WiiInputType) ?? 0;
+      found.push(wiiTypeName(type));
+    } else {
+      collectWiiInputs(value, found);
     }
   }
+}
+
+interface WiiState {
+  extension: WiiExtension;
+  devices: Set<string>;
+}
+
+const wiiStates = new WeakMap<LegacyImportContext, WiiState>();
+
+// The old firmware read whichever extension was plugged in, while the new one only uses an
+// extension in a profile assigned to its type, so work out the extension the config was set up
+// for from the instrument and the inputs it used
+function wiiState(ctx: LegacyImportContext): WiiState {
+  let state = wiiStates.get(ctx);
+  if (!state) {
+    const names: string[] = [];
+    collectWiiInputs(ctx.old.bindings, names);
+    const counts = new Map(
+      WII_EXTENSIONS.map((ext) => [ext, names.filter((n) => extensionOf(n) === ext).length])
+    );
+    const preferred = preferredWiiExtension(ctx);
+    const used = [...counts.values()].some((count) => count > 0);
+    // With no inputs (eg only the stick to dpad helper) go by the instrument
+    const extension =
+      preferred && (counts.get(preferred)! || !used)
+        ? preferred
+        : WII_EXTENSIONS.reduce((best, ext) => (counts.get(ext)! > counts.get(best)! ? ext : best));
+    state = { extension, devices: new Set() };
+    wiiStates.set(ctx, state);
+  }
+  return state;
+}
+
+function wiiSlot(
+  ctx: LegacyImportContext,
+  sda?: number | null,
+  scl?: number | null,
+  peripheral?: boolean | null
+) {
+  warnPeripheral(ctx, peripheral, 'A Wii extension');
+  const state = wiiState(ctx);
+  const key = `${sda},${scl}`;
+  ctx.addDevice('wii', key, (dev) => setI2c(dev.i2c, sda, scl));
+  state.devices.add(key);
+  if (state.devices.size > 1) {
+    ctx.warn(
+      'Only one Wii extension is used per profile now, so add a profile for each other one.'
+    );
+  }
   ctx.warn(
-    `Analog Wii bindings for other extensions than the ${WII_EXTENSION_NAMES[keep]} were skipped, as the new firmware reads them all at once. Add a profile for each other extension you use.`
+    `The Wii bindings were imported for a ${WII_EXTENSION_NAMES[state.extension]}, so the profile now only works with that type of Wii extension.`
+  );
+  const [type, ...alternatives] = WII_EXTENSION_TYPES[state.extension];
+  return ctx.addSlot(
+    'wii',
+    'main',
+    { wiiExt: type },
+    alternatives.map((wiiExt) => ({ wiiExt }))
   );
 }
+
+// Only the sticks and buttons of the extension the profile is for
+const onWiiExtension = (ctx: LegacyImportContext, type: legacy.WiiInputType) =>
+  extensionOf(wiiTypeName(type)) === wiiState(ctx).extension;
 
 // ---------------------------------------------------------------------------
 // PS2 controllers
@@ -446,7 +475,7 @@ function combinedDevice(ctx: LegacyImportContext, kind: string) {
 
 registerInputConverters({
   serializedWiiInput: (ctx, { serializedWiiInput: i }) =>
-    wiiInput(ctx, wiiDevice(ctx, i!.sda, i!.scl, i!.peripheral), i!.type),
+    wiiInput(ctx, wiiSlot(ctx, i!.sda, i!.scl, i!.peripheral), i!.type),
   serializedWiiInputCombined: (ctx, { serializedWiiInputCombined: i }) => {
     const deviceid = combinedDevice(ctx, 'wii');
     return deviceid == null ? undefined : wiiInput(ctx, deviceid, i!.type);
@@ -518,7 +547,6 @@ function convertChildren(
 ) {
   const previous = ctx.combined;
   ctx.combined = { kind, deviceid };
-  const start = ctx.mappings.length;
   for (const child of outputs ?? []) {
     if (
       kind === 'psx' &&
@@ -530,9 +558,6 @@ function convertChildren(
     if (!convertTapBinding(ctx, child)) {
       convertOutput(ctx, child);
     }
-  }
-  if (kind === 'wii') {
-    resolveWiiConflicts(ctx, deviceid, start);
   }
   ctx.combined = previous;
 }
@@ -565,7 +590,7 @@ function startSelectHomeEnabled(o: { enabled?: unknown; peripheral?: unknown }) 
 
 registerOutputConverters({
   serializedWiiCombinedOutput: (ctx, { serializedWiiCombinedOutput: o }) =>
-    convertChildren(ctx, 'wii', wiiDevice(ctx, o!.sda, o!.scl, o!.peripheral), o!.outputs),
+    convertChildren(ctx, 'wii', wiiSlot(ctx, o!.sda, o!.scl, o!.peripheral), o!.outputs),
 
   serializedPs2CombinedOutput: (ctx, { serializedPs2CombinedOutput: o }) =>
     convertChildren(ctx, 'psx', ps2Slot(ctx, o!, o!.peripheral), o!.outputs),
@@ -581,7 +606,7 @@ registerOutputConverters({
     }
     const threshold = o!.threshold ?? 0;
     const sticks: [number, number][] = o!.wii
-      ? WII_STICKS
+      ? WII_STICKS.filter(([x]) => onWiiExtension(ctx, x))
       : [[PS2.Ps2InputType_LeftStickX, PS2.Ps2InputType_LeftStickY]];
     const dpad = (type: number, dir: legacy.AnalogToDigitalType, button: proto.GamepadButtonType) =>
       addButton(
@@ -608,12 +633,14 @@ registerOutputConverters({
       return;
     }
     const pairs: [number, number][] = o!.wii
-      ? [
-          [WII.WiiInputType_ClassicPlus, WII.WiiInputType_ClassicMinus],
-          [WII.WiiInputType_GuitarPlus, WII.WiiInputType_GuitarMinus],
-          [WII.WiiInputType_DrumPlus, WII.WiiInputType_DrumMinus],
-          [WII.WiiInputType_DjHeroPlus, WII.WiiInputType_DjHeroMinus],
-        ]
+      ? (
+          [
+            [WII.WiiInputType_ClassicPlus, WII.WiiInputType_ClassicMinus],
+            [WII.WiiInputType_GuitarPlus, WII.WiiInputType_GuitarMinus],
+            [WII.WiiInputType_DrumPlus, WII.WiiInputType_DrumMinus],
+            [WII.WiiInputType_DjHeroPlus, WII.WiiInputType_DjHeroMinus],
+          ] as [number, number][]
+        ).filter(([start]) => onWiiExtension(ctx, start))
       : [[PS2.Ps2InputType_Start, PS2.Ps2InputType_Select]];
     for (const [start, select] of pairs) {
       addButton(

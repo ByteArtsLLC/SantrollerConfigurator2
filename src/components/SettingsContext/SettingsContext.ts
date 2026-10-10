@@ -316,6 +316,7 @@ export function requiresAssignment(deviceType: string): boolean {
     deviceType === 'bt' ||
     deviceType === 'usbHost' ||
     deviceType === 'psx' ||
+    deviceType === 'wii' ||
     deviceType === 'midiSerial' ||
     deviceType === 'bhDrum' ||
     deviceType === 'worldTourDrum'
@@ -341,6 +342,9 @@ export function isDeviceAssigned(deviceType: string, profile?: proto.IProfile | 
   }
   if (deviceType === 'psx') {
     return allAssignments.some((x) => x.ps2Cnt != null);
+  }
+  if (deviceType === 'wii') {
+    return allAssignments.some((x) => x.wiiExt != null);
   }
   if (deviceType === 'midiSerial' || deviceType === 'bhDrum' || deviceType === 'worldTourDrum') {
     return allAssignments.some((x) => x.midiChannel != null);

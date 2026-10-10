@@ -94,7 +94,7 @@ export function importLegacyConfig(data: Uint8Array, name = 'Imported'): LegacyI
       fullRangeTurntableOnPc: old.djFullRange,
       supportsSlider,
     },
-    assignments: [...settings.assignments, ...emulation],
+    assignments: ctx.expandSlotAlternatives([...settings.assignments, ...emulation]),
     mappings: ctx.mappings,
     leds: ctx.leds,
   };

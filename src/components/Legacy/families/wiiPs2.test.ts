@@ -54,7 +54,7 @@ const ps2Combined = (outputs: legacy.ISerializedOutput[]): legacy.ISerializedOut
 
 describe('Wii extensions', () => {
   it('imports a Wii guitar on a Rock Band guitar', () => {
-    const { config, find, warnings } = run(DCT.DeviceControllerType_RockBandGuitar, [
+    const { config, profile, find, warnings } = run(DCT.DeviceControllerType_RockBandGuitar, [
       wiiCombined([
         {
           serializedGuitarButton: {
@@ -92,7 +92,11 @@ describe('Wii extensions', () => {
     ]);
     const wii = config.devices.find((d) => d.wii)!;
     expect(wii.wii!.i2c).toMatchObject({ sda: 4, scl: 5 });
-    const deviceid = wii.deviceid;
+    // inputs use the slot, not the device id
+    const deviceid = 1;
+    expect(profile.assignments.map((a) => a.assignments.filter((x) => x.wiiExt != null))).toEqual([
+      [expect.objectContaining({ wiiExt: proto.WiiExtType.WiiGuitarHeroGuitar })],
+    ]);
     const RB = proto.RockBandGuitarButtonType;
 
     const frets = find({ rbButton: RB.RockBandGuitar_Green }).map(
@@ -115,7 +119,7 @@ describe('Wii extensions', () => {
     });
     expect(whammy).toMatchObject({ min: 4000, max: 60000, center: 0, deadzone: 8000 });
 
-    // only the guitar's stick presses the dpad, the other extensions would read as held down
+    // only the guitar's stick presses the dpad, as the profile is only for a guitar
     const left = find({ gamepadButton: proto.GamepadButtonType.Gamepad_DpadLeft });
     expect(left).toHaveLength(1);
     expect(left[0]).toMatchObject({
@@ -125,18 +129,18 @@ describe('Wii extensions', () => {
     });
     const right = find({ gamepadButton: proto.GamepadButtonType.Gamepad_DpadRight });
     expect(right.map((m) => m.triggerValue)).toContain(32768 + 16383);
-    expect(warnings.some((w) => w.includes('other extensions than the guitar'))).toBe(true);
+    expect(warnings.some((w) => w.includes('imported for a guitar'))).toBe(true);
 
     const guide = find({ gamepadButton: proto.GamepadButtonType.Gamepad_Guide });
-    expect(guide).toHaveLength(4);
-    expect(guide[1].input?.shortcut?.inputs).toEqual([
+    expect(guide).toHaveLength(1);
+    expect(guide[0].input?.shortcut?.inputs).toEqual([
       { wiiButton: { deviceid, button: proto.WiiButtonType.WiiButtonGuitarPlus } },
       { wiiButton: { deviceid, button: proto.WiiButtonType.WiiButtonGuitarMinus } },
     ]);
   });
 
-  it('keeps one extension for conflicting gamepad axes', () => {
-    const { find, warnings } = run(DCT.DeviceControllerType_Gamepad, [
+  it('keeps the most used extension on a gamepad', () => {
+    const { profile, find, warnings } = run(DCT.DeviceControllerType_Gamepad, [
       wiiCombined([
         axis(
           wiiIn(WII.WiiInputType_ClassicLeftStickX),
@@ -170,16 +174,29 @@ describe('Wii extensions', () => {
     // signed stick calibration moves up into the unsigned range
     expect(stick).toMatchObject({ min: 2768, max: 62768, center: 32768, deadzone: 4000 });
 
-    // triggers read 0 when another extension is plugged in, which is fine
     const triggers = find({ gamepadAxis: proto.GamepadAxisType.Gamepad_LeftTrigger });
-    expect(triggers).toHaveLength(2);
+    expect(triggers).toHaveLength(1);
     expect(triggers[0]).toMatchObject({ min: 0, max: 65535, center: 0 });
-    expect(find({ gamepadButton: proto.GamepadButtonType.Gamepad_A })).toHaveLength(2);
-    expect(warnings.some((w) => w.includes('Classic Controller'))).toBe(true);
+    expect(triggers[0].input?.wiiAxis?.axis).toBe(proto.WiiAxisType.WiiAxisClassicLeftTrigger);
+    const a = find({ gamepadButton: proto.GamepadButtonType.Gamepad_A });
+    expect(a).toHaveLength(1);
+    expect(a[0].input?.wiiButton).toEqual({
+      deviceid: 1,
+      button: proto.WiiButtonType.WiiButtonClassicA,
+    });
+    expect(warnings.some((w) => w.includes('other extensions than the Classic Controller'))).toBe(
+      true
+    );
+
+    // a Classic Controller Pro gets a copy of the assignment list, so either one works in slot 1
+    expect(profile.assignments.map((a) => a.assignments.map((x) => x.wiiExt ?? null))).toEqual([
+      [null, proto.WiiExtType.WiiClassicController],
+      [null, proto.WiiExtType.WiiClassicControllerPro],
+    ]);
   });
 
   it('imports a standalone Wii input with its own pins', () => {
-    const { config, find, warnings } = run(DCT.DeviceControllerType_Gamepad, [
+    const { config, profile, find, warnings } = run(DCT.DeviceControllerType_Gamepad, [
       button(
         {
           serializedAnalogToDigital: {
@@ -207,6 +224,9 @@ describe('Wii extensions', () => {
       ),
     ]);
     expect(config.devices.filter((d) => d.wii)).toHaveLength(1);
+    expect(profile.assignments[0].assignments).toContainEqual(
+      expect.objectContaining({ wiiExt: proto.WiiExtType.WiiNunchuk })
+    );
     const [up] = find({ gamepadButton: proto.GamepadButtonType.Gamepad_DpadUp });
     expect(up).toMatchObject({
       trigger: proto.AnalogToDigitalTriggerType.JoyHigh,

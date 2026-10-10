@@ -87,6 +87,12 @@ export class LegacyImportContext {
   // Further inputs a binding's mapping is copied onto once everything is converted, for old inputs
   // that read several devices at once (eg MIDI from every source)
   readonly extraInputs = new WeakMap<proto.IInput, proto.IInput[]>();
+  // Other assignments a slot also matches (eg a Classic Controller Pro for a Classic Controller
+  // slot). Each one gets a copy of the assignment lists, as assignments in one list all have to match
+  readonly slotAlternatives = new WeakMap<
+    proto.IProfileAssignmentInfo,
+    proto.IProfileAssignmentInfo[]
+  >();
   private readonly deviceKeys = new Map<string, number>();
   private readonly slotKeys = new Map<string, number>();
   private readonly slotCounts = new Map<string, number>();
@@ -123,9 +129,14 @@ export class LegacyImportContext {
     return deviceid;
   }
 
-  // Assignment based devices (USB host, Bluetooth, PSX, MIDI) are referenced by their slot in the
-  // profile's assignments rather than by device id.
-  addSlot(deviceKind: string, key: string, assignment: proto.IProfileAssignmentInfo): number {
+  // Assignment based devices (USB host, Bluetooth, PSX, MIDI, Wii extensions) are referenced by
+  // their slot in the profile's assignments rather than by device id.
+  addSlot(
+    deviceKind: string,
+    key: string,
+    assignment: proto.IProfileAssignmentInfo,
+    alternatives: proto.IProfileAssignmentInfo[] = []
+  ): number {
     const fullKey = `${deviceKind}:${key}`;
     const existing = this.slotKeys.get(fullKey);
     if (existing != null) {
@@ -135,6 +146,27 @@ export class LegacyImportContext {
     this.slotCounts.set(deviceKind, slotId);
     this.slotKeys.set(fullKey, slotId);
     this.assignments.push(assignment);
+    if (alternatives.length) {
+      this.slotAlternatives.set(assignment, alternatives);
+    }
     return slotId;
+  }
+
+  // Copies each assignment list once per alternative of the slots in it. The copies keep the
+  // same order, so the slot ids stay the same across them.
+  expandSlotAlternatives(lists: proto.IProfileAssignment[]): proto.IProfileAssignment[] {
+    return lists.flatMap((list) => {
+      let expanded: proto.IProfileAssignmentInfo[][] = [list.assignments ?? []];
+      for (const [index, item] of (list.assignments ?? []).entries()) {
+        const alternatives = this.slotAlternatives.get(item);
+        if (alternatives) {
+          expanded = expanded.flatMap((items) => [
+            items,
+            ...alternatives.map((alt) => items.map((x, i) => (i === index ? alt : x))),
+          ]);
+        }
+      }
+      return expanded.map((assignments) => ({ ...list, assignments }));
+    });
   }
 }
