@@ -1666,6 +1666,9 @@ function JoybusDevice({ id }: { id: string }) {
       image="covers/devices/joybus.png"
       deleteDevice={() => deleteDevice(id)}
     >
+      <Text size="sm" c="dimmed">
+        {t('joybus.description')}
+      </Text>
       <PinBox
         label="joybus.data_pin"
         pin={joybus.dataPin}

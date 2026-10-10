@@ -725,6 +725,7 @@
     }
   },
   "joybus": {
+    "description": "Wire a 1k resistor between the data pin and 3.3V. Without it the line is only held up by the weak internal pull-up, which can cause the stick to jump around.",
     "data_pin": "Data Pin",
     "devices": {
       "JoybusControllerNone": "Disconnected",
