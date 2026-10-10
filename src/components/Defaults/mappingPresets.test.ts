@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { proto } from '@/components/SettingsContext/config';
 import { CODE_TO_HID } from '@/devices/keyboard';
-import { getPresetMappings, MAPPING_PRESETS } from './mappingPresets';
+import { MIDI_PERCUSSION_CHANNEL } from '@/devices/midi';
+import { getPresetMappings, GM_DRUMS, MAPPING_PRESETS } from './mappingPresets';
 
 const preset = (id: string) => MAPPING_PRESETS.find((p) => p.id === id)!;
 const wiiGuitar = { wiiExtType: proto.WiiExtType.WiiGuitarHeroGuitar };
@@ -48,6 +49,50 @@ describe('PS2 guitar on PS3 preset', () => {
         mapping: { gamepadButton: proto.GamepadButtonType.Gamepad_DpadLeft },
         input: { fixed: { value: 65535 } },
       },
+    ]);
+  });
+});
+
+describe('General MIDI drum presets', () => {
+  const notes = (mappings: proto.IMapping[]) => mappings.map((m) => m.mapping?.midiNote?.note);
+
+  it('maps Rock Band pads and cymbals to drum kit notes on channel 10', () => {
+    const mappings = getPresetMappings(preset('midi_drums_rb'), 'gpio');
+    expect(notes(mappings)).toEqual([
+      GM_DRUMS.snare,
+      GM_DRUMS.highTom,
+      GM_DRUMS.lowTom,
+      GM_DRUMS.floorTom,
+      GM_DRUMS.closedHiHat,
+      GM_DRUMS.ride,
+      GM_DRUMS.crash,
+      GM_DRUMS.kick,
+      GM_DRUMS.kick,
+    ]);
+    expect(mappings.every((m) => m.mapping?.midiNote?.channel === MIDI_PERCUSSION_CHANNEL)).toBe(
+      true
+    );
+  });
+
+  it('keeps a pad analog, with its calibration for the velocity', () => {
+    const mappings = getPresetMappings(preset('midi_drums_rb'), 'gpio');
+    const snare = mappings.find((m) => m.mapping?.midiNote?.note === GM_DRUMS.snare)!;
+    expect(snare.input?.gpio?.analog).toBe(true);
+    expect(snare.trigger).toBe(proto.AnalogToDigitalTriggerType.JoyHigh);
+    expect(snare.min).toBe(0);
+    expect(snare.max).toBe(65535);
+    expect(snare.debounce).toBe(30);
+  });
+
+  it('maps Guitar Hero pads, including the kick axis', () => {
+    const mappings = getPresetMappings(preset('midi_drums_gh'), 'gpio');
+    expect(notes(mappings)).toEqual([
+      GM_DRUMS.snare,
+      GM_DRUMS.closedHiHat,
+      GM_DRUMS.highTom,
+      GM_DRUMS.crash,
+      GM_DRUMS.floorTom,
+      GM_DRUMS.kick,
     ]);
   });
 });

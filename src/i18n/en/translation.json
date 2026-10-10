@@ -83,6 +83,20 @@
       "Mouse_ScrollY": "Mouse scroll vertical"
     }
   },
+  "midiOutput": {
+    "output": "MIDI output",
+    "note": "Note",
+    "control": "Control change (CC)",
+    "pitchBend": "Pitch bend",
+    "channel": "MIDI channel",
+    "channel_desc": "1 - 16. Drums go on channel 10",
+    "noteNumber": "Note number",
+    "controlNumber": "Controller number",
+    "controlNumber_desc": "For example 4 for a hi-hat pedal, or 64 for a sustain pedal",
+    "fixedVelocity": "Fixed velocity",
+    "fixedVelocity_desc": "Always send this velocity, instead of one from how hard the input is hit",
+    "velocity": "Velocity"
+  },
   "common": {
     "copy": "Copy",
     "delete": "Delete",
@@ -1054,6 +1068,8 @@
       "festival_pro_guitar": "Fortnite Festival - Pro Guitar",
       "festival_drums": "Fortnite Festival - Drums",
       "festival_pro_drums": "Fortnite Festival - Pro Drums",
+      "midi_drums_rb": "General MIDI drum kit - from Rock Band drums",
+      "midi_drums_gh": "General MIDI drum kit - from Guitar Hero drums",
       "ps2_guitar_on_ps3": "Guitar Hero guitar for PS2 games on PS3"
     }
   },
@@ -1420,7 +1436,7 @@
     "PowerGigDrum": "Power Gig Drum",
     "PowerGigGuitar": "Power Gig Guitar",
     "RockRevolutionGuitar": "Rock Revolution Guitar",
-    "Midi": "Midi device"
+    "Midi": "MIDI Instrument"
   },
   "outputs": {
     "projectDivaTouch": "Slider touch {{index}}",

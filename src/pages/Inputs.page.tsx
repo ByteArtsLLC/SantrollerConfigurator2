@@ -122,6 +122,12 @@ import {
   MEDIA_KEYS,
   mediaKeyName,
 } from '@/devices/keyboard';
+import {
+  GM_PERCUSSION,
+  MIDI_PERCUSSION_CHANNEL,
+  midiNoteName,
+  midiOutputLabel,
+} from '@/devices/midi';
 import { AllPinsNamed, AnalogPinsNamed } from '@/devices/pico/pins';
 
 const DRUM_HIT_DISPLAY_MS = 3000;
@@ -548,6 +554,9 @@ function OutputBox({
   );
   switch (type) {
     case proto.SubType.Midi:
+      if (!midi) {
+        return <MidiOutputBox mapping={mapping} actions={actions} dispatch={dispatch} />;
+      }
       return (
         <DropdownOutputBox
           {...actionProps}
@@ -1041,6 +1050,139 @@ function OutputBox({
       return <></>;
   }
 }
+// What a MIDI instrument profile's mappings send. Channels are stored 0 - 15 but shown 1 - 16.
+function MidiOutputBox({
+  mapping,
+  actions,
+  dispatch,
+}: {
+  mapping: proto.IOutput | undefined;
+  actions?: boolean;
+  dispatch: (mapping: proto.IOutput, trigger: boolean, analog: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const kind =
+    mapping?.action != null
+      ? `action:${mapping.action}`
+      : mapping?.midiControl
+        ? 'control'
+        : mapping?.midiPitchBend != null
+          ? 'pitchBend'
+          : mapping?.midiNote
+            ? 'note'
+            : null;
+  const channel =
+    mapping?.midiNote?.channel ?? mapping?.midiControl?.channel ?? mapping?.midiPitchBend ?? 0;
+  const note = mapping?.midiNote ?? { channel, note: 60 };
+  const control = mapping?.midiControl ?? { channel, control: 4 };
+  const setNote = (value: proto.IMidiNoteOutput) =>
+    dispatch({ midiNote: value as proto.MidiNoteOutput }, true, false);
+  const setControl = (value: proto.IMidiControlOutput) =>
+    dispatch({ midiControl: value as proto.MidiControlOutput }, true, true);
+  const setChannel = (value: number) => {
+    if (kind === 'control') {
+      setControl({ ...control, channel: value });
+    } else if (kind === 'pitchBend') {
+      dispatch({ midiPitchBend: value }, false, true);
+    } else {
+      setNote({ ...note, channel: value });
+    }
+  };
+  const clamp = (value: string | number, min: number, max: number) =>
+    Math.min(max, Math.max(min, Number(value) || 0));
+  return (
+    <>
+      <Select
+        label={t('midiOutput.output')}
+        placeholder={t('pick_value')}
+        allowDeselect={false}
+        data={[
+          { value: 'note', label: t('midiOutput.note') },
+          { value: 'control', label: t('midiOutput.control') },
+          { value: 'pitchBend', label: t('midiOutput.pitchBend') },
+          ...(actions
+            ? Object.entries(proto.ActionType)
+                .filter(([, v]) => typeof v === 'number')
+                .map(([name, v]) => ({
+                  value: `action:${v}`,
+                  label: t(`outputs.${name}`, name),
+                }))
+            : []),
+        ]}
+        value={kind}
+        onChange={(value) => {
+          if (!value || value === kind) {
+            return;
+          }
+          const [type, id] = value.split(':');
+          if (type === 'action') {
+            dispatch({ action: parseInt(id, 10) }, false, false);
+          } else if (type === 'control') {
+            setControl({ channel, control: 4 });
+          } else if (type === 'pitchBend') {
+            dispatch({ midiPitchBend: channel }, false, true);
+          } else {
+            setNote({ channel, note: 60 });
+          }
+        }}
+      />
+      {kind != null && mapping?.action == null && (
+        <NumberInput
+          label={t('midiOutput.channel')}
+          description={t('midiOutput.channel_desc')}
+          min={1}
+          max={16}
+          value={channel + 1}
+          onChange={(value) => setChannel(clamp(value, 1, 16) - 1)}
+        />
+      )}
+      {kind === 'note' && (
+        <>
+          <NumberInput
+            label={t('midiOutput.noteNumber')}
+            description={
+              (note.channel === MIDI_PERCUSSION_CHANNEL && GM_PERCUSSION[note.note]) ||
+              midiNoteName(note.note)
+            }
+            min={0}
+            max={127}
+            value={note.note}
+            onChange={(value) => setNote({ ...note, note: clamp(value, 0, 127) })}
+          />
+          <Switch
+            mt="sm"
+            label={t('midiOutput.fixedVelocity')}
+            description={t('midiOutput.fixedVelocity_desc')}
+            checked={note.velocity != null}
+            onChange={(event) =>
+              setNote({ ...note, velocity: event.currentTarget.checked ? 127 : undefined })
+            }
+          />
+          {note.velocity != null && (
+            <NumberInput
+              label={t('midiOutput.velocity')}
+              min={1}
+              max={127}
+              value={note.velocity}
+              onChange={(value) => setNote({ ...note, velocity: clamp(value, 1, 127) })}
+            />
+          )}
+        </>
+      )}
+      {kind === 'control' && (
+        <NumberInput
+          label={t('midiOutput.controlNumber')}
+          description={t('midiOutput.controlNumber_desc')}
+          min={0}
+          max={127}
+          value={control.control}
+          onChange={(value) => setControl({ ...control, control: clamp(value, 0, 127) })}
+        />
+      )}
+    </>
+  );
+}
+
 // The controller types RPCS3's USB passthrough knows about, matching the firmware
 const RPCS3_PASSTHROUGH_SUBTYPES: proto.SubType[] = [
   proto.SubType.Gamepad,
@@ -3212,6 +3354,7 @@ function SantrollerMapping({
     (mapping.mapping.consumerKey != null
       ? (mediaKeyName(mapping.mapping.consumerKey) ?? `Media ${mapping.mapping.consumerKey}`)
       : undefined) ||
+    midiOutputLabel(mapping.mapping) ||
     proto.ActionType[mapping.mapping.action ?? -1];
   const fixedLabel = FixLabel(mode, type, label || '', legendMode);
   const img = `Icons/Input/${FixIcon(mode, type, label || '', legendMode)}.png`;
@@ -3219,11 +3362,15 @@ function SantrollerMapping({
     mapping.mapping.keycode != null ||
     mapping.mapping.consumerKey != null ||
     mapping.mapping.action != null ||
+    mapping.mapping.midiNote != null ||
     Object.entries(mapping.mapping).find(([k, v]) => k.endsWith('Button') && v != null);
   const axis =
     mapping.mapping.proKeySingle != null ||
+    mapping.mapping.midiControl != null ||
+    mapping.mapping.midiPitchBend != null ||
     Object.entries(mapping.mapping).find(([k, v]) => k.endsWith('Axis') && v);
-  const stick = label?.includes('Stick');
+  // pitch bend rests in the middle like a stick does
+  const stick = (axis && label?.includes('Stick')) || mapping.mapping.midiPitchBend != null;
   const drum =
     label?.includes('Pad') ||
     label?.includes('Cymbal') ||

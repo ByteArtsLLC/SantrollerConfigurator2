@@ -1,5 +1,6 @@
 import { proto } from '@/components/SettingsContext/config';
 import { CODE_TO_HID } from '@/devices/keyboard';
+import { MIDI_PERCUSSION_CHANNEL } from '@/devices/midi';
 import { DeviceStatusLike, getDefaultMappings } from './defaultMappings';
 
 // A preset generates an instrument's default mappings for a device, then rewrites their
@@ -146,6 +147,87 @@ function festivalDrums(pro: boolean) {
   };
 }
 
+// General MIDI percussion, which is what drum modules send and what games and DAWs expect
+export const GM_DRUMS = {
+  kick: 36,
+  snare: 38,
+  floorTom: 43,
+  closedHiHat: 42,
+  lowTom: 45,
+  highTom: 48,
+  crash: 49,
+  ride: 51,
+} as const;
+
+const drumNote = (note: number): proto.IOutput => ({
+  midiNote: { channel: MIDI_PERCUSSION_CHANNEL, note },
+});
+
+// Drum pads as General MIDI notes. Pads keep their calibration, which the firmware uses to scale
+// how hard they're hit into the velocity
+function midiDrums(
+  pads: Partial<Record<number, number>>,
+  padOf: (out: proto.IOutput) => number | null | undefined,
+  kicks: Partial<Record<number, number>>,
+  kickOf: (out: proto.IOutput) => number | null | undefined
+) {
+  return (mapping: proto.IMapping): proto.IMapping[] => {
+    const out = mapping.mapping ?? {};
+    const padId = padOf(out);
+    const pad = padId != null ? pads[padId] : undefined;
+    if (pad != null) {
+      return [
+        {
+          ...analogAsButton(mapping, drumNote(pad), 0.1),
+          min: mapping.min,
+          max: mapping.max,
+          deadzone: mapping.deadzone,
+          debounce: mapping.debounce,
+        },
+      ];
+    }
+    const kickId = kickOf(out);
+    const kick = kickId != null ? kicks[kickId] : undefined;
+    if (kick != null) {
+      return [withOutput(mapping, drumNote(kick))];
+    }
+    return [];
+  };
+}
+
+const rbMidiDrums = midiDrums(
+  {
+    [proto.RockBandDrumsAxisType.RockBandDrums_RedPad]: GM_DRUMS.snare,
+    [proto.RockBandDrumsAxisType.RockBandDrums_YellowPad]: GM_DRUMS.highTom,
+    [proto.RockBandDrumsAxisType.RockBandDrums_BluePad]: GM_DRUMS.lowTom,
+    [proto.RockBandDrumsAxisType.RockBandDrums_GreenPad]: GM_DRUMS.floorTom,
+    [proto.RockBandDrumsAxisType.RockBandDrums_YellowCymbal]: GM_DRUMS.closedHiHat,
+    [proto.RockBandDrumsAxisType.RockBandDrums_BlueCymbal]: GM_DRUMS.ride,
+    [proto.RockBandDrumsAxisType.RockBandDrums_GreenCymbal]: GM_DRUMS.crash,
+  },
+  (out) => out.rbDrumAxis,
+  {
+    [proto.RockBandDrumsButtonType.RockBandDrums_Kick1Pedal]: GM_DRUMS.kick,
+    [proto.RockBandDrumsButtonType.RockBandDrums_Kick2Pedal]: GM_DRUMS.kick,
+  },
+  (out) => out.rbDrumButton
+);
+
+// The GH kick is an axis, so it goes through as a pad
+const ghMidiDrums = midiDrums(
+  {
+    [proto.GuitarHeroDrumsAxisType.GuitarHeroDrums_RedPad]: GM_DRUMS.snare,
+    [proto.GuitarHeroDrumsAxisType.GuitarHeroDrums_YellowPad]: GM_DRUMS.closedHiHat,
+    [proto.GuitarHeroDrumsAxisType.GuitarHeroDrums_BluePad]: GM_DRUMS.highTom,
+    [proto.GuitarHeroDrumsAxisType.GuitarHeroDrums_OrangePad]: GM_DRUMS.crash,
+    [proto.GuitarHeroDrumsAxisType.GuitarHeroDrums_GreenPad]: GM_DRUMS.floorTom,
+    [proto.GuitarHeroDrumsAxisType.GuitarHeroDrums_KickPedal]: GM_DRUMS.kick,
+  },
+  (out) => out.ghDrumAxis,
+  {},
+  () => undefined
+);
+
 // A PS2 Guitar Hero guitar as it appears on a PS3 through a PS2 adapter, for PS2 classics
 function ps2GuitarOnPs3(mapping: proto.IMapping): proto.IMapping[] {
   const out = mapping.mapping ?? {};
@@ -223,6 +305,18 @@ export const MAPPING_PRESETS: MappingPreset[] = [
     subTypes: [proto.SubType.KeyboardMouse],
     source: proto.SubType.RockBandDrums,
     convert: festivalDrums(true),
+  },
+  {
+    id: 'midi_drums_rb',
+    subTypes: [proto.SubType.Midi],
+    source: proto.SubType.RockBandDrums,
+    convert: rbMidiDrums,
+  },
+  {
+    id: 'midi_drums_gh',
+    subTypes: [proto.SubType.Midi],
+    source: proto.SubType.GuitarHeroDrums,
+    convert: ghMidiDrums,
   },
   {
     id: 'ps2_guitar_on_ps3',
