@@ -44,6 +44,9 @@ const LEGACY_FIRMWARE_BLOCK_SIZE = 256;
 const LEGACY_FIRMWARE_UPLOAD_CHUNK_SIZE = 32;
 type DeviceType = keyof Omit<proto.IDevice, 'deviceid'>;
 class HidResponseTimeoutError extends Error {}
+// The config came back incomplete or corrupted, so reading it again may work
+class ConfigReadError extends Error {}
+const CONFIG_READ_ATTEMPTS = 3;
 
 const equals = (a: Uint8Array, b: Uint8Array) =>
   a.length === b.length && a.every((val, index) => val === b[index]);
@@ -499,7 +502,8 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     if (x.peripheral?.devices?.length) {
       for (const sub of x.peripheral.devices) {
         const subIdStr = sub.deviceid.toString();
-        const subTypeName = Object.keys(sub).find((k) => k !== 'deviceid') as DeviceType | undefined;
+        const subTypeName = Object.keys(sub).find((k) => k !== 'deviceid') as
+          DeviceType | undefined;
         if (!subTypeName || !isDeviceKind(subTypeName)) {
           console.warn('Dropping peripheral device with unknown type', sub);
           continue;
@@ -1964,16 +1968,19 @@ export const useConfigStore = create<ConfigState & Actions>()(
         set((state) => {
           state.refreshingBluetooth = true;
         });
-        const { data, info } = await fetchConfigData(state.hidDevice, false);
+        const { data, info } = await fetchConfigDataWithRetry(state.hidDevice, false);
         const aux = proto.AuxConfigBlock.decode(data.slice(info.mainSize), info.auxSize);
         set((state) => {
           state.bluetoothStates = aux.bluetoothStates ?? [];
           state.tlvEntries = aux.tlvEntries ?? [];
           state.ghArcadeSide = aux.ghArcadeSide ?? null;
-          state.refreshingBluetooth = false;
         });
       } catch (e) {
         console.error('Failed to refresh bluetooth pairings', e);
+      } finally {
+        set((state) => {
+          state.refreshingBluetooth = false;
+        });
       }
     },
     firmwareUpdate: async () => {
@@ -2336,10 +2343,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
           console.log(e);
         }
         try {
-          const { data, info } = await fetchConfigData(device, false);
+          const { data, info } = await fetchConfigDataWithRetry(device, false);
           let dataSaved: Uint8Array | undefined = undefined;
           try {
-            const { data: fetchedDataSaved } = await fetchConfigData(device, true);
+            const { data: fetchedDataSaved } = await fetchConfigDataWithRetry(device, true);
             dataSaved = fetchedDataSaved;
           } catch (e) {
             console.error('Failed to get saved config data', e);
@@ -2418,23 +2425,43 @@ async function fetchConfigData(device: HIDDevice, saved: boolean) {
   if (info.magic >>> 0 !== magic) {
     console.log('magic didnt match!');
   }
+  const which = saved ? 'saved' : 'current';
   const data = new Uint8Array(info.dataSize);
   let start = 0;
   while (start < info.dataSize) {
     const slice = await receiveFeatureReport(device, proto.ReportId.ReportIdConfig);
     const toCopy = Math.min(slice.byteLength - 1, info.dataSize - start);
     if (toCopy <= 0) {
-      break;
+      throw new ConfigReadError(`${which} config stopped after ${start} of ${info.dataSize} bytes`);
     }
     const chunk = new Uint8Array(slice.buffer, slice.byteOffset + 1, toCopy);
     data.set(chunk, start);
     start += toCopy;
   }
 
-  if (new CRC32().calculate(data) !== info.dataCrc) {
-    console.log('CRC didnt match!');
+  // The config is read as a stream of chunks, so a chunk lost or read twice on the way (which
+  // happens now and then over bluetooth) shifts everything after it
+  const crc = new CRC32().calculate(data);
+  if (crc !== info.dataCrc) {
+    throw new ConfigReadError(
+      `${which} config CRC didn't match (got ${crc >>> 0}, expected ${info.dataCrc >>> 0})`
+    );
   }
   return { data, info };
+}
+
+// Reading the config info again restarts the stream from the beginning
+async function fetchConfigDataWithRetry(device: HIDDevice, saved: boolean) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetchConfigData(device, saved);
+    } catch (e) {
+      if (!(e instanceof ConfigReadError) || attempt >= CONFIG_READ_ATTEMPTS) {
+        throw e;
+      }
+      console.warn(`${e.message}, reading it again`);
+    }
+  }
 }
 const BLUETOOTH_RECONNECT_ATTEMPTS = 15;
 const BLUETOOTH_RECONNECT_DELAY_MS = 2000;
