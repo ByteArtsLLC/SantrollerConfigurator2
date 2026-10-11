@@ -21,6 +21,7 @@ export function ConnectPage() {
   const hung = useConfigStore((state) => state.hung);
   const updating = useConfigStore((state) => state.updating);
   const updatePercentage = useConfigStore((state) => state.updatePercentage);
+  const applyingUpdate = useConfigStore((state) => state.applyingUpdate);
   const latest = useConfigStore((state) => state.latest);
   const simpleMode = useConfigStore((state) => state.simpleMode);
   const needsUf2Update = useConfigStore((state) => state.needsUf2Update);
@@ -147,6 +148,12 @@ export function ConnectPage() {
               {t('connect.startUpdate')}
             </Button>
             <Progress size="xl" value={updatePercentage} />
+            {applyingUpdate && (
+              <>
+                <Space h="xs" />
+                {t('connect.applyingUpdate')}
+              </>
+            )}
           </Alert>
         )}
 

@@ -43,6 +43,20 @@ const FIRMWARE_BLOCK_SIZE = 4096;
 const FIRMWARE_UPLOAD_CHUNK_SIZE = 63;
 const LEGACY_FIRMWARE_BLOCK_SIZE = 256;
 const LEGACY_FIRMWARE_UPLOAD_CHUNK_SIZE = 32;
+// The upload fills the progress bar up to here, the rest covers the bootloader applying the update
+const FIRMWARE_UPLOAD_PROGRESS_END = 50;
+// Roughly what the bootloader spends swapping one 4KB sector (2 erases + 2 programs)
+const FIRMWARE_APPLY_MS_PER_SECTOR = 110;
+const FIRMWARE_REBOOT_MS = 2_000;
+const FIRMWARE_APPLY_TIMEOUT_MS = 120_000;
+const FIRMWARE_APPLY_PROGRESS_INTERVAL_MS = 250;
+let firmwareApplyTimer: ReturnType<typeof setInterval> | undefined;
+function stopFirmwareApplyProgress() {
+  if (firmwareApplyTimer) {
+    clearInterval(firmwareApplyTimer);
+    firmwareApplyTimer = undefined;
+  }
+}
 type DeviceType = keyof Omit<proto.IDevice, 'deviceid'>;
 class HidResponseTimeoutError extends Error {}
 // The config came back incomplete or corrupted, so reading it again may work
@@ -374,6 +388,7 @@ export interface ConfigState {
   polling: boolean;
   refreshingBluetooth: boolean;
   updating: boolean;
+  applyingUpdate: boolean;
   detected: number;
   type: string;
   updatePercentage: number;
@@ -570,6 +585,7 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     configModified: false,
     waitingForReload: false,
     updating: false,
+    applyingUpdate: false,
     connected: false,
     hung: false,
     detecting: false,
@@ -1572,6 +1588,8 @@ export const useConfigStore = create<ConfigState & Actions>()(
       if (!device.opened) {
         await device.open();
       }
+      const finishingUpdate = get().applyingUpdate;
+      stopFirmwareApplyProgress();
       set(
         (state) => ({
           ...state,
@@ -1580,6 +1598,9 @@ export const useConfigStore = create<ConfigState & Actions>()(
           hung: false,
           polling: true,
           waitingForReload: false,
+          ...(finishingUpdate
+            ? { updating: false, applyingUpdate: false, updatePercentage: 0 }
+            : {}),
         }),
         true
       );
@@ -2027,8 +2048,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
       while (get().sendingKeepAlive) {
         await delay(KEEPALIVE_INTERVAL_MS);
       }
+      let firmwareSize = 0;
       try {
         const updateFile = await (await fetch(`santroller_ota_${state.type}.bin`)).bytes();
+        firmwareSize = updateFile.length;
         const fastFirmwareUploadReports = findFastFirmwareUploadReports(hidDevice);
         const firmwareInfo = proto.FirmwareUpdate.create({
           chunkOffset: 0,
@@ -2072,7 +2095,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               updatePercentage:
                 1 +
                 (Math.min(i + LEGACY_FIRMWARE_BLOCK_SIZE, updateFile.length) / updateFile.length) *
-                  99,
+                  (FIRMWARE_UPLOAD_PROGRESS_END - 1),
             }));
           }
         };
@@ -2105,7 +2128,8 @@ export const useConfigStore = create<ConfigState & Actions>()(
             if (offset % FIRMWARE_BLOCK_SIZE === 0 || offset === updateFile.length) {
               set((old) => ({
                 ...old,
-                updatePercentage: 1 + (offset / updateFile.length) * 99,
+                updatePercentage:
+                  1 + (offset / updateFile.length) * (FIRMWARE_UPLOAD_PROGRESS_END - 1),
               }));
             }
           }
@@ -2155,7 +2179,39 @@ export const useConfigStore = create<ConfigState & Actions>()(
         });
         return;
       }
-      state.disconnect();
+      await state.disconnect();
+      // The controller drops off USB while the bootloader swaps the new firmware in, so keep the
+      // progress bar moving until it comes back. The estimate assumes the bootloader only swaps
+      // what the images use, older bootloaders swap the whole slot and take longer, so ease
+      // towards 99% rather than stopping at the estimate.
+      const applyEstimateMs =
+        Math.ceil(firmwareSize / FIRMWARE_BLOCK_SIZE) * FIRMWARE_APPLY_MS_PER_SECTOR +
+        FIRMWARE_REBOOT_MS;
+      const applyStart = Date.now();
+      set((state) => {
+        state.updating = true;
+        state.applyingUpdate = true;
+        state.updatePercentage = FIRMWARE_UPLOAD_PROGRESS_END;
+      });
+      stopFirmwareApplyProgress();
+      firmwareApplyTimer = setInterval(() => {
+        const elapsed = Date.now() - applyStart;
+        if (elapsed > FIRMWARE_APPLY_TIMEOUT_MS) {
+          console.error('Controller did not come back after a firmware update');
+          stopFirmwareApplyProgress();
+          set((state) => {
+            state.updating = false;
+            state.applyingUpdate = false;
+            state.updatePercentage = 0;
+          });
+          return;
+        }
+        set((state) => {
+          state.updatePercentage =
+            FIRMWARE_UPLOAD_PROGRESS_END +
+            (99 - FIRMWARE_UPLOAD_PROGRESS_END) * (1 - Math.exp(-elapsed / applyEstimateMs));
+        });
+      }, FIRMWARE_APPLY_PROGRESS_INTERVAL_MS);
     },
     peripheralFirmwareUpdate: async (deviceId: number, file: File) => {
       const state = get();
