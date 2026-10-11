@@ -253,3 +253,129 @@ export function importLegacyConfig(data: Uint8Array, name = 'Imported'): LegacyI
     warnings: ctx.warnings,
   };
 }
+
+// Returns the input with the device ids of it and the inputs inside it changed by `remap`. Inputs
+// that read a profile slot keep their slot ids, as slots belong to the profile.
+function remapDeviceIds(input: proto.IInput, remap: (id: number) => number): proto.IInput {
+  const kind = Object.keys(input).find((key) => input[key as keyof proto.IInput] != null) as
+    keyof proto.IInput | undefined;
+  if (!kind || getInputSlotKind(input)) {
+    return input;
+  }
+  const value = { ...(input[kind] as Record<string, unknown>) };
+  if (typeof value.deviceid === 'number') {
+    value.deviceid = remap(value.deviceid);
+  }
+  for (const field of ['input', 'inputReverse', 'shift'] as const) {
+    if (value[field]) {
+      value[field] = remapDeviceIds(value[field] as proto.IInput, remap);
+    }
+  }
+  if (Array.isArray(value.inputs)) {
+    value.inputs = (value.inputs as proto.IInput[]).map((x) => remapDeviceIds(x, remap));
+  }
+  return { [kind]: value };
+}
+
+function remapProfileDeviceIds(profile: proto.IProfile, remap: (id: number) => number) {
+  const inputOf = <T extends proto.IInput | null | undefined>(x: T): T =>
+    x ? (remapDeviceIds(x, remap) as T) : x;
+  return {
+    ...profile,
+    mappings: profile.mappings?.map((m) => ({ ...m, input: inputOf(m.input) })),
+    assignments: profile.assignments?.map((list) => ({
+      ...list,
+      assignments: list.assignments?.map((item) => ({
+        ...item,
+        ...(item.input ? { input: { ...item.input, input: inputOf(item.input.input) } } : {}),
+        ...(item.inputAnyTime
+          ? { inputAnyTime: { ...item.inputAnyTime, input: inputOf(item.inputAnyTime.input) } }
+          : {}),
+      })),
+    })),
+    leds: profile.leds?.map((led) => {
+      const [kind, device] = Object.entries(led.device ?? {}).find(([, v]) => v != null) ?? [];
+      const deviceRef =
+        kind && device && typeof device.deviceId === 'number'
+          ? { [kind]: { ...device, deviceId: remap(device.deviceId) } }
+          : led.device;
+      const input = led.mapping?.inputMapping?.input;
+      return {
+        ...led,
+        device: deviceRef,
+        mapping: input
+          ? {
+              ...led.mapping,
+              inputMapping: { ...led.mapping!.inputMapping!, input: inputOf(input) },
+            }
+          : led.mapping,
+      };
+    }),
+  };
+}
+
+// Converts several Santroller 1 .picoconfig files into one config, with a profile for each. A
+// device that more than one of them set up the same way is shared, the rest are given new ids.
+export function importLegacyConfigs(
+  files: { data: Uint8Array; name: string }[]
+): LegacyImportResult {
+  const devices: proto.IDevice[] = [];
+  const deviceKeys = new Map<string, number>();
+  const profiles: proto.IProfile[] = [];
+  const warnings: string[] = [];
+  // The sleep and LED timeouts are for the whole device, so the first file's are used
+  let inactivity: { config: proto.IInactivityConfig; from: string } | undefined;
+  for (const file of files) {
+    let result: LegacyImportResult;
+    try {
+      result = importLegacyConfig(file.data, file.name);
+    } catch (e) {
+      throw new Error(files.length > 1 ? `${file.name}: ${e}` : `${e}`);
+    }
+    const config = proto.Config.toObject(result.config) as proto.IConfig;
+    const ids = new Map<number, number>();
+    for (const device of config.devices ?? []) {
+      const key = JSON.stringify({ ...device, deviceid: undefined });
+      let id = deviceKeys.get(key);
+      if (id == null) {
+        id = devices.length + 1;
+        deviceKeys.set(key, id);
+        devices.push({ ...device, deviceid: id });
+      }
+      ids.set(device.deviceid, id);
+    }
+    const profile = remapProfileDeviceIds(config.profiles![0], (id) => ids.get(id) ?? id);
+    profiles.push({ ...profile, opts: { ...profile.opts!, uid: profiles.length + 1 } });
+    const prefix = files.length > 1 ? `${file.name}: ` : '';
+    warnings.push(...result.warnings.map((w) => prefix + w));
+    if (config.inactivity) {
+      if (!inactivity) {
+        inactivity = { config: config.inactivity, from: file.name };
+      } else if (JSON.stringify(inactivity.config) !== JSON.stringify(config.inactivity)) {
+        warnings.push(
+          `${prefix}The sleep and LED timeouts are shared by every profile, so the ones from ${inactivity.from} were kept.`
+        );
+      }
+    }
+  }
+  const config = proto.Config.fromObject({
+    devices,
+    profiles,
+    guiConfig: [],
+    ...(inactivity ? { inactivity: inactivity.config } : {}),
+  });
+  const error = proto.Config.verify(config);
+  if (error) {
+    throw new Error(`The imported config is invalid: ${error}`);
+  }
+  return {
+    config,
+    aux: proto.AuxConfigBlock.create({
+      states: [],
+      toggleStates: [],
+      bluetoothStates: [],
+      tlvEntries: [],
+    }),
+    warnings,
+  };
+}

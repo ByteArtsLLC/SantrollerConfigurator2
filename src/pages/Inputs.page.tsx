@@ -973,7 +973,7 @@ function OutputBox({
       return (
         <>
           <Select
-            label={t('keyboard.output')}
+            label={title === 'input' ? t('input.title', 'Input') : t('keyboard.output')}
             allowDeselect={false}
             data={[
               { value: 'key', label: t('keyboard.key') },

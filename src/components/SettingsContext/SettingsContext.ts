@@ -24,7 +24,7 @@ import {
 } from '@/components/Inputs/inputRegistry';
 import { remapEditedSlotIds } from '@/components/Inputs/slotRemap';
 import { createLabelConfig, getNextLabelId } from '@/components/Labels/labelRegistry';
-import { importLegacyConfig } from '@/components/Legacy/importLegacyConfig';
+import { importLegacyConfigs } from '@/components/Legacy/importLegacyConfig';
 import { CRC32 } from '@/CRC32.js';
 import { BluetoothConfigDevice } from './BluetoothConfigDevice';
 import { proto } from './config.js';
@@ -453,7 +453,8 @@ export interface Actions {
   buildConfig: () => { config: proto.IConfig; aux: proto.IAuxConfigBlock };
   exportConfig: () => void;
   loadConfig: (file: File | null) => void;
-  importLegacyConfig: (file: File | null) => void;
+  // Each file becomes a profile of its own
+  importLegacyConfig: (files: File[]) => void;
   clearLegacyImportWarnings: () => void;
   pollInputs: (poll: boolean) => void;
   loadDefaults: (device: DeviceStatus | ProfileSlot | undefined, presetId?: string) => void;
@@ -1679,21 +1680,26 @@ export const useConfigStore = create<ConfigState & Actions>()(
         console.log(e);
       }
     },
-    importLegacyConfig: async (file: File | null) => {
-      if (!file) {
+    importLegacyConfig: async (files: File[]) => {
+      if (!files.length) {
         return;
       }
-      let result: ReturnType<typeof importLegacyConfig>;
+      let result: ReturnType<typeof importLegacyConfigs>;
+      const name = (file: File) => file.name.replace(/\.[^.]*$/, '');
       try {
-        result = importLegacyConfig(
-          new Uint8Array(await file.arrayBuffer()),
-          file.name.replace(/\.[^.]*$/, '')
+        result = importLegacyConfigs(
+          await Promise.all(
+            files.map(async (file) => ({
+              data: new Uint8Array(await file.arrayBuffer()),
+              name: name(file),
+            }))
+          )
         );
       } catch (e) {
         console.log(e);
         set((state) => {
           state.legacyImportWarnings = [
-            `This file couldn't be read as a Santroller 1 config: ${e}`,
+            `${files.length > 1 ? 'These files' : 'This file'} couldn't be read as a Santroller 1 config: ${e}`,
           ];
         });
         return;

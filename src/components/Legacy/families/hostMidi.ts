@@ -401,25 +401,31 @@ function hostInput(
       ctx.warn('Bluetooth keyboard and mouse bindings were skipped.');
       return undefined;
     }
+    // Keyboards and mice on the USB host are read like controllers, with the key or mouse
+    // control as the button / axis, which is how the config tool edits them
     if (type === UT.UsbHostInputType_KeyboardInput) {
-      const key = AVALONIA_KEY_TO_HID[h.key ?? 44];
-      if (key == null) {
+      const button = keyboardOutput(h.key ?? 44);
+      if (!button) {
         ctx.warn("A USB host keyboard binding for a key the new firmware can't read was skipped.");
         return undefined;
       }
       return {
-        input: { key: { deviceid: usbSlot(ctx, 'keyboard'), key } },
+        input: { usbButton: { deviceid: usbSlot(ctx, 'keyboard'), button } },
         analog: false,
         isUint: true,
       };
     }
     const deviceid = usbSlot(ctx, 'mouse');
     if (type === UT.UsbHostInputType_MouseButton) {
-      const button = MOUSE_BUTTONS[h.mouseButtonType ?? 0];
-      return { input: { mouseButton: { deviceid, button } }, analog: false, isUint: true };
+      const mouseButton = MOUSE_BUTTONS[h.mouseButtonType ?? 0];
+      return {
+        input: { usbButton: { deviceid, button: { mouseButton } } },
+        analog: false,
+        isUint: true,
+      };
     }
-    const axis = MOUSE_AXES[h.mouseAxisType ?? 0];
-    return { input: { mouseAxis: { deviceid, axis } }, analog: true, isUint: false };
+    const mouseAxis = MOUSE_AXES[h.mouseAxisType ?? 0];
+    return { input: { usbAxis: { deviceid, axis: { mouseAxis } } }, analog: true, isUint: false };
   }
   const target = hostOutput(type, hostType(ctx));
   if (typeof target === 'string') {

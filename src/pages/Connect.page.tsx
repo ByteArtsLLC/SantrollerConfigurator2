@@ -65,7 +65,12 @@ export function ConnectPage() {
               )}
             </FileButton>
             <Space h="md" />
-            <FileButton disabled={updating || hung} onChange={importLegacy} accept=".picoconfig">
+            <FileButton
+              disabled={updating || hung}
+              onChange={importLegacy}
+              accept=".picoconfig"
+              multiple
+            >
               {(props) => (
                 <Button disabled={updating || hung} {...props}>
                   {t('connect.importLegacy')}

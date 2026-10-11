@@ -250,12 +250,16 @@ describe('USB host', () => {
     });
     const [key, button, axis] = config.profiles[0].mappings;
     expect(key.mapping?.keycode).toBe(0x04);
-    expect(key.input?.key).toEqual({ deviceid: 1, key: 0xe1 });
-    expect(button.input?.mouseButton).toEqual({
+    // read like controllers, with the key or mouse control as the button, as the config tool does
+    expect(key.input?.usbButton).toEqual({ deviceid: 1, button: { keycode: 0xe1 } });
+    expect(button.input?.usbButton).toEqual({
       deviceid: 2,
-      button: proto.MouseButtonType.Mouse_Right,
+      button: { mouseButton: proto.MouseButtonType.Mouse_Right },
     });
-    expect(axis.input?.mouseAxis).toEqual({ deviceid: 2, axis: proto.MouseAxisType.Mouse_ScrollY });
+    expect(axis.input?.usbAxis).toEqual({
+      deviceid: 2,
+      axis: { mouseAxis: proto.MouseAxisType.Mouse_ScrollY },
+    });
     expect(axis).toMatchObject({ min: 1, max: 65535, center: 32768 });
     expect(assignments(config)).toEqual([
       expect.objectContaining({ usbType: proto.SubType.KeyboardMouse }),
