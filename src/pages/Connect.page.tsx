@@ -1,5 +1,6 @@
 import { IconExclamationCircle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { Alert, Button, FileButton, Group, List, Progress, Space } from '@mantine/core';
 import { Layout } from '@/components/Layout/Layout';
 import { BluetoothConfigDevice } from '@/components/SettingsContext/BluetoothConfigDevice';
@@ -121,6 +122,14 @@ export function ConnectPage() {
             <Space h="md" />
             <Button disabled={updating} onClick={connectBluetooth}>
               {t('connect.connectBluetooth')}
+            </Button>
+          </>
+        )}
+        {!connected && (
+          <>
+            <Space h="md" />
+            <Button component={Link} to="/setup">
+              {t('connect.setup')}
             </Button>
           </>
         )}
