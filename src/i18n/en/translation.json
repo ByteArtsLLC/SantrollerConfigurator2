@@ -62,6 +62,7 @@
     "bluetooth_device_type": "Controller Type",
     "usb_device_name": "Name",
     "usb_device_type": "Controller Type",
+    "usb_bluetooth_adapter": "Bluetooth Adapter",
     "bluetooth_device_mode": "Mode",
     "bluetooth_adapter_connected": "Adapter detected",
     "bluetooth_adapter_disconnected": "No adapter detected",

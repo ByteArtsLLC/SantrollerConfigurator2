@@ -1956,9 +1956,18 @@ function USBHostDevice({ id }: { id: string }) {
                   x.subtype !== proto.SubType.Unknown && subtypeName !== undefined;
                 return (
                   <Table.Tr key={usbDeviceKey(x)}>
-                    <Table.Td>{x.name}</Table.Td>
                     <Table.Td>
-                      {!hasControllerType ? (
+                      {x.name ||
+                        (x.bluetoothAdapter
+                          ? t('devices.usb_bluetooth_adapter', 'Bluetooth Adapter')
+                          : '-')}
+                    </Table.Td>
+                    <Table.Td>
+                      {x.bluetoothAdapter ? (
+                        <Badge size="xs" variant="outline" color="blue">
+                          {t('devices.usb_bluetooth_adapter', 'Bluetooth Adapter')}
+                        </Badge>
+                      ) : !hasControllerType ? (
                         '-'
                       ) : (
                         <Badge size="xs" variant="outline">
