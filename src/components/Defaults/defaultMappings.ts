@@ -3235,6 +3235,21 @@ export function getBluetoothDefaults(
   );
 }
 
+// The type of device a USB / Bluetooth host assignment expects, falling back to the emulated
+// type for assignments that don't say (any device), as that's the most likely thing plugged in.
+export function getAssignmentHostType(
+  assignment: proto.IProfileAssignmentInfo | undefined,
+  emulatedType: proto.SubType
+): proto.SubType {
+  return (
+    assignment?.usbType ??
+    assignment?.usbDevice?.subtype ??
+    assignment?.bluetoothType ??
+    assignment?.bluetoothDevice?.subtype ??
+    emulatedType
+  );
+}
+
 // ---------------------------------------------------------------------------
 // 8. Central Defaults Dispatcher
 // ---------------------------------------------------------------------------

@@ -64,6 +64,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure, useTimeout } from '@mantine/hooks';
 import {
+  getAssignmentHostType,
   getDefaultMappings,
   getOutputSubType,
   USB_HOST_INPUT_SUBTYPES,
@@ -7520,7 +7521,7 @@ function BlankProfileWizard({
           );
         } else if (item.usbType != null || item.usbDevice != null) {
           const usbDev = Object.values(deviceStatus).find((d) => d.type === 'usbHost');
-          const hostType = item.usbType ?? deviceToEmulate;
+          const hostType = getAssignmentHostType(item, deviceToEmulate);
           newMappings.push(
             ...getDefaultMappings(
               'usbHost',
@@ -7532,7 +7533,7 @@ function BlankProfileWizard({
           );
         } else if (item.bluetoothType != null || item.bluetoothDevice != null) {
           const btDev = Object.values(deviceStatus).find((d) => d.type === 'bt');
-          const hostType = item.bluetoothType ?? deviceToEmulate;
+          const hostType = getAssignmentHostType(item, deviceToEmulate);
           newMappings.push(
             ...getDefaultMappings(
               'bt',

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { proto } from '@/components/SettingsContext/config';
-import { getDefaultMappings, getPs2Defaults, getWiiDefaults } from './defaultMappings';
+import {
+  getAssignmentHostType,
+  getDefaultMappings,
+  getPs2Defaults,
+  getWiiDefaults,
+} from './defaultMappings';
 
 describe('Classic Controller trigger defaults', () => {
   // The Pro's triggers are ZL / ZR (L / R are its shoulder buttons), the original's are L / R
@@ -174,5 +179,42 @@ describe('USB host defaults for a different emulated type', () => {
       mappings.every((m) => m.mapping === (m.input?.usbButton?.button ?? m.input?.usbAxis?.axis))
     ).toBe(true);
     expect(mappings.length).toBeGreaterThan(20);
+  });
+});
+
+describe('host type of an assignment', () => {
+  it.each<[proto.IProfileAssignmentInfo | undefined, proto.SubType]>([
+    [{ usbType: proto.SubType.Gamepad }, proto.SubType.Gamepad],
+    [
+      { usbDevice: { vid: 1, pid: 2, subtype: proto.SubType.LiveGuitar } },
+      proto.SubType.LiveGuitar,
+    ],
+    [{ bluetoothType: proto.SubType.RockBandDrums }, proto.SubType.RockBandDrums],
+    [{ bluetoothDevice: { vid: 1, pid: 2, subtype: proto.SubType.Taiko } }, proto.SubType.Taiko],
+    // any device
+    [{ usbDevice: { vid: 1, pid: 2 } }, proto.SubType.DjHeroTurntable],
+    [undefined, proto.SubType.DjHeroTurntable],
+  ])('reads %o', (assignment, expected) => {
+    expect(getAssignmentHostType(assignment, proto.SubType.DjHeroTurntable)).toBe(expected);
+  });
+
+  // A gamepad slot on a turntable profile used to get turntable inputs, which a gamepad host
+  // reports as 0, pinning the tables at full speed
+  it('only reads gamepad inputs from a gamepad slot on a turntable profile', () => {
+    const mappings = getDefaultMappings(
+      'usbHost',
+      proto.SubType.DjHeroTurntable,
+      1,
+      undefined,
+      getAssignmentHostType({ usbType: proto.SubType.Gamepad }, proto.SubType.DjHeroTurntable)
+    );
+    expect(mappings.length).toBeGreaterThan(0);
+    expect(
+      mappings.every(
+        (m) =>
+          m.input?.usbButton?.button?.gamepadButton != null ||
+          m.input?.usbAxis?.axis?.gamepadAxis != null
+      )
+    ).toBe(true);
   });
 });

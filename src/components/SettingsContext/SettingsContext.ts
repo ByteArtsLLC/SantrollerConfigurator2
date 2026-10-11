@@ -7,7 +7,7 @@ import type {} from '@redux-devtools/extension';
 
 import { Reader } from 'protobufjs/minimal';
 import { decodeBlock, encodeBlock, UF2BlockData } from 'uf2';
-import { getDefaultMappings } from '@/components/Defaults/defaultMappings';
+import { getAssignmentHostType, getDefaultMappings } from '@/components/Defaults/defaultMappings';
 import { getPresetMappings, MAPPING_PRESETS } from '@/components/Defaults/mappingPresets';
 import {
   createDeviceConfig,
@@ -1150,10 +1150,12 @@ export const useConfigStore = create<ConfigState & Actions>()(
         let type = 'gpio';
         let targetDeviceId: number | undefined = undefined;
         let deviceStatusObj: DeviceStatus | undefined = undefined;
+        let assignment: proto.IProfileAssignmentInfo | undefined = undefined;
 
         if (device && 'slotId' in device && 'deviceKind' in device) {
           const slot = device as ProfileSlot;
           targetDeviceId = slot.slotId;
+          assignment = slot.item;
           type = slot.deviceKind === 'midi' ? 'midiSerial' : slot.deviceKind;
           deviceStatusObj = Object.values(state.deviceStatus).find(
             (d) =>
@@ -1178,6 +1180,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
             );
             if (matchingSlot) {
               targetDeviceId = matchingSlot.slotId;
+              assignment = matchingSlot.item;
             }
           }
           deviceStatusObj = devStatus;
@@ -1186,7 +1189,13 @@ export const useConfigStore = create<ConfigState & Actions>()(
         const preset = MAPPING_PRESETS.find((p) => p.id === presetId);
         const defaults = preset
           ? getPresetMappings(preset, type, targetDeviceId, deviceStatusObj)
-          : getDefaultMappings(type, profile.opts.deviceToEmulate, targetDeviceId, deviceStatusObj);
+          : getDefaultMappings(
+              type,
+              profile.opts.deviceToEmulate,
+              targetDeviceId,
+              deviceStatusObj,
+              getAssignmentHostType(assignment, profile.opts.deviceToEmulate)
+            );
         profile.mappings!.push(...defaults);
         state.config = {
           ...state.config,
