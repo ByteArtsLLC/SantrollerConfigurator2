@@ -45,11 +45,27 @@ const LEGACY_FIRMWARE_BLOCK_SIZE = 256;
 const LEGACY_FIRMWARE_UPLOAD_CHUNK_SIZE = 32;
 // The upload fills the progress bar up to here, the rest covers the bootloader applying the update
 const FIRMWARE_UPLOAD_PROGRESS_END = 50;
+// How many times a streamed block is sent before giving up
+const FIRMWARE_STREAMED_BLOCK_ATTEMPTS = 3;
 // Roughly what the bootloader spends swapping one 4KB sector (2 erases + 2 programs)
 const FIRMWARE_APPLY_MS_PER_SECTOR = 110;
 const FIRMWARE_REBOOT_MS = 2_000;
 const FIRMWARE_APPLY_TIMEOUT_MS = 120_000;
 const FIRMWARE_APPLY_PROGRESS_INTERVAL_MS = 250;
+async function isLatestFirmware(device: HIDDevice) {
+  try {
+    const commitHash = await receiveFeatureReport(device, proto.ReportId.ReportIdGetVersion);
+    const deviceVersion = String.fromCharCode
+      .apply(null, Array.from(new Uint8Array(commitHash.buffer.slice(1))))
+      .trim()
+      .substring(0, 8);
+    const latestVersion = (await (await fetch('commit.hash')).text()).trim().substring(0, 8);
+    return deviceVersion === latestVersion;
+  } catch (e) {
+    console.log(e);
+    return false;
+  }
+}
 let firmwareApplyTimer: ReturnType<typeof setInterval> | undefined;
 function stopFirmwareApplyProgress() {
   if (firmwareApplyTimer) {
@@ -389,6 +405,8 @@ export interface ConfigState {
   refreshingBluetooth: boolean;
   updating: boolean;
   applyingUpdate: boolean;
+  // Why the last firmware update didn't take, if it didn't
+  updateError?: 'notApplied' | 'noReconnect';
   detected: number;
   type: string;
   updatePercentage: number;
@@ -419,6 +437,8 @@ export interface ConfigState {
   ghArcadeSide: number | null;
   missingStaticFirmware: boolean;
   needsUf2Update: boolean;
+  // The controller takes firmware uploads streamed as output reports (see firmwareUpdate)
+  streamedFirmwareUpload: boolean;
   // What couldn't be carried over when a Santroller 1 config was imported
   legacyImportWarnings: string[];
   scanningBluetooth: boolean;
@@ -615,6 +635,7 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     ghArcadeSide: aux.ghArcadeSide ?? null,
     missingStaticFirmware: false,
     needsUf2Update: false,
+    streamedFirmwareUpload: false,
     legacyImportWarnings: [],
     scanningBluetooth: false,
   };
@@ -1590,6 +1611,9 @@ export const useConfigStore = create<ConfigState & Actions>()(
       }
       const finishingUpdate = get().applyingUpdate;
       stopFirmwareApplyProgress();
+      // The bootloader rolls back if the new firmware doesn't start, and a bad flash would leave
+      // the old version running, so make sure the version actually changed
+      const updateApplied = finishingUpdate && (await isLatestFirmware(device));
       set(
         (state) => ({
           ...state,
@@ -1599,7 +1623,13 @@ export const useConfigStore = create<ConfigState & Actions>()(
           polling: true,
           waitingForReload: false,
           ...(finishingUpdate
-            ? { updating: false, applyingUpdate: false, updatePercentage: 0 }
+            ? {
+                updating: false,
+                applyingUpdate: false,
+                updatePercentage: 0,
+                latest: updateApplied,
+                updateError: updateApplied ? undefined : ('notApplied' as const),
+              }
             : {}),
         }),
         true
@@ -2040,6 +2070,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.updatePercentage = 1;
         state.updating = true;
         state.waitingForReload = true;
+        state.updateError = undefined;
         if (state.keepaliveTimeout) {
           clearInterval(state.keepaliveTimeout);
           state.keepaliveTimeout = undefined;
@@ -2134,7 +2165,65 @@ export const useConfigStore = create<ConfigState & Actions>()(
             }
           }
         };
-        if (
+        // Over bluetooth each acknowledged write is a round trip, so stream each block as output
+        // reports (written without response) and then send the firmware update info for the next
+        // block. That is acknowledged once the block is written, and refused if any of it went
+        // missing, in which case the block is sent again.
+        const uploadStreamed = async () => {
+          firmwareInfo.chunkSize = FIRMWARE_UPLOAD_CHUNK_SIZE;
+          const sendInfo = async (offset: number) => {
+            firmwareInfo.chunkOffset = 0;
+            firmwareInfo.offset = offset;
+            firmwareInfoReport.fill(0);
+            firmwareInfoReport.set(
+              proto.FirmwareUpdate.encodeDelimited(firmwareInfo).ldelim().finish()
+            );
+            await hidDevice.sendFeatureReport(
+              proto.ReportId.ReportIdUpdateFirmware,
+              firmwareInfoReport
+            );
+          };
+          await sendInfo(0);
+          const uploadReport = new Uint8Array(FIRMWARE_UPLOAD_CHUNK_SIZE);
+          for (let block = 0; block < updateFile.length; block += FIRMWARE_BLOCK_SIZE) {
+            const blockEnd = Math.min(block + FIRMWARE_BLOCK_SIZE, updateFile.length);
+            for (let attempt = 1; ; attempt++) {
+              for (let offset = block; offset < blockEnd; offset += FIRMWARE_UPLOAD_CHUNK_SIZE) {
+                uploadReport.fill(0);
+                uploadReport.set(
+                  updateFile.subarray(
+                    offset,
+                    Math.min(offset + FIRMWARE_UPLOAD_CHUNK_SIZE, blockEnd)
+                  )
+                );
+                await hidDevice.sendReport(proto.ReportId.ReportIdUploadFirmware, uploadReport);
+              }
+              // the last block finishes the upload, and the controller reboots to apply it
+              if (blockEnd === updateFile.length) {
+                break;
+              }
+              try {
+                await sendInfo(blockEnd);
+                break;
+              } catch (e) {
+                if (attempt >= FIRMWARE_STREAMED_BLOCK_ATTEMPTS) {
+                  throw e;
+                }
+                console.warn(`Firmware block at ${block} didn't arrive, sending it again`, e);
+                // back to the start of the block
+                await sendInfo(block);
+              }
+            }
+            set((old) => ({
+              ...old,
+              updatePercentage:
+                1 + (blockEnd / updateFile.length) * (FIRMWARE_UPLOAD_PROGRESS_END - 1),
+            }));
+          }
+        };
+        if (state.streamedFirmwareUpload) {
+          await uploadStreamed();
+        } else if (
           fastFirmwareUploadReports.featureReport &&
           reportByteLength(fastFirmwareUploadReports.featureReport) === FIRMWARE_UPLOAD_CHUNK_SIZE
         ) {
@@ -2203,6 +2292,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
             state.updating = false;
             state.applyingUpdate = false;
             state.updatePercentage = 0;
+            state.updateError = 'noReconnect';
           });
           return;
         }
@@ -2384,18 +2474,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       }
       device.addEventListener('inputreport', get().onReport);
       try {
-        let latest = false;
-        try {
-          const commitHash = await receiveFeatureReport(device, proto.ReportId.ReportIdGetVersion);
-          const deviceVersion = String.fromCharCode
-            .apply(null, Array.from(new Uint8Array(commitHash.buffer.slice(1))))
-            .trim()
-            .substring(0, 8);
-          const latestVersion = (await (await fetch('commit.hash')).text()).trim().substring(0, 8);
-          latest = deviceVersion === latestVersion;
-        } catch (e) {
-          console.log(e);
-        }
+        const latest = await isLatestFirmware(device);
         let activeProfiles: number[] = [];
         let payload: Uint8Array | undefined;
         try {
@@ -2453,8 +2532,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
               crc: info.dataCrc,
               type: deviceType,
               latest,
+              updateError: undefined,
               missingStaticFirmware: !!info.missingStaticFirmware,
               needsUf2Update: !!info.needsUf2Update,
+              streamedFirmwareUpload: !!info.streamedFirmwareUpload,
               keepaliveTimeout: timeout,
               activeProfiles,
               savedConfig: dataSaved,

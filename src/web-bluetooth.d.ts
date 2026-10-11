@@ -17,6 +17,7 @@ interface BluetoothRemoteGATTCharacteristic extends EventTarget {
   readonly value?: DataView;
   readValue(): Promise<DataView>;
   writeValueWithResponse(value: BufferSource): Promise<void>;
+  writeValueWithoutResponse(value: BufferSource): Promise<void>;
   startNotifications(): Promise<BluetoothRemoteGATTCharacteristic>;
   stopNotifications(): Promise<BluetoothRemoteGATTCharacteristic>;
 }

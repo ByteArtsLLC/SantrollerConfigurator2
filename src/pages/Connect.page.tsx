@@ -22,6 +22,7 @@ export function ConnectPage() {
   const updating = useConfigStore((state) => state.updating);
   const updatePercentage = useConfigStore((state) => state.updatePercentage);
   const applyingUpdate = useConfigStore((state) => state.applyingUpdate);
+  const updateError = useConfigStore((state) => state.updateError);
   const latest = useConfigStore((state) => state.latest);
   const simpleMode = useConfigStore((state) => state.simpleMode);
   const needsUf2Update = useConfigStore((state) => state.needsUf2Update);
@@ -152,6 +153,14 @@ export function ConnectPage() {
               <>
                 <Space h="xs" />
                 {t('connect.applyingUpdate')}
+              </>
+            )}
+            {updateError && (
+              <>
+                <Space h="xs" />
+                {updateError === 'notApplied'
+                  ? t('connect.updateNotApplied')
+                  : t('connect.updateNoReconnect')}
               </>
             )}
           </Alert>

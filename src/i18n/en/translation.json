@@ -1677,6 +1677,8 @@
     "outdatedTitle": "Controller firmware out of date",
     "outdated": "Firmware outdated! Click the button below to update!",
     "startUpdate": "Start Update",
+    "updateNotApplied": "The controller came back but is still running the old firmware, so the update didn't apply. Try updating again.",
+    "updateNoReconnect": "The controller didn't come back after updating. Try unplugging it and plugging it back in, then connect to it again.",
     "applyingUpdate": "Installing the update, this can take up to a minute. Don't unplug the controller, it will reconnect on its own when it's done.",
     "downloadPico1": "Download UF2 (Pico 1 / RP2040)",
     "downloadPico2": "Download UF2 (Pico 2 / RP2350)",

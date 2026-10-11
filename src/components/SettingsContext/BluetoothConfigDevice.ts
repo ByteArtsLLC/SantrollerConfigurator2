@@ -27,6 +27,9 @@ const FEATURE_REPORTS = [
   proto.ReportId.ReportIdConfigInfoSaved,
 ];
 const REPORT_SIZE = 63;
+// Firmware upload (output report ReportIdUploadFirmware) written without response, so it can be
+// streamed. Its UUID ends in this instead of the report id.
+const STREAM_CHARACTERISTIC_ID = 0xb1;
 
 // The firmware drops the tool after a second without a keepalive. Every GATT write is a round trip,
 // so don't send the configurator's (very frequent) keepalives more often than needed.
@@ -138,8 +141,13 @@ export class BluetoothConfigDevice extends EventTarget {
     await this.enqueue(() => this.characteristic(reportId).writeValueWithResponse(payload));
   }
 
-  sendReport(reportId: number, data: BufferSource): Promise<void> {
-    return this.sendFeatureReport(reportId, data);
+  async sendReport(reportId: number, data: BufferSource): Promise<void> {
+    const stream = this.characteristics.get(STREAM_CHARACTERISTIC_ID);
+    if (reportId !== proto.ReportId.ReportIdUploadFirmware || !stream) {
+      return this.sendFeatureReport(reportId, data);
+    }
+    const payload = toUint8Array(data).slice();
+    await this.enqueue(() => stream.writeValueWithoutResponse(payload));
   }
 
   addEventListener(
