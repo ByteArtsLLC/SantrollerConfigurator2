@@ -1,5 +1,12 @@
+import { getOutputSubType } from '@/components/Defaults/defaultMappings';
 import { proto } from '@/components/SettingsContext/config';
-import { getProfileSlotIds, getSlotDeviceKind } from './inputRegistry';
+import {
+  getProfileSlotIds,
+  getProfileWideSlotIds,
+  getSlotDeviceKind,
+  getSlotSubtype,
+  SLOT_UNTYPED,
+} from './inputRegistry';
 
 // The slot kind an input reads from, for inputs that read a device through a profile slot
 export function getInputSlotKind(input: proto.IInput): string | undefined {
@@ -47,14 +54,14 @@ const SLOT_INPUT_KINDS = [
 // Returns the input with the slot ids of it and the inputs inside it changed by `remap`
 export function remapSlotInputs(
   input: proto.IInput,
-  remap: (kind: string, slotId: number) => number
+  remap: (kind: string, slotId: number, input: proto.IInput) => number
 ): proto.IInput {
   const kind = getInputSlotKind(input);
   if (kind) {
     for (const field of SLOT_INPUT_KINDS) {
       const value = input[field];
       if (value?.deviceid != null) {
-        const deviceid = remap(kind, value.deviceid);
+        const deviceid = remap(kind, value.deviceid, input);
         return deviceid === value.deviceid ? input : { ...input, [field]: { ...value, deviceid } };
       }
     }
@@ -102,7 +109,7 @@ export function remapSlotInputs(
 // Returns the profile with the slot ids of every input in it changed by `remap`
 export function remapProfileSlotInputs(
   profile: proto.IProfile,
-  remap: (kind: string, slotId: number) => number
+  remap: (kind: string, slotId: number, input: proto.IInput) => number
 ): proto.IProfile {
   const inputOf = <T extends proto.IInput | null | undefined>(x: T): T =>
     x ? (remapSlotInputs(x, remap) as T) : x;
@@ -237,4 +244,111 @@ export function remapEditedSlotIds(prev: proto.IProfile, next: proto.IProfile): 
     return next;
   }
   return remapProfileSlotInputs(next, (kind, id) => remap.get(`${kind}:${id}`) ?? id);
+}
+
+const normalSubtype = (type: number) =>
+  type === proto.SubType.ProGuitarSquire ? proto.SubType.ProGuitarMustang : type;
+
+// Whether a slot of this subtype has what the input reads. Gamepad buttons and axes are read from
+// every type of controller but a keyboard, and the rest only exist on their own type.
+function inputFitsSubtype(input: proto.IInput, subtype: number): boolean {
+  if (subtype === SLOT_UNTYPED) {
+    return true;
+  }
+  if (input.key || input.mouseAxis || input.mouseButton) {
+    return subtype === proto.SubType.KeyboardMouse;
+  }
+  const output =
+    input.usbAxis?.axis ?? input.usbButton?.button ?? input.btAxis?.axis ?? input.btButton?.button;
+  const outputType = getOutputSubType(output);
+  // A keyboard has no gamepad buttons or axes
+  if (subtype === proto.SubType.KeyboardMouse) {
+    return outputType == null || outputType === proto.SubType.KeyboardMouse;
+  }
+  return (
+    outputType == null ||
+    outputType === proto.SubType.Gamepad ||
+    normalSubtype(outputType) === normalSubtype(subtype)
+  );
+}
+
+// Moves every input onto the new ids in `choices`, which has each new id a slot (keyed by kind and
+// old id) became. A slot that became more than one (eg it was a different type of device in each
+// list) gives each mapping reading it a copy per new id whose device has what it reads, as only
+// the device that is connected is read. Other inputs only have room for one, so they get the
+// first.
+export function remapSlotChoices(
+  profile: proto.IProfile,
+  choices: Map<string, number[]>
+): proto.IProfile {
+  const lists = (profile.assignments ?? []).map((list) => list.assignments ?? []);
+  const newIds = getProfileWideSlotIds(lists);
+  const subtypes = new Map<string, number>();
+  lists.forEach((list, i) =>
+    list.forEach((item, j) => {
+      const kind = getSlotDeviceKind(item);
+      if (kind) {
+        subtypes.set(`${kind}:${newIds[i][j]}`, getSlotSubtype(item));
+      }
+    })
+  );
+  const options = (kind: string, slotId: number, input: proto.IInput) => {
+    const found = choices.get(`${kind}:${slotId}`);
+    if (!found) {
+      return undefined;
+    }
+    const fits = found.filter((id) => {
+      const subtype = subtypes.get(`${kind}:${id}`);
+      return subtype == null || inputFitsSubtype(input, subtype);
+    });
+    // Keep the input somewhere even when nothing fits, so it can be fixed by hand
+    return fits.length ? fits : found;
+  };
+  const pick = (index: number) => (kind: string, slotId: number, input: proto.IInput) => {
+    const found = options(kind, slotId, input);
+    return found ? found[Math.min(index, found.length - 1)] : slotId;
+  };
+  const mappings = (profile.mappings ?? []).flatMap((mapping) => {
+    if (!mapping.input) {
+      return [mapping];
+    }
+    let copies = 1;
+    remapSlotInputs(mapping.input, (kind, slotId, input) => {
+      copies = Math.max(copies, options(kind, slotId, input)?.length ?? 1);
+      return slotId;
+    });
+    return Array.from({ length: copies }, (_, index) => ({
+      ...mapping,
+      input: remapSlotInputs(mapping.input!, pick(index)),
+    }));
+  });
+  return { ...remapProfileSlotInputs({ ...profile, mappings: [] }, pick(0)), mappings };
+}
+
+// Moves a profile using the older slot ids (numbered within each list, so the same id could be a
+// different slot in each list) to deviceSlotIdVersion 2, where each slot has an id of its own
+// across the whole profile.
+export function migrateSlotIds(profile: proto.IProfile): proto.IProfile {
+  if ((profile.opts?.deviceSlotIdVersion ?? 0) >= 2) {
+    return profile;
+  }
+  const lists = (profile.assignments ?? []).map((list) => list.assignments ?? []);
+  const oldIds = getProfileSlotIds(profile);
+  const newIds = getProfileWideSlotIds(lists);
+  const choices = new Map<string, number[]>();
+  lists.forEach((list, i) =>
+    list.forEach((item, j) => {
+      const kind = getSlotDeviceKind(item);
+      if (!kind) {
+        return;
+      }
+      const key = `${kind}:${oldIds[i][j]}`;
+      const found = choices.get(key) ?? [];
+      if (!found.includes(newIds[i][j])) {
+        choices.set(key, [...found, newIds[i][j]]);
+      }
+    })
+  );
+  const migrated = remapSlotChoices(profile, choices);
+  return { ...migrated, opts: { ...migrated.opts!, deviceSlotIdVersion: 2 } };
 }

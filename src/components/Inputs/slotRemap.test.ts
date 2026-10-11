@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { proto } from '@/components/SettingsContext/config';
 import { getProfileSlotForInput, getProfileSlots, getProfileWideSlotIds } from './inputRegistry';
-import { remapEditedSlotIds } from './slotRemap';
+import { migrateSlotIds, remapEditedSlotIds } from './slotRemap';
 
 const ST = proto.SubType;
 const console_: proto.IProfileAssignmentInfo = { consoleType: {} };
@@ -129,5 +129,111 @@ describe('editing slots', () => {
   it('leaves older profiles alone', () => {
     const next = profile([[guitar, keyboard]], 1);
     expect(remapEditedSlotIds(profile([[gamepad, keyboard]], 1), next)).toBe(next);
+  });
+});
+
+describe('migrating slot ids', () => {
+  const profile = (
+    lists: proto.IProfileAssignmentInfo[][],
+    mappings: proto.IMapping[],
+    version?: number
+  ): proto.IProfile => ({
+    opts: {
+      uid: 1,
+      name: 'p',
+      deviceToEmulate: ST.Gamepad,
+      faceButtonMappingMode: proto.FaceButtonMappingMode.LegendBased,
+      deviceSlotIdVersion: version,
+    },
+    assignments: lists.map((assignments) => ({ assignments })),
+    mappings,
+  });
+  const usbA = (deviceid: number): proto.IMapping => ({
+    mapping: { gamepadButton: proto.GamepadButtonType.Gamepad_A },
+    input: { usbButton: { deviceid, button: { gamepadButton: 1 } } },
+  });
+  const deviceIds = (p: proto.IProfile) => p.mappings!.map((m) => m.input!.usbButton!.deviceid);
+
+  it('moves version 1 inputs onto the profile wide ids', () => {
+    // Keyboard is slot 1 in its own list, but slot 2 across the profile
+    const migrated = migrateSlotIds(
+      profile(
+        [[gamepad], [keyboard]],
+        [
+          {
+            mapping: { gamepadButton: proto.GamepadButtonType.Gamepad_B },
+            input: { key: { deviceid: 1, key: 4 } },
+          },
+        ],
+        1
+      )
+    );
+    expect(migrated.opts!.deviceSlotIdVersion).toBe(2);
+    expect(migrated.mappings!.map((m) => m.input!.key!.deviceid)).toEqual([2]);
+  });
+
+  it('copies mappings for a slot that was a different device in each list', () => {
+    const migrated = migrateSlotIds(
+      profile(
+        [
+          [console_, gamepad],
+          [console_, guitar],
+        ],
+        [usbA(1)],
+        1
+      )
+    );
+    expect(deviceIds(migrated)).toEqual([1, 2]);
+  });
+
+  it('only copies mappings onto slots whose device has what they read', () => {
+    const whammy: proto.IMapping = {
+      mapping: { gamepadAxis: proto.GamepadAxisType.Gamepad_RightStickX },
+      input: {
+        usbAxis: {
+          deviceid: 1,
+          axis: { ghAxis: proto.GuitarHeroGuitarAxisType.GuitarHeroGuitar_Whammy },
+        },
+      },
+    };
+    const key: proto.IMapping = {
+      mapping: { gamepadButton: proto.GamepadButtonType.Gamepad_B },
+      input: { key: { deviceid: 1, key: 4 } },
+    };
+    // Guitar Hero guitar is 1, Rock Band guitar 2 and keyboard 3 across the profile
+    const migrated = migrateSlotIds(
+      profile(
+        [
+          [console_, guitar],
+          [console_, { usbType: ST.RockBandGuitar }],
+          [console_, keyboard],
+        ],
+        [usbA(1), whammy, key],
+        1
+      )
+    );
+    expect(
+      migrated.mappings!.map((m) => {
+        const input = m.input!;
+        return (input.usbButton ?? input.usbAxis ?? input.key)!.deviceid;
+      })
+    ).toEqual([1, 2, 1, 3]);
+  });
+
+  it('keeps a slot that was the same device in every list on one id', () => {
+    const migrated = migrateSlotIds(profile([[gamepad], [gamepad, keyboard]], [usbA(1)], 1));
+    expect(deviceIds(migrated)).toEqual([1]);
+  });
+
+  it('migrates version 0 ids, which counted every trigger', () => {
+    // The gamepad was trigger 1, after the console type
+    const migrated = migrateSlotIds(profile([[console_, gamepad]], [usbA(1)]));
+    expect(migrated.opts!.deviceSlotIdVersion).toBe(2);
+    expect(deviceIds(migrated)).toEqual([1]);
+  });
+
+  it('leaves version 2 profiles alone', () => {
+    const p = profile([[gamepad], [keyboard]], [usbA(1)], 2);
+    expect(migrateSlotIds(p)).toBe(p);
   });
 });

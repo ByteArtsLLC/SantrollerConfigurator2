@@ -105,6 +105,7 @@ import {
   ProfileSlot,
 } from '@/components/Inputs/inputRegistry';
 import { LedColorInput } from '@/components/Inputs/LedColorInput';
+import { migrateSlotIds } from '@/components/Inputs/slotRemap';
 import { Layout } from '@/components/Layout/Layout';
 import { RequireDevice } from '@/components/RequireDevice/RequireDevice';
 import { proto } from '@/components/SettingsContext/config';
@@ -8260,6 +8261,27 @@ function Profile({ profileIdx }: { profileIdx: number }) {
             <Table.Thead>
               <Table.Tr>
                 <Table.Td>
+                  {(profile.opts?.deviceSlotIdVersion ?? 0) < 2 && (
+                    <>
+                      <Alert
+                        variant="light"
+                        color="yellow"
+                        title={t('assignments.oldSlotIdsTitle')}
+                        icon={errorIcon}
+                      >
+                        <Stack gap="xs" align="flex-start">
+                          {t('assignments.oldSlotIds')}
+                          <Button
+                            size="xs"
+                            onClick={() => updateProfile(migrateSlotIds(profile), profileIdx)}
+                          >
+                            {t('assignments.migrateSlotIds')}
+                          </Button>
+                        </Stack>
+                      </Alert>
+                      <Space h="md" />
+                    </>
+                  )}
                   {profile.assignments?.length === 0 && (
                     <>
                       <Alert variant="light" color="red" title="Error" icon={errorIcon}>

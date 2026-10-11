@@ -3,11 +3,7 @@ import {
   getSlotDeviceKind,
   getSlotSubtype,
 } from '@/components/Inputs/inputRegistry';
-import {
-  getInputSlotKind,
-  remapProfileSlotInputs,
-  remapSlotInputs,
-} from '@/components/Inputs/slotRemap';
+import { getInputSlotKind, remapSlotChoices } from '@/components/Inputs/slotRemap';
 import { proto } from '@/components/SettingsContext/config';
 import { LegacyImportContext } from './context';
 import { convertHostMidiSettings } from './families/hostMidi';
@@ -139,25 +135,7 @@ function assignSlotIds(
       }
     })
   );
-  const pick = (index: number) => (kind: string, slotId: number) => {
-    const found = choices.get(`${kind}:${slotId}`);
-    return found ? found[Math.min(index, found.length - 1)] : slotId;
-  };
-  const mappings = (profile.mappings ?? []).flatMap((mapping) => {
-    if (!mapping.input) {
-      return [mapping];
-    }
-    let copies = 1;
-    remapSlotInputs(mapping.input, (kind, slotId) => {
-      copies = Math.max(copies, choices.get(`${kind}:${slotId}`)?.length ?? 1);
-      return slotId;
-    });
-    return Array.from({ length: copies }, (_, index) => ({
-      ...mapping,
-      input: remapSlotInputs(mapping.input!, pick(index)),
-    }));
-  });
-  return { ...remapProfileSlotInputs({ ...profile, mappings: [] }, pick(0)), mappings };
+  return remapSlotChoices(profile, choices);
 }
 
 // Converts a Santroller 1 .picoconfig file into a new config

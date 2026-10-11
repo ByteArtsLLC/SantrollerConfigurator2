@@ -570,7 +570,7 @@ export function getSlotDeviceKind(item: proto.IProfileAssignmentInfo): string | 
 
 // Slots without a subtype (MIDI channels, and specific devices that don't name one). Matches the
 // firmware's SLOT_UNTYPED, so they are numbered after every subtype.
-const SLOT_UNTYPED = 0xffff;
+export const SLOT_UNTYPED = 0xffff;
 
 export function getSlotSubtype(item: proto.IProfileAssignmentInfo): number {
   return (
