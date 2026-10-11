@@ -22,6 +22,7 @@ import {
   ProfileSlot,
   withSlotMidiChannel,
 } from '@/components/Inputs/inputRegistry';
+import { remapEditedSlotIds } from '@/components/Inputs/slotRemap';
 import { createLabelConfig, getNextLabelId } from '@/components/Labels/labelRegistry';
 import { importLegacyConfig } from '@/components/Legacy/importLegacyConfig';
 import { CRC32 } from '@/CRC32.js';
@@ -920,8 +921,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
       new Uint8Array(outBuffer2).set(infoBuffer2);
       await state.hidDevice?.sendFeatureReport(proto.ReportId.ReportIdCommand, outBuffer2);
     },
-    updateProfile: (profile: proto.IProfile, id: number) => {
+    updateProfile: (edited: proto.IProfile, id: number) => {
       set((state) => {
+        // Slot ids can change with the assignments, so keep the inputs on the same slots
+        const profile = remapEditedSlotIds(state.config.profiles![id], edited);
         if (
           state.config.profiles![id].opts.faceButtonMappingMode !==
           profile.opts.faceButtonMappingMode
@@ -957,7 +960,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
     },
     updateProfiles: (profiles: proto.IProfile[]) => {
       set((state) => {
-        profiles.forEach((profile, id) => {
+        profiles.forEach((edited, id) => {
+          const profile = state.config.profiles![id]
+            ? remapEditedSlotIds(state.config.profiles![id], edited)
+            : edited;
           if (
             state.config.profiles![id].opts.faceButtonMappingMode !==
             profile.opts.faceButtonMappingMode
@@ -1455,7 +1461,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               opts: {
                 faceButtonMappingMode: proto.FaceButtonMappingMode.LegendBased,
                 deviceToEmulate: proto.SubType.Gamepad,
-                deviceSlotIdVersion: 1,
+                deviceSlotIdVersion: 2,
                 name: 'Device',
                 uid: Math.max(0, ...(state.config.profiles?.map((x) => x.opts.uid) || [])) + 1,
               },

@@ -551,23 +551,88 @@ export function getAssignmentTriggerIds(assignments: proto.IProfileAssignmentInf
   });
 }
 
+// The kind of device an assignment's slot is numbered with, or null if it isn't a slot
+export function getSlotDeviceKind(item: proto.IProfileAssignmentInfo): string | null {
+  const source = getHostSourceType(item);
+  if (!source) {
+    return null;
+  }
+  return source === 'midiChannel'
+    ? 'midi'
+    : source === 'wiiExt'
+      ? 'wii'
+      : source === 'ps2Cnt'
+        ? 'psx'
+        : source.startsWith('bluetooth')
+          ? 'bt'
+          : 'usbHost';
+}
+
+// Slots without a subtype (MIDI channels, and specific devices that don't name one). Matches the
+// firmware's SLOT_UNTYPED, so they are numbered after every subtype.
+const SLOT_UNTYPED = 0xffff;
+
+export function getSlotSubtype(item: proto.IProfileAssignmentInfo): number {
+  return (
+    item.usbType ??
+    item.usbDevice?.subtype ??
+    item.bluetoothType ??
+    item.bluetoothDevice?.subtype ??
+    item.ps2Cnt ??
+    item.wiiExt ??
+    SLOT_UNTYPED
+  );
+}
+
+// Slot ids for deviceSlotIdVersion 2, matching the firmware's ProfileSlotIds. Each slot is the nth
+// slot of its kind and subtype within a list, and gets the same id in every list, so an input's
+// deviceid always means the same type of device whichever list matched. Ids are numbered per kind,
+// in order of subtype and then n.
+export function getProfileWideSlotIds(lists: proto.IProfileAssignmentInfo[][]): number[][] {
+  const keyed = lists.map((list) => {
+    const counts = new Map<string, number>();
+    return list.map((item) => {
+      const kind = getSlotDeviceKind(item);
+      if (!kind) {
+        return undefined;
+      }
+      const type = getSlotSubtype(item);
+      const n = (counts.get(`${kind}:${type}`) ?? 0) + 1;
+      counts.set(`${kind}:${type}`, n);
+      return { kind, type, n, key: `${kind}:${type}:${n}` };
+    });
+  });
+  const unique = new Map(keyed.flat().flatMap((slot) => (slot ? [[slot.key, slot] as const] : [])));
+  const sorted = [...unique.values()].sort((a, b) => a.type - b.type || a.n - b.n);
+  const next = new Map<string, number>();
+  const ids = new Map<string, number>();
+  for (const slot of sorted) {
+    const id = (next.get(slot.kind) ?? 0) + 1;
+    next.set(slot.kind, id);
+    ids.set(slot.key, id);
+  }
+  return keyed.map((list) => list.map((slot) => (slot ? ids.get(slot.key)! : 0)));
+}
+
+// The slot id of every assignment in each of the profile's lists, for its deviceSlotIdVersion
+export function getProfileSlotIds(profile?: proto.IProfile): number[][] {
+  const lists = (profile?.assignments ?? []).map((list) => list.assignments ?? []);
+  const version = profile?.opts?.deviceSlotIdVersion ?? 0;
+  if (version >= 2) {
+    return getProfileWideSlotIds(lists);
+  }
+  return lists.map((list) =>
+    version >= 1 ? getAssignmentSlotIds(list) : getAssignmentTriggerIds(list)
+  );
+}
+
 export function getAssignmentSlotIds(assignments: proto.IProfileAssignmentInfo[] = []) {
   const counts = new Map<string, number>();
   return assignments.map((item) => {
-    const source = getHostSourceType(item);
-    if (!source) {
+    const deviceKind = getSlotDeviceKind(item);
+    if (!deviceKind) {
       return 0;
     }
-    const deviceKind =
-      source === 'midiChannel'
-        ? 'midi'
-        : source === 'wiiExt'
-          ? 'wii'
-          : source === 'ps2Cnt'
-            ? 'psx'
-            : source.startsWith('bluetooth')
-              ? 'bt'
-              : 'usbHost';
     const slotId = (counts.get(deviceKind) ?? 0) + 1;
     counts.set(deviceKind, slotId);
     return slotId;
@@ -607,28 +672,16 @@ export function getProfileSlotLabel(
 
 export function getProfileSlots(profile?: proto.IProfile, t?: (key: string) => string) {
   const slots = new Map<string, ProfileSlot>();
-  for (const rule of profile?.assignments ?? []) {
+  const profileSlotIds = getProfileSlotIds(profile);
+  for (const [listIdx, rule] of (profile?.assignments ?? []).entries()) {
     const assignments = rule.assignments ?? [];
-    const slotIds =
-      (profile?.opts?.deviceSlotIdVersion ?? 0) >= 1
-        ? getAssignmentSlotIds(assignments)
-        : getAssignmentTriggerIds(assignments);
+    const slotIds = profileSlotIds[listIdx];
     for (const [assignmentIndex, item] of assignments.entries()) {
       const slotId = slotIds[assignmentIndex];
-      const source = getHostSourceType(item);
-      if (!source) {
+      const deviceKind = getSlotDeviceKind(item);
+      if (!deviceKind) {
         continue;
       }
-      const deviceKind =
-        source === 'midiChannel'
-          ? 'midi'
-          : source === 'wiiExt'
-            ? 'wii'
-            : source === 'ps2Cnt'
-              ? 'psx'
-              : source.startsWith('bluetooth')
-                ? 'bt'
-                : 'usbHost';
       const key = getProfileSlotKey(deviceKind, slotId);
       const existing = slots.get(key);
       if (existing) {
@@ -683,7 +736,13 @@ export function getProfileSlotForInput(input: proto.IInput, slots: ProfileSlot[]
     deviceKind = 'wii';
   } else if (input.ps2Axis || input.ps2Button) {
     deviceKind = 'psx';
-  } else if (input.usbAxis || input.usbButton) {
+  } else if (
+    input.usbAxis ||
+    input.usbButton ||
+    input.key ||
+    input.mouseAxis ||
+    input.mouseButton
+  ) {
     deviceKind = 'usbHost';
   } else if (input.btAxis || input.btButton) {
     deviceKind = 'bt';

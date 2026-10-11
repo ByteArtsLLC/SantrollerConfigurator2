@@ -1,5 +1,12 @@
 import { proto } from '@/components/SettingsContext/config';
-import { ConvertedInput, INT16_OFFSET, LegacyImportContext, setI2c, setSpi } from '../context';
+import {
+  ConvertedInput,
+  enabledChildren,
+  INT16_OFFSET,
+  LegacyImportContext,
+  setI2c,
+  setSpi,
+} from '../context';
 import { convertInput, mpr121Device } from '../inputs';
 import { legacy } from '../legacy';
 import { LegacyOutputKind, registerOutputConverters } from '../outputs';
@@ -171,6 +178,7 @@ interface BindingLedFields extends LedTargets {
   min?: number | null;
   max?: number | null;
   outputs?: legacy.ISerializedOutput[] | null;
+  childrenEnabled?: Uint8Array | null;
 }
 
 // Bindings whose LEDs followed the (calibrated) axis value instead of a button state
@@ -256,7 +264,7 @@ function convertBindingLeds(
     return;
   }
   if (fields.outputs?.length) {
-    convertCombinedLeds(ctx, hw, fields.outputs, claimed);
+    convertCombinedLeds(ctx, hw, enabledChildren(fields), claimed);
     return;
   }
   warnPeripheralLeds(ctx, fields.ledIndexPeripheral);

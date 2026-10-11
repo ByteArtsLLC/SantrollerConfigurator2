@@ -168,27 +168,33 @@ describe('Wii extensions', () => {
         button(wiiIn(WII.WiiInputType_NunchukC), SB.StandardButtonType_A),
       ]),
     ]);
-    const [stick, ...rest] = find({ gamepadAxis: proto.GamepadAxisType.Gamepad_LeftStickX });
+    // Each mapping reads the Classic Controller's slot, with a copy for a Classic Controller Pro's
+    const [stick, proStick, ...rest] = find({
+      gamepadAxis: proto.GamepadAxisType.Gamepad_LeftStickX,
+    });
     expect(rest).toHaveLength(0);
-    expect(stick.input?.wiiAxis?.axis).toBe(proto.WiiAxisType.WiiAxisClassicLeftStickX);
+    expect(stick.input?.wiiAxis).toEqual({
+      deviceid: 1,
+      axis: proto.WiiAxisType.WiiAxisClassicLeftStickX,
+    });
+    expect(proStick.input?.wiiAxis).toEqual({ ...stick.input!.wiiAxis, deviceid: 2 });
     // signed stick calibration moves up into the unsigned range
     expect(stick).toMatchObject({ min: 2768, max: 62768, center: 32768, deadzone: 4000 });
 
     const triggers = find({ gamepadAxis: proto.GamepadAxisType.Gamepad_LeftTrigger });
-    expect(triggers).toHaveLength(1);
+    expect(triggers).toHaveLength(2);
     expect(triggers[0]).toMatchObject({ min: 0, max: 65535, center: 0 });
     expect(triggers[0].input?.wiiAxis?.axis).toBe(proto.WiiAxisType.WiiAxisClassicLeftTrigger);
     const a = find({ gamepadButton: proto.GamepadButtonType.Gamepad_A });
-    expect(a).toHaveLength(1);
-    expect(a[0].input?.wiiButton).toEqual({
-      deviceid: 1,
-      button: proto.WiiButtonType.WiiButtonClassicA,
-    });
+    expect(a.map((m) => m.input?.wiiButton)).toEqual([
+      { deviceid: 1, button: proto.WiiButtonType.WiiButtonClassicA },
+      { deviceid: 2, button: proto.WiiButtonType.WiiButtonClassicA },
+    ]);
     expect(warnings.some((w) => w.includes('other extensions than the Classic Controller'))).toBe(
       true
     );
 
-    // a Classic Controller Pro gets a copy of the assignment list, so either one works in slot 1
+    // a Classic Controller Pro gets a copy of the assignment list, in a slot of its own
     expect(profile.assignments.map((a) => a.assignments.map((x) => x.wiiExt ?? null))).toEqual([
       [null, proto.WiiExtType.WiiClassicController],
       [null, proto.WiiExtType.WiiClassicControllerPro],

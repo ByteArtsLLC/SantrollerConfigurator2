@@ -29,6 +29,20 @@ export interface CombinedSource {
   deviceid: number;
 }
 
+// The children of a combined output that were enabled. Combined outputs stored this as a bitmask
+// (lowest bit first) that the old configurator applied over the children's own enabled flags.
+export function enabledChildren(combined: {
+  outputs?: legacy.ISerializedOutput[] | null;
+  childrenEnabled?: Uint8Array | null;
+}): legacy.ISerializedOutput[] {
+  const outputs = combined.outputs ?? [];
+  const mask = combined.childrenEnabled;
+  if (!mask?.length) {
+    return outputs;
+  }
+  return outputs.filter((_, i) => i >= mask.length * 8 || (mask[i >> 3] >> (i & 7)) & 1);
+}
+
 export function busBlock(groups: Record<number, string>, pin: number | null | undefined) {
   return pin != null && pin >= 0 ? parseInt(groups[pin] ?? '0', 10) || 0 : 0;
 }
@@ -93,6 +107,12 @@ export class LegacyImportContext {
     proto.IProfileAssignmentInfo,
     proto.IProfileAssignmentInfo[]
   >();
+  // The slot each slot assignment (and its alternatives) was given while converting. Inputs use
+  // these until the profile's lists are final, then move to the profile wide ids.
+  readonly slotPlaceholders = new Map<
+    proto.IProfileAssignmentInfo,
+    { deviceKind: string; slotId: number }
+  >();
   private readonly deviceKeys = new Map<string, number>();
   private readonly slotKeys = new Map<string, number>();
   private readonly slotCounts = new Map<string, number>();
@@ -146,6 +166,9 @@ export class LegacyImportContext {
     this.slotCounts.set(deviceKind, slotId);
     this.slotKeys.set(fullKey, slotId);
     this.assignments.push(assignment);
+    for (const item of [assignment, ...alternatives]) {
+      this.slotPlaceholders.set(item, { deviceKind, slotId });
+    }
     if (alternatives.length) {
       this.slotAlternatives.set(assignment, alternatives);
     }

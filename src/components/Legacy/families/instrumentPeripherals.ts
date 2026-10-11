@@ -3,6 +3,7 @@ import { proto } from '@/components/SettingsContext/config';
 import {
   CombinedSource,
   ConvertedInput,
+  enabledChildren,
   LegacyImportContext,
   setI2c,
   setSpi,
@@ -403,21 +404,21 @@ registerOutputConverters({
     convertChildren(
       ctx,
       { kind: 'gh5Neck', deviceid: gh5Device(ctx, o!.sda, o!.scl, o!.peripheral) },
-      o!.outputs
+      enabledChildren(o!)
     ),
 
   serializedCloneCombinedOutput: (ctx, { serializedCloneCombinedOutput: o }) =>
     convertChildren(
       ctx,
       { kind: 'crazyGuitarNeck', deviceid: cloneDevice(ctx, o!.sda, o!.scl, o!.peripheral) },
-      o!.outputs
+      enabledChildren(o!)
     ),
 
   serializedCrkdCombinedOutput: (ctx, { serializedCrkdCombinedOutput: o }) =>
     convertChildren(
       ctx,
       { kind: 'crkdNeck', deviceid: crkdDevice(ctx, o!.tx, o!.rx, o!.peripheral) },
-      o!.outputs
+      enabledChildren(o!)
     ),
 
   // The turntables are only added once a binding uses them
@@ -429,7 +430,7 @@ registerOutputConverters({
       scl: o!.scl,
       peripheral: o!.peripheral,
     };
-    convertChildren(ctx, source, o!.outputs);
+    convertChildren(ctx, source, enabledChildren(o!));
   },
 
   serializedGhwtCombinedOutput: (ctx) => warnWorldTourNeck(ctx),

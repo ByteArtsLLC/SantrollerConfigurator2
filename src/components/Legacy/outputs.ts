@@ -209,6 +209,19 @@ const GAMEPAD_BUTTONS: Record<legacy.StandardButtonType, proto.GamepadButtonType
     proto.GamepadButtonType.Gamepad_RightThumbClick,
 };
 
+const PS3_PRESSURE_BUTTONS: Record<legacy.Ps3AxisType, proto.GamepadButtonType> = {
+  [legacy.Ps3AxisType.Ps3AxisType_PressureDpadUp]: proto.GamepadButtonType.Gamepad_DpadUp,
+  [legacy.Ps3AxisType.Ps3AxisType_PressureDpadRight]: proto.GamepadButtonType.Gamepad_DpadRight,
+  [legacy.Ps3AxisType.Ps3AxisType_PressureDpadLeft]: proto.GamepadButtonType.Gamepad_DpadLeft,
+  [legacy.Ps3AxisType.Ps3AxisType_PressureDpadDown]: proto.GamepadButtonType.Gamepad_DpadDown,
+  [legacy.Ps3AxisType.Ps3AxisType_PressureL1]: proto.GamepadButtonType.Gamepad_LeftShoulder,
+  [legacy.Ps3AxisType.Ps3AxisType_PressureR1]: proto.GamepadButtonType.Gamepad_RightShoulder,
+  [legacy.Ps3AxisType.Ps3AxisType_PressureTriangle]: proto.GamepadButtonType.Gamepad_Y,
+  [legacy.Ps3AxisType.Ps3AxisType_PressureCircle]: proto.GamepadButtonType.Gamepad_B,
+  [legacy.Ps3AxisType.Ps3AxisType_PressureCross]: proto.GamepadButtonType.Gamepad_A,
+  [legacy.Ps3AxisType.Ps3AxisType_PressureSquare]: proto.GamepadButtonType.Gamepad_X,
+};
+
 const GAMEPAD_AXES: Record<legacy.StandardAxisType, proto.GamepadAxisType> = {
   [legacy.StandardAxisType.StandardAxisType_LeftStickX]: proto.GamepadAxisType.Gamepad_LeftStickX,
   [legacy.StandardAxisType.StandardAxisType_LeftStickY]: proto.GamepadAxisType.Gamepad_LeftStickY,
@@ -661,10 +674,49 @@ const CORE_OUTPUTS: Partial<Record<LegacyOutputKind, OutputConverter>> = {
       o!.enabled
     ),
 
-  serializedPs3Axis: (ctx) =>
-    ctx.warn(
-      'PS3 pressure bindings were skipped, the new firmware works out button pressure itself.'
-    ),
+  // The new firmware works out button pressure from the button itself, so a pressure binding
+  // becomes a press of its button, held while the old pressure value was above 0
+  serializedPs3Axis: (ctx, { serializedPs3Axis: o }) => {
+    if (o!.enabled === false) {
+      return;
+    }
+    const output = { gamepadButton: PS3_PRESSURE_BUTTONS[o!.type ?? 0] };
+    const converted = convertInput(ctx, o!.input);
+    if (!converted) {
+      return;
+    }
+    const min = o!.min ?? (converted.isUint ? 0 : -32767);
+    const max = o!.max ?? (converted.isUint ? 65535 : 32767);
+    const deadzone = o!.deadzone ?? 0;
+    if (converted.digitalToAnalog) {
+      // A digital input that set a pressure, use the digital input directly
+      const pressure = oldCalculate(
+        converted.digitalToAnalog.on,
+        min,
+        max,
+        deadzone,
+        true,
+        converted.isUint
+      );
+      if (pressure > 0) {
+        addButton(ctx, o!.input!.serializedDigitalToAnalog!.child, output, undefined);
+      }
+      return;
+    }
+    if (converted.analog && converted.mapping?.trigger == null) {
+      const scale = converted.scale ?? 1;
+      const offset = converted.isUint ? 0 : INT16_OFFSET;
+      const inverted = min > max;
+      converted.mapping = {
+        ...converted.mapping,
+        trigger: inverted
+          ? proto.AnalogToDigitalTriggerType.JoyLow
+          : proto.AnalogToDigitalTriggerType.JoyHigh,
+        triggerValue: Math.round((inverted ? min - deadzone : min + deadzone) * scale) + offset,
+      };
+    }
+    addButtonMapping(ctx, converted, output, debounceFor(ctx, undefined));
+  },
 
   serializedReset: (ctx, { serializedReset: o }) =>
     addButton(ctx, o!.input, { action: proto.ActionType.ActionBootloader }, 0, {

@@ -88,13 +88,14 @@ import {
   createSlotInput,
   createStandaloneInput,
   getAssignmentSlotIds,
-  getAssignmentTriggerIds,
   getHostSourceType,
   getInputDeviceId,
   getJoybusInputFilters,
   getProfileSlotForInput,
+  getProfileSlotIds,
   getProfileSlotLabel,
   getProfileSlots,
+  getProfileWideSlotIds,
   getPS2InputFilters,
   getSNESInputFilters,
   isAnalogInput,
@@ -5753,10 +5754,10 @@ export function SantrollerAssignment({
                 dispatch({ usbType: proto.SubType.Gamepad });
                 break;
               case 'usbDevice':
-                dispatch({ usbDevice: { vid: 0, pid: 0 } });
+                dispatch({ usbDevice: { vid: 0, pid: 0, subtype: proto.SubType.Gamepad } });
                 break;
               case 'bluetoothDevice':
-                dispatch({ bluetoothDevice: { vid: 0, pid: 0 } });
+                dispatch({ bluetoothDevice: { vid: 0, pid: 0, subtype: proto.SubType.Gamepad } });
                 break;
               case 'bluetoothType':
                 dispatch({ bluetoothType: proto.SubType.Gamepad });
@@ -6006,6 +6007,13 @@ export function SantrollerAssignment({
                 })
               }
             />
+            <DropdownBox
+              title="activation.usbType"
+              e={USB_HOST_SUBTYPES_ENUM}
+              val={mapping.usbDevice.subtype ?? proto.SubType.Gamepad}
+              label="subType"
+              dispatch={(subtype) => dispatch({ usbDevice: { ...mapping.usbDevice!, subtype } })}
+            />
           </>
         )}
         {mapping.bluetoothDevice && (
@@ -6036,6 +6044,15 @@ export function SantrollerAssignment({
                     pid: parseInt((event.currentTarget.value || '0').substring(0, 4), 16) ?? 0,
                   },
                 })
+              }
+            />
+            <DropdownBox
+              title="activation.bluetoothType"
+              e={USB_HOST_SUBTYPES_ENUM}
+              val={mapping.bluetoothDevice.subtype ?? proto.SubType.Gamepad}
+              label="subType"
+              dispatch={(subtype) =>
+                dispatch({ bluetoothDevice: { ...mapping.bluetoothDevice!, subtype } })
               }
             />
           </>
@@ -6115,7 +6132,7 @@ export function SantrollerAssignment({
 
 export function ControllerSourcesEditor({
   assignments,
-  perKindSlotIds,
+  slotIds,
   onAddSource,
   onRemoveSource,
   onUpdateSource,
@@ -6126,7 +6143,8 @@ export function ControllerSourcesEditor({
   hasPsx,
 }: {
   assignments: proto.IProfileAssignmentInfo[];
-  perKindSlotIds: boolean;
+  // The slot id of each assignment
+  slotIds: number[];
   onAddSource: (type: string) => void;
   onRemoveSource: (idx: number) => void;
   onUpdateSource: (idx: number, updated: proto.IProfileAssignmentInfo) => void;
@@ -6138,9 +6156,6 @@ export function ControllerSourcesEditor({
 }) {
   const { t } = useTranslation();
   const hostIndices = useMemo(() => {
-    const slotIds = perKindSlotIds
-      ? getAssignmentSlotIds(assignments)
-      : getAssignmentTriggerIds(assignments);
     return assignments
       .map((item, idx) => ({ item, idx, slotId: slotIds[idx], type: getHostSourceType(item) }))
       .filter(
@@ -6153,7 +6168,7 @@ export function ControllerSourcesEditor({
           type: string;
         } => x.type !== null
       );
-  }, [assignments, perKindSlotIds]);
+  }, [assignments, slotIds]);
 
   return (
     <Stack gap="xs">
@@ -6240,6 +6255,7 @@ export function ControllerSourcesEditor({
                   onChange={(e) =>
                     onUpdateSource(idx, {
                       usbDevice: {
+                        ...item.usbDevice,
                         vid: parseInt((e.currentTarget.value || '0').substring(0, 4), 16) ?? 0,
                         pid: item.usbDevice?.pid ?? 0,
                       },
@@ -6254,6 +6270,7 @@ export function ControllerSourcesEditor({
                   onChange={(e) =>
                     onUpdateSource(idx, {
                       usbDevice: {
+                        ...item.usbDevice,
                         vid: item.usbDevice?.vid ?? 0,
                         pid: parseInt((e.currentTarget.value || '0').substring(0, 4), 16) ?? 0,
                       },
@@ -6261,6 +6278,19 @@ export function ControllerSourcesEditor({
                   }
                 />
               </Group>
+            )}
+            {hType === 'usbDevice' && (
+              <DropdownBox
+                title="activation.usbType"
+                e={USB_HOST_SUBTYPES_ENUM}
+                val={item.usbDevice?.subtype ?? proto.SubType.Gamepad}
+                label="subType"
+                dispatch={(subtype) =>
+                  onUpdateSource(idx, {
+                    usbDevice: { vid: 0, pid: 0, ...item.usbDevice, subtype },
+                  })
+                }
+              />
             )}
             {hType === 'bluetoothType' && (
               <DropdownBox
@@ -6281,6 +6311,7 @@ export function ControllerSourcesEditor({
                   onChange={(e) =>
                     onUpdateSource(idx, {
                       bluetoothDevice: {
+                        ...item.bluetoothDevice,
                         vid: parseInt((e.currentTarget.value || '0').substring(0, 4), 16) ?? 0,
                         pid: item.bluetoothDevice?.pid ?? 0,
                       },
@@ -6295,6 +6326,7 @@ export function ControllerSourcesEditor({
                   onChange={(e) =>
                     onUpdateSource(idx, {
                       bluetoothDevice: {
+                        ...item.bluetoothDevice,
                         vid: item.bluetoothDevice?.vid ?? 0,
                         pid: parseInt((e.currentTarget.value || '0').substring(0, 4), 16) ?? 0,
                       },
@@ -6302,6 +6334,19 @@ export function ControllerSourcesEditor({
                   }
                 />
               </Group>
+            )}
+            {hType === 'bluetoothDevice' && (
+              <DropdownBox
+                title="activation.bluetoothType"
+                e={USB_HOST_SUBTYPES_ENUM}
+                val={item.bluetoothDevice?.subtype ?? proto.SubType.Gamepad}
+                label="subType"
+                dispatch={(subtype) =>
+                  onUpdateSource(idx, {
+                    bluetoothDevice: { vid: 0, pid: 0, ...item.bluetoothDevice, subtype },
+                  })
+                }
+              />
             )}
             {hType === 'midiChannel' && (
               <NumberInput
@@ -6402,9 +6447,17 @@ function SantrollerAssignmentList({
     DeviceProfileAssignmentTypes.some((y) => x[y] != null)
   );
   const emulationItem = emulationIdx !== -1 ? assignments[emulationIdx] : undefined;
-  const deviceSlotIdVersion = useConfigStore(
-    (state) => state.config.profiles?.[profileIdx]?.opts?.deviceSlotIdVersion ?? 0
-  );
+  const profileForSlots = useConfigStore((state) => state.config.profiles?.[profileIdx]);
+  // Slot ids can depend on the profile's other lists, so number this list as it is being edited
+  // along with them
+  const slotIds = useMemo(() => {
+    if (!profileForSlots) {
+      return getAssignmentSlotIds(assignments);
+    }
+    const lists = [...(profileForSlots.assignments ?? [])];
+    lists[listIdx] = { ...lists[listIdx], assignments };
+    return getProfileSlotIds({ ...profileForSlots, assignments: lists })[listIdx];
+  }, [profileForSlots, assignments, listIdx]);
 
   const hostIndices = useMemo(() => {
     return assignments
@@ -6463,13 +6516,13 @@ function SantrollerAssignmentList({
         next.push({ usbType: proto.SubType.Gamepad });
         break;
       case 'usbDevice':
-        next.push({ usbDevice: { vid: 0, pid: 0 } });
+        next.push({ usbDevice: { vid: 0, pid: 0, subtype: proto.SubType.Gamepad } });
         break;
       case 'bluetoothType':
         next.push({ bluetoothType: proto.SubType.Gamepad });
         break;
       case 'bluetoothDevice':
-        next.push({ bluetoothDevice: { vid: 0, pid: 0 } });
+        next.push({ bluetoothDevice: { vid: 0, pid: 0, subtype: proto.SubType.Gamepad } });
         break;
       case 'midiChannel':
         next.push({ midiChannel: 10 });
@@ -7052,7 +7105,7 @@ function SantrollerAssignmentList({
 
           <ControllerSourcesEditor
             assignments={assignments}
-            perKindSlotIds={deviceSlotIdVersion >= 1}
+            slotIds={slotIds}
             onAddSource={addHostSource}
             onRemoveSource={removeHostSource}
             onUpdateSource={updateHostSource}
@@ -7325,13 +7378,19 @@ function BlankProfileWizard({
         setHostAssignments((prev) => [...prev, { usbType: proto.SubType.Gamepad }]);
         break;
       case 'usbDevice':
-        setHostAssignments((prev) => [...prev, { usbDevice: { vid: 0, pid: 0 } }]);
+        setHostAssignments((prev) => [
+          ...prev,
+          { usbDevice: { vid: 0, pid: 0, subtype: proto.SubType.Gamepad } },
+        ]);
         break;
       case 'bluetoothType':
         setHostAssignments((prev) => [...prev, { bluetoothType: proto.SubType.Gamepad }]);
         break;
       case 'bluetoothDevice':
-        setHostAssignments((prev) => [...prev, { bluetoothDevice: { vid: 0, pid: 0 } }]);
+        setHostAssignments((prev) => [
+          ...prev,
+          { bluetoothDevice: { vid: 0, pid: 0, subtype: proto.SubType.Gamepad } },
+        ]);
         break;
       case 'midiChannel':
         setHostAssignments((prev) => [...prev, { midiChannel: 10 }]);
@@ -7423,7 +7482,7 @@ function BlankProfileWizard({
     if (hostAssignments.length === 0) {
       newMappings.push(...getDefaultMappings('gpio', deviceToEmulate));
     } else {
-      const hostSlotIds = getAssignmentSlotIds(hostAssignments);
+      const hostSlotIds = getProfileWideSlotIds([hostAssignments])[0];
       hostAssignments.forEach((item, idx) => {
         const slotId = hostSlotIds[idx];
         if (item.wiiExt != null) {
@@ -7494,7 +7553,7 @@ function BlankProfileWizard({
         ...profile,
         opts: {
           ...profile.opts,
-          deviceSlotIdVersion: 1,
+          deviceSlotIdVersion: 2,
           name,
           deviceToEmulate,
         },
@@ -7644,7 +7703,7 @@ function BlankProfileWizard({
         {/* Step 2: Controller Sources */}
         <ControllerSourcesEditor
           assignments={hostAssignments}
-          perKindSlotIds
+          slotIds={getProfileWideSlotIds([hostAssignments])[0]}
           onAddSource={addHostSource}
           onRemoveSource={removeHostSource}
           onUpdateSource={updateHostSource}

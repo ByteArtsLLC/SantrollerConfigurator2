@@ -1,6 +1,6 @@
 import { USB_HOST_SUBTYPES } from '@/components/Defaults/defaultMappings';
 import { proto } from '@/components/SettingsContext/config';
-import { ConvertedInput, LegacyImportContext, setUart } from '../context';
+import { ConvertedInput, enabledChildren, LegacyImportContext, setUart } from '../context';
 import { registerInputConverters } from '../inputs';
 import { legacy } from '../legacy';
 import { addButton, convertOutput, registerOutputConverters } from '../outputs';
@@ -591,14 +591,14 @@ const convertChildren = (
 registerOutputConverters({
   // The children's inputs say which host they read from, so there's nothing else to set up
   serializedCombinedUsbHostOutput: (ctx, { serializedCombinedUsbHostOutput: o }) =>
-    convertChildren(ctx, o!.outputs),
+    convertChildren(ctx, enabledChildren(o!)),
   serializedCombinedUsbHostOutput122: (ctx, { serializedCombinedUsbHostOutput122: o }) =>
-    convertChildren(ctx, o!.outputs),
+    convertChildren(ctx, enabledChildren(o!)),
   serializedCombinedBluetoothOutput: (ctx, { serializedCombinedBluetoothOutput: o }) =>
-    convertChildren(ctx, o!.outputs),
+    convertChildren(ctx, enabledChildren(o!)),
   // The children have the first note applied already
   serializedCombinedMidiOutput: (ctx, { serializedCombinedMidiOutput: o }) =>
-    convertChildren(ctx, o!.outputs),
+    convertChildren(ctx, enabledChildren(o!)),
 
   serializedKeyboardButton: (ctx, { serializedKeyboardButton: o }) => {
     const output = keyboardOutput(o!.type ?? 0);

@@ -1,5 +1,5 @@
 import { proto } from '@/components/SettingsContext/config';
-import { ConvertedInput, LegacyImportContext, setI2c, setSpi } from '../context';
+import { ConvertedInput, enabledChildren, LegacyImportContext, setI2c, setSpi } from '../context';
 import { registerInputConverters } from '../inputs';
 import { legacy } from '../legacy';
 import { addButton, convertOutput, guitarButtonOutput, registerOutputConverters } from '../outputs';
@@ -590,10 +590,10 @@ function startSelectHomeEnabled(o: { enabled?: unknown; peripheral?: unknown }) 
 
 registerOutputConverters({
   serializedWiiCombinedOutput: (ctx, { serializedWiiCombinedOutput: o }) =>
-    convertChildren(ctx, 'wii', wiiSlot(ctx, o!.sda, o!.scl, o!.peripheral), o!.outputs),
+    convertChildren(ctx, 'wii', wiiSlot(ctx, o!.sda, o!.scl, o!.peripheral), enabledChildren(o!)),
 
   serializedPs2CombinedOutput: (ctx, { serializedPs2CombinedOutput: o }) =>
-    convertChildren(ctx, 'psx', ps2Slot(ctx, o!, o!.peripheral), o!.outputs),
+    convertChildren(ctx, 'psx', ps2Slot(ctx, o!, o!.peripheral), enabledChildren(o!)),
 
   // The left stick pressing the dpad past a threshold
   serializedJoystickToDpad: (ctx, { serializedJoystickToDpad: o }) => {

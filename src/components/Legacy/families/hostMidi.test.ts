@@ -106,6 +106,30 @@ describe('USB host', () => {
     expect(warnings.some((w) => w.includes("can't read"))).toBe(true);
   });
 
+  it('skips children turned off in the combined output', () => {
+    const { config } = load({
+      deviceType: DT.DeviceControllerType_GuitarHeroGuitar,
+      bindings: [
+        {
+          serializedCombinedUsbHostOutput: {
+            outputs: [
+              guitarButton(LIB.InstrumentButtonType_Green, usb(UT.UsbHostInputType_Green)),
+              guitarButton(LIB.InstrumentButtonType_Red, usb(UT.UsbHostInputType_Red)),
+              guitarButton(LIB.InstrumentButtonType_Yellow, usb(UT.UsbHostInputType_Yellow)),
+            ],
+            // red is off
+            childrenEnabled: new Uint8Array([0b101]),
+          },
+        },
+      ],
+    });
+    const GH = proto.GuitarHeroGuitarButtonType;
+    expect(config.profiles[0].mappings.map((m) => m.mapping?.ghButton)).toEqual([
+      GH.GuitarHeroGuitar_Green,
+      GH.GuitarHeroGuitar_Yellow,
+    ]);
+  });
+
   it('uses gamepad outputs and pressure for a gamepad', () => {
     const { config } = load({
       deviceType: DT.DeviceControllerType_Gamepad,

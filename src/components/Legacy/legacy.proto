@@ -687,6 +687,8 @@ message SerializedCloneCombinedOutput {
   optional int32 scl = 5;
   repeated SerializedOutput outputs = 6;
   optional bool peripheral = 8;
+  // Which children are enabled, lowest bit first
+  optional bytes childrenEnabled = 7;
 }
 
 message SerializedCloneNeckInput {
@@ -708,10 +710,14 @@ message SerializedCombinedBluetoothOutput {
 message SerializedCombinedMidiOutput {
   repeated SerializedOutput outputs = 1;
   optional uint32 firstNote = 3;
+  // Which children are enabled, lowest bit first
+  optional bytes childrenEnabled = 2;
 }
 
 message SerializedCombinedUsbHostOutput {
   repeated SerializedOutput outputs = 1;
+  // Which children are enabled, lowest bit first
+  optional bytes childrenEnabled = 2;
 }
 
 message SerializedConfiguration {
@@ -930,6 +936,8 @@ message SerializedDjCombinedOutput {
   optional int32 scl = 5;
   repeated SerializedOutput outputs = 6;
   optional bool peripheral = 8;
+  // Which children are enabled, lowest bit first
+  optional bytes childrenEnabled = 7;
 }
 
 message SerializedDjInput {
@@ -982,6 +990,8 @@ message SerializedGh5CombinedOutput {
   optional int32 scl = 5;
   repeated SerializedOutput outputs = 6;
   optional bool peripheral = 8;
+  // Which children are enabled, lowest bit first
+  optional bytes childrenEnabled = 7;
 }
 
 message SerializedGh5NeckInput {
@@ -1017,6 +1027,8 @@ message SerializedGhwtCombinedOutput {
   optional int32 pinS2 = 5;
   repeated SerializedOutput outputs = 6;
   optional bool peripheral = 8;
+  // Which children are enabled, lowest bit first
+  optional bytes childrenEnabled = 7;
 }
 
 message SerializedGuitarAxis {
@@ -1307,6 +1319,8 @@ message SerializedPs2CombinedOutput {
   optional int32 ack = 8;
   repeated SerializedOutput outputs = 9;
   optional bool peripheral = 11;
+  // Which children are enabled, lowest bit first
+  optional bytes childrenEnabled = 10;
 }
 
 message SerializedPs2Input {
@@ -1379,6 +1393,8 @@ message SerializedWiiCombinedOutput {
   optional int32 scl = 5;
   repeated SerializedOutput outputs = 6;
   optional bool peripheral = 8;
+  // Which children are enabled, lowest bit first
+  optional bytes childrenEnabled = 7;
 }
 
 message SerializedWiiInput {
