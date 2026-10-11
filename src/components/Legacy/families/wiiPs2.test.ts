@@ -419,6 +419,24 @@ describe('console output', () => {
     expect(ctx.warnings.some((w) => w.includes('enable pin'))).toBe(true);
   });
 
+  it('puts the USB assignment lists after the console ones', () => {
+    const old = legacy.SerializedConfiguration.create({
+      hasWiiOutput: true,
+      wiiOutputSda: 10,
+      wiiOutputScl: 11,
+      hasPs2Output: true,
+      ps2OutputMosi: 13,
+      ps2OutputMiso: 14,
+      ps2OutputSck: 15,
+      ps2OutputAtt: 16,
+      ps2OutputAck: 17,
+    });
+    const { config } = importLegacyConfig(legacy.SerializedConfiguration.encode(old).finish());
+    expect(
+      config.profiles[0].assignments.map((list) => Object.keys(list.assignments[0])[0])
+    ).toEqual(['wiiEmulation', 'ps2Emulation', 'consoleType']);
+  });
+
   it('does nothing without console output', () => {
     const ctx = new LegacyImportContext(
       legacy.SerializedConfiguration.create({}),

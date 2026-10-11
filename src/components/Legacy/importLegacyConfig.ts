@@ -201,10 +201,12 @@ export function importLegacyConfig(data: Uint8Array, name = 'Imported'): LegacyI
       m.mapping.ghButton <= TAPS.GuitarHeroGuitar_TapOrange
   );
 
+  // A profile claims the first list that matches, and the USB lists match whenever USB is
+  // connected, so they go last to give the Wii Remote / PS2 lists a chance to match
   const lists = ctx.expandSlotAlternatives(
     expandOptionalSlots(
       ctx,
-      [...settings.assignments, ...emulation],
+      [...emulation, ...settings.assignments],
       ctx.mappings.some((m) => readsLocalInput(m.input))
     )
   );
