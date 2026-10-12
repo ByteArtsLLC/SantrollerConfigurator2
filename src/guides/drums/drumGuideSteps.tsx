@@ -124,6 +124,14 @@ export function DrumIntroStep(props: GuideStepProps) {
     <Stack gap="md">
       <Text size="sm">{t(`${P}.drum-intro.intro`)}</Text>
 
+      <Alert
+        color="blue"
+        icon={<IconInfoCircle size={16} />}
+        title={t(`${P}.drum-intro.otherKitsTitle`)}
+      >
+        {t(`${P}.drum-intro.otherKitsText`)}
+      </Alert>
+
       <Title order={4}>{t(`${P}.drum-intro.suppliesTitle`)}</Title>
       <GuideList
         iconColor="orange"

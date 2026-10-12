@@ -3,12 +3,14 @@ import i18next, { type TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { PS2_ADAPTER_GUIDE } from './adapters/ps2AdapterGuide';
 import { WII_ADAPTER_GUITAR_GUIDE } from './adapters/wiiAdapterGuide';
+import { BH_DRUM_GUIDE } from './bhdrums/bhDrumGuide';
 import { DRUM_KIT_GUIDE } from './drums/drumGuide';
 import { DIRECT_PICO_GUITAR_GUIDE } from './guitar/guitarGuide';
 import { RGB_LED_GUIDE } from './leds/ledGuide';
 import { DJ_TURNTABLE_GUIDE } from './turntable/turntableGuide';
 import { GuideCategory, GuideDefinition } from './types';
 import { USB_HOST_GUIDE } from './usb/usbHostGuide';
+import { WT_DRUM_GUIDE } from './wtdrums/wtDrumGuide';
 import { XBOX360_RF_GUIDE } from './xbox360rf/xbox360RfGuide';
 
 export const GUIDE_REGISTRY: Record<string, GuideDefinition> = {
@@ -16,6 +18,8 @@ export const GUIDE_REGISTRY: Record<string, GuideDefinition> = {
   [WII_ADAPTER_GUITAR_GUIDE.id]: WII_ADAPTER_GUITAR_GUIDE,
   [PS2_ADAPTER_GUIDE.id]: PS2_ADAPTER_GUIDE,
   [DRUM_KIT_GUIDE.id]: DRUM_KIT_GUIDE,
+  [BH_DRUM_GUIDE.id]: BH_DRUM_GUIDE,
+  [WT_DRUM_GUIDE.id]: WT_DRUM_GUIDE,
   [DJ_TURNTABLE_GUIDE.id]: DJ_TURNTABLE_GUIDE,
   [USB_HOST_GUIDE.id]: USB_HOST_GUIDE,
   [RGB_LED_GUIDE.id]: RGB_LED_GUIDE,

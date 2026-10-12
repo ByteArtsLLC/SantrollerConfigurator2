@@ -2328,7 +2328,9 @@
           "layoutDesc": "Wire each pad's piezo to the multiplexer channel below. The guide's setup button maps the pads to these channels.",
           "thPad": "Pad",
           "thMuxChannel": "Multiplexer Channel",
-          "ghOnly": "Guitar Hero kits only"
+          "ghOnly": "Guitar Hero kits only",
+          "otherKitsTitle": "Band Hero or World Tour kit?",
+          "otherKitsText": "These kits can be converted without hardwiring piezos. For a Band Hero / Guitar Hero 5 era kit, use the Band Hero Drum Kit guide instead. For a Guitar Hero World Tour kit, use the World Tour Drum Kit guide."
         },
         "drum-wiring": {
           "shortTitle": "Pad Wiring",
@@ -2393,6 +2395,227 @@
           "muxMissing": "No multiplexer added yet (see the wiring step)",
           "muxConfigured": "Mux on GP{{com}} (S0 - S2: GP{{s0}}, GP{{s1}}, GP{{s2}}), {{count}} pads mapped",
           "verifyPrompt": "Strike pads and press the kick pedal to verify live hits."
+        }
+      }
+    },
+    "bh-drums": {
+      "title": "Band Hero Drum Kit",
+      "subtitle": "Band Hero / Guitar Hero 5 Drum Brain Conversion",
+      "description": "Replace the main microcontroller in a Band Hero or Guitar Hero 5 era drum kit brain with a Raspberry Pi Pico, reading the pads from the brain's own drum chip over I2C.",
+      "badge": "MIDI over I2C",
+      "estimatedTime": "30 - 45 mins",
+      "supplies": [
+        "Raspberry Pi Pico 1 or Pico 2",
+        "Band Hero / Guitar Hero 5 era drum kit",
+        "Soldering Iron & Wire"
+      ],
+      "steps": {
+        "bh-intro": {
+          "shortTitle": "Supplies",
+          "title": "Supplies & Overview",
+          "badge": "No Piezos",
+          "description": "How the drum brain works, and what this conversion replaces.",
+          "intro": "Band Hero and Guitar Hero 5 era drum kits share their brain's main board with DJ Hero turntables, Warriors of Rock guitars and Guitar Hero 5 guitars. The drum logic itself runs on its own microcontroller (an HA2005-I/SS, a rebadged PIC18F25K20), which reads the pads and streams MIDI notes to the main board over I2C. The Pico takes the main board's place: it reads that MIDI stream, and the brain's face buttons are wired straight to Pico GPIOs.",
+          "notPiezoTitle": "You don't need the piezo drum guide",
+          "notPiezoText": "The kit's own drum chip already reads the pads with velocity, so there is no piezo, resistor, zener diode or multiplexer wiring in this conversion. The Drum Kit & E-Drums (Piezo & Multiplexer) guide is not needed for these kits.",
+          "howTitle": "How the Conversion Works",
+          "howText": "Open the brain, remove the PCB with the main microcontroller from the main PCB, and connect the Pico to the I2C lines it used. The connector is labelled +V, CLK, DATA and 0V, and works the same as the DJ Hero turntable platter connection. The Pico talks to the drum chip at I2C address 0x0D.",
+          "suppliesTitle": "Supplies Required",
+          "supplies": [
+            "Raspberry Pi Pico 1 or Pico 2",
+            "Band Hero / Guitar Hero 5 era drum kit",
+            "Soldering Iron & Wire"
+          ],
+          "warningTitle": "This replaces the brain's main microcontroller",
+          "warningText": "Once the main microcontroller board is removed, the kit no longer works on its own console without it. Keep the removed board safe if you may want to put the kit back to stock.",
+          "pinoutTitle": "Pinout at a Glance",
+          "pinoutDesc": "The I2C connector must use these pins. The button pins are suggestions that keep clear of GP18 / GP19; the probe rows in the wiring step take whichever pin you actually use.",
+          "thBoardPad": "Board Pad",
+          "thPicoPin": "Pico Pin"
+        },
+        "bh-wiring": {
+          "shortTitle": "Wiring",
+          "title": "Brain & Button Wiring",
+          "badge": "I2C",
+          "description": "Wire the drum chip connector to the Pico over I2C, add the driver, then wire and probe the face buttons.",
+          "photoCaption": "Band Hero drum brain main board (rear)",
+          "brainTitle": "Wiring the Drum Chip Connector",
+          "brainSteps": [
+            "Remove the Main Board: Open the brain and remove the PCB with the main microcontroller from the main PCB.",
+            "+V: Connect +V to the Pico's 3V3(OUT) (Pin 36).",
+            "0V: Connect 0V to a Pico GND (Pin 38).",
+            "DATA: Connect DATA (SDA) to GP18 (Pin 24).",
+            "CLK: Connect CLK (SCL) to GP19 (Pin 25)."
+          ],
+          "buttonsTitle": "Wiring the Face Buttons",
+          "buttonSteps": [
+            "Button Common: The BUTTON COM / BUT COM pads are ground. Connect them to a Pico GND, so each button pulls its pin low against the Pico's pull-ups.",
+            "Left Header: Wire GUIDE/MENU, UP, DOWN, LEFT and RIGHT to free Pico GPIOs (VBAT and BUT COM are the other pads on this header).",
+            "Lower-Left Header: Wire START and BACK to free Pico GPIOs (VBAT and BUTTON COM are the other pads on this header).",
+            "Top Header: Next to the BIND label, the pads read BUTTON COM, NC, BUTTON COM, Y/TRIANGLE, X/SQUARE, B/CIRCLE, A/CROSS. Wire Y, X, B and A to free Pico GPIOs, and leave the first pad beside the BIND label and the NC pad unconnected.",
+            "Probe: Add the driver, then press Probe on each row and press that button on the brain to assign its pin. Rows for buttons you don't wire can be skipped."
+          ],
+          "leaveTitle": "Leave these pads unconnected",
+          "leaveText": "Do not connect VBAT, +1V6, the SPEAKER / SW header, MIC- / MIC+, or any NC pad to the Pico. Only the +V, CLK, DATA and 0V connector, the button pads and BUTTON COM are used.",
+          "setupTitle": "Drum Brain Setup",
+          "setupDesc": "Adds the Band Hero drum driver on I2C1 (GP18 / GP19), gives the profile a MIDI channel 10 slot for it, and loads the default MIDI drum mappings. The profile is switched to a Guitar Hero drum kit unless it is already a drum kit.",
+          "thConnector": "Connector Pin",
+          "thPicoPin": "Pico Pin",
+          "thType": "Type",
+          "typePower": "Power (3.3V)",
+          "typeGround": "Ground",
+          "typeI2cData": "I2C Data (SDA)",
+          "typeI2cClock": "I2C Clock (SCL)",
+          "addDriverBtn": "Add Band Hero Drum Driver",
+          "driverAdded": "Band Hero drum driver on GP{{sda}} / GP{{scl}}, pads mapped",
+          "buttonsHeader": "Face Buttons",
+          "buttonsDesc": "Press Probe, then press the button on the brain to assign its pin. Skip any rows you don't need.",
+          "button": {
+            "guide": "Guide",
+            "dpadUp": "D-Pad Up",
+            "dpadDown": "D-Pad Down",
+            "dpadLeft": "D-Pad Left",
+            "dpadRight": "D-Pad Right",
+            "start": "Start",
+            "back": "Back",
+            "a": "A",
+            "b": "B",
+            "x": "X",
+            "y": "Y"
+          }
+        },
+        "bh-test": {
+          "shortTitle": "Test & Save",
+          "title": "Live Test & Save",
+          "badge": "Save to Pico",
+          "description": "Check the brain is detected, hit every pad, then save to the Pico.",
+          "configuredText": "The setup mapped the drum chip's MIDI notes to the kit's pads. Check the brain shows as detected, hit every pad and press the kick pedal, then save the configuration to the Pico.",
+          "tipsTitle": "If Nothing Registers",
+          "tipsText": "If the brain isn't detected, check the +V and 0V wires, and that DATA goes to GP18 and CLK to GP19 (swapped lines are the most common mistake). If the brain is detected but a pad doesn't light up, its MIDI mappings can be adjusted on the Inputs page.",
+          "btnSave": "Save Drum Configuration to Pico Flash",
+          "btnSaved": "Saved to Controller",
+          "telemetryTitle": "DRUM BRAIN TELEMETRY",
+          "picoNotConnected": "Pico not connected",
+          "driverNotAdded": "Drum driver not added yet (see the wiring step)",
+          "brainNotDetected": "Drum brain not detected, check the I2C wiring",
+          "brainDetected": "Drum brain detected",
+          "verifyPrompt": "Hit each pad and the kick pedal. Each bar shows the strongest reading from that pad's mappings, held briefly after a hit.",
+          "padNotes": "MIDI notes mapped: {{count}}",
+          "notMapped": "Not mapped",
+          "buttonsTitle": "FACE BUTTONS",
+          "pad": {
+            "red": "Red",
+            "yellow": "Yellow",
+            "blue": "Blue",
+            "orange": "Orange",
+            "green": "Green",
+            "kick": "Kick Pedal",
+            "yellowCymbal": "Yellow Cymbal",
+            "blueCymbal": "Blue Cymbal",
+            "greenCymbal": "Green Cymbal"
+          }
+        }
+      }
+    },
+    "wt-drums": {
+      "title": "World Tour Drum Kit",
+      "subtitle": "Guitar Hero World Tour Drum Brain Replacement",
+      "description": "Replace the brain of a Guitar Hero World Tour drum kit with a Raspberry Pi Pico, reading the pads over the kit's own SPI cable.",
+      "badge": "MIDI over SPI",
+      "estimatedTime": "20 - 30 mins",
+      "supplies": [
+        "Raspberry Pi Pico 1 or Pico 2",
+        "Guitar Hero World Tour drum kit",
+        "Wire, plus a connector or a soldering iron"
+      ],
+      "steps": {
+        "wt-intro": {
+          "shortTitle": "Supplies",
+          "title": "Supplies & Overview",
+          "badge": "No Piezos",
+          "description": "How the kit works, and what this conversion replaces.",
+          "intro": "In a Guitar Hero World Tour drum kit, the drum pads connect to the kit's brain (its main board) through a removable cable. The pad side reads the pads and streams MIDI notes over SPI along that cable. The Pico replaces the original brain: the cable is unplugged from the brain and connected to the Pico, which reads the MIDI stream as the SPI master. While the Pico is connected, the kit only works through the Pico.",
+          "notPiezoTitle": "You don't need the piezo drum guide",
+          "notPiezoText": "The kit already reads the pads with velocity, so there is no piezo, resistor, zener diode or multiplexer wiring in this conversion. The Drum Kit & E-Drums (Piezo & Multiplexer) guide is not needed for these kits.",
+          "howTitle": "How the Conversion Works",
+          "howText": "Unplug the cable that runs from the drum pads into the kit's original brain (main board), and connect the Pico to that cable instead. The brain's silkscreen labels its connector CS, +3V3, MOSI, 0V, MISO and CLK; use those labels to work out which wire of the cable is which. The labels are from the brain's side, which is the side the Pico takes over, so MOSI goes to the Pico's SPI TX, MISO to its SPI RX and CLK to its SPI clock.",
+          "suppliesTitle": "Supplies Required",
+          "supplies": [
+            "Raspberry Pi Pico 1 or Pico 2",
+            "Guitar Hero World Tour drum kit",
+            "Wire, plus a connector or a soldering iron"
+          ],
+          "reversibleTitle": "This conversion is reversible",
+          "reversibleText": "Nothing is cut or removed from the original brain: it is unplugged and not used while the Pico is connected. Plug the cable back into the original brain to restore the stock kit. Connecting the Pico to the cable through a connector or header keeps the cable untouched too, though soldering straight to the cable's wires also works.",
+          "buttonsTitle": "Face buttons aren't covered yet",
+          "buttonsText": "The kit's face buttons are on the original brain, and this guide doesn't cover them yet. Only connect the drum cable to the Pico.",
+          "pinoutTitle": "Pinout at a Glance",
+          "pinoutDesc": "Connect each wire of the drum cable, identified by its label on the original brain's connector, to these Pico pins."
+        },
+        "wt-wiring": {
+          "shortTitle": "Wiring",
+          "title": "Drum Cable Wiring",
+          "badge": "SPI",
+          "description": "Wire the drum cable to the Pico's SPI pins, then add the driver.",
+          "photoCaption": "The kit's original brain with the drum cable plugged in, labelled with each wire's signal (the red-striped wire is CLK)",
+          "cableTitle": "Wiring the Drum Cable",
+          "cableSteps": [
+            "Unplug the Cable: Open the kit and unplug the cable that runs from the drum pads into the original brain. Set the brain aside; it isn't used while the Pico is connected.",
+            "Identify the Wires: Use the labels beside the brain's connector (CS, +3V3, MOSI, 0V, MISO, CLK) to work out which wire of the cable is which. The ribbon's red-striped wire is CLK (SCK), and it sits on the same side at the drum end of the cable.",
+            "Connect to the Cable: A connector or header that mates with the cable leaves it untouched, or you can solder straight to the cable's wires.",
+            "+3V3: Connect +3V3 to the Pico's 3V3(OUT) (Pin 36).",
+            "0V: Connect 0V to a Pico GND (Pin 38).",
+            "CLK: Connect CLK to GP2 (Pin 4), the Pico's SPI clock (SCK).",
+            "MOSI: Connect MOSI to GP3 (Pin 5), the Pico's SPI TX.",
+            "MISO: Connect MISO to GP4 (Pin 6), the Pico's SPI RX.",
+            "CS: Connect CS to GP5 (Pin 7).",
+            "Add the Driver: With the Pico connected to the configurator, press Add World Tour Drum Driver."
+          ],
+          "leaveTitle": "Only connect the drum cable",
+          "leaveText": "Don't connect anything else to the Pico for this conversion. The face buttons and the rest of the original brain aren't covered by this guide yet.",
+          "setupTitle": "Drum Cable Setup",
+          "setupDesc": "Adds the World Tour drum driver on SPI0 (CLK GP2, MOSI GP3, MISO GP4, CS GP5, 500 kHz), gives the profile a MIDI channel 10 slot for it, and loads the default MIDI drum mappings. The profile is switched to a Guitar Hero drum kit unless it is already a drum kit.",
+          "thConnector": "Brain Label",
+          "thPicoPin": "Pico Pin",
+          "thType": "Type",
+          "typeCs": "Chip Select (GPIO)",
+          "typePower": "Power (3.3V)",
+          "typeMosi": "SPI TX (MOSI)",
+          "typeGround": "Ground",
+          "typeMiso": "SPI RX (MISO)",
+          "typeClock": "SPI Clock (SCK)",
+          "addDriverBtn": "Add World Tour Drum Driver",
+          "driverAdded": "World Tour drum driver on CLK GP{{sck}}, MOSI GP{{mosi}}, MISO GP{{miso}}, CS GP{{cs}}, pads mapped"
+        },
+        "wt-test": {
+          "shortTitle": "Test & Save",
+          "title": "Live Test & Save",
+          "badge": "Save to Pico",
+          "description": "Check the drums are detected, hit every pad, then save to the Pico.",
+          "configuredText": "The setup mapped the kit's MIDI notes to its pads. Check the drums show as detected, hit every pad and press the kick pedal, then save the configuration to the Pico.",
+          "tipsTitle": "If Nothing Registers",
+          "tipsText": "If the drums aren't detected, check the +3V3 and 0V wires, then check CLK, MOSI, MISO and CS against the labels on the original brain's connector (MOSI and MISO swapped is an easy mistake). If the drums are detected but a pad doesn't light up, its MIDI mappings can be adjusted on the Inputs page.",
+          "btnSave": "Save Drum Configuration to Pico Flash",
+          "btnSaved": "Saved to Controller",
+          "telemetryTitle": "DRUM TELEMETRY",
+          "picoNotConnected": "Pico not connected",
+          "driverNotAdded": "World Tour drum driver not added yet (see the wiring step)",
+          "brainNotDetected": "Drums not detected, check the SPI wiring",
+          "brainDetected": "Drums detected",
+          "verifyPrompt": "Hit each pad and the kick pedal. Each bar shows the strongest reading from that pad's mappings, held briefly after a hit.",
+          "padNotes": "MIDI notes mapped: {{count}}",
+          "notMapped": "Not mapped",
+          "pad": {
+            "red": "Red",
+            "yellow": "Yellow",
+            "blue": "Blue",
+            "orange": "Orange",
+            "green": "Green",
+            "kick": "Kick Pedal",
+            "yellowCymbal": "Yellow Cymbal",
+            "blueCymbal": "Blue Cymbal",
+            "greenCymbal": "Green Cymbal"
+          }
         }
       }
     },
