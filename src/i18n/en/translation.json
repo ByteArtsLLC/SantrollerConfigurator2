@@ -2959,7 +2959,7 @@
         ]
       },
       "periph_crkd_neck": {
-        "name": "CRKD Nitro Deck / Guitar Neck Board",
+        "name": "CRKD Guitar Neck Board",
         "interfaceType": "UART (460,800 baud)",
         "badge": "Guitar neck",
         "description": "Reads CRKD guitar necks, which use a PY32F002B microcontroller.",
