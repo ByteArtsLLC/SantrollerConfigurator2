@@ -921,7 +921,7 @@
       },
       "avrDeprecation": {
         "title": "Microcontroller Hardware Deprecation",
-        "body": "Santroller 1 originated as \"Ardwiino\" and still supports 8-bit AVR microcontrollers like the ATmega32U4 (Arduino Leonardo / SparkFun Pro Micro) and ATmega16U2 (Arduino Uno / Mega). Due to their limited flash and RAM (32 KB / 2.5 KB on the ATmega32U4), AVR chips cannot support multi-profile storage, protocol buffers, USB host stacks, or Bluetooth emulation. Santroller 2 requires a <strong>Raspberry Pi Pico (RP2040)</strong> or <strong>Pico 2 (RP2350)</strong>. Existing AVR builds should remain on the legacy Santroller 1 firmware (v10.1.189-legacy.2)."
+        "body": "Santroller 1 originated as \"Ardwiino\" and still supports 8-bit AVR microcontrollers like the ATmega32U4 (Arduino Leonardo / SparkFun Pro Micro) and ATmega16U2 (Arduino Uno / Mega). Due to their limited flash and RAM (32 KB / 2.5 KB on the ATmega32U4), AVR chips cannot support multi-profile storage, protocol buffers, USB host stacks, or Bluetooth emulation. Santroller 2 requires a <strong>Raspberry Pi Pico (RP2040)</strong> or <strong>Pico 2 (RP2350)</strong>. Existing AVR builds should remain on the legacy Santroller 1 firmware (v10.1.189-legacy.3)."
       }
     },
     "matrix": {
@@ -4186,7 +4186,7 @@
         "name": "ATmega32U4 Boards (Pro Micro, Arduino Micro, Leonardo)",
         "interfaceType": "Legacy microcontroller",
         "badge": "Old firmware only",
-        "description": "Only supported by the legacy AVR build of Santroller 1 (v10.1.189-legacy.2). Uses the ATmega32U4, which has built-in USB.",
+        "description": "Only supported by the legacy AVR build of Santroller 1 (v10.1.189-legacy.3). Uses the ATmega32U4, which has built-in USB.",
         "details": ["No USB host, Bluetooth or most of the newer peripheral support"],
         "warning": "This board only runs the old Santroller 1 firmware, which may have bugs and is missing a lot of newer features. For new builds, use a Pico or Pico 2 instead.",
         "guideLabel": "Legacy Firmware Documentation"
@@ -4195,7 +4195,7 @@
         "name": "Arduino Uno R3, Mega 2560 & Mega ADK (ATmega16U2)",
         "interfaceType": "Legacy microcontroller",
         "badge": "Old firmware only",
-        "description": "Only supported by the legacy AVR build of Santroller 1 (v10.1.189-legacy.2), flashed over DFU. The board needs a genuine ATmega16U2 USB chip.",
+        "description": "Only supported by the legacy AVR build of Santroller 1 (v10.1.189-legacy.3), flashed over DFU. The board needs a genuine ATmega16U2 USB chip.",
         "details": [
           "Boards with a CH340 or FTDI USB chip won't work",
           "No USB host, Bluetooth or most of the newer peripheral support"
