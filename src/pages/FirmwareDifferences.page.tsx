@@ -55,8 +55,8 @@ const COMPARISON_DATA: FeatureComparisonRow[] = [
   {
     category: 'Architecture & Profiles',
     feature: 'Configuration & Firmware Builds',
-    santroller1: 'The configurator saved configs as .picoconfig files, then generated a config header and compiled a custom firmware build (PlatformIO) for every configuration change.',
-    santroller2: 'A single prebuilt firmware. Configuration is sent to the device at runtime as Protocol Buffers (nanopb on device, protobuf.js in the configurator), so changes apply instantly without a rebuild.',
+    santroller1: 'The configurator saved configs as .picoconfig files, then generated a config header and compiled a custom firmware build (PlatformIO) for every configuration change. This required around a gigabyte of compilers and toolchains to be downloaded onto your machine.',
+    santroller2: 'A single prebuilt firmware. Configuration is sent to the device at runtime as Protocol Buffers (nanopb on device, protobuf.js in the configurator), so changes apply instantly without a rebuild, and no compilers or toolchains need to be installed.',
     status: 'major',
   },
   {
@@ -259,7 +259,7 @@ export function FirmwareDifferencesPage() {
                     Protocol Buffers & Nanopb
                   </Title>
                   <Text size="xs" c="dimmed">
-                    Santroller 1 compiled your configuration directly into a custom firmware build every time you changed it. Santroller 2 ships one prebuilt firmware and sends configuration, commands, and debug data at runtime as <strong>Google Protocol Buffers</strong> (nanopb), so changes apply instantly and the schema can grow without breaking existing configs.
+                    Santroller 1 compiled your configuration directly into a custom firmware build every time you changed it, which meant downloading around a gigabyte of compilers and toolchains first. Santroller 2 ships one prebuilt firmware and sends configuration, commands, and debug data at runtime as <strong>Google Protocol Buffers</strong> (nanopb), so changes apply instantly and the schema can grow without breaking existing configs.
                   </Text>
                 </Card>
 
@@ -467,7 +467,7 @@ export function FirmwareDifferencesPage() {
                     <List.Item>Xbox One wireless adapters, OG Xbox controllers and USB Bluetooth dongles over USB host, plus I2C Xbox One auth chip support</List.Item>
                     <List.Item>Customizable Fortnite Festival profiles instead of a single hardcoded mapping</List.Item>
                     <List.Item>Bluetooth FOTA updates on Pico W & Pico 2 W</List.Item>
-                    <List.Item>One prebuilt firmware with runtime Protocol Buffers configuration (no per-config rebuilds)</List.Item>
+                    <List.Item>One prebuilt firmware with runtime Protocol Buffers configuration (no per-config rebuilds, and no gigabyte of compilers to download)</List.Item>
                     <List.Item>New console emulation: Joybus (N64/GC), SNES, and Wii Remote over Bluetooth</List.Item>
                     <List.Item>New input buses & hardware: Joybus (N64/GC), SNES/NES pads, Xbox 360 RF module, Switch Network, ADS1115, DMX output, and optical crossfaders</List.Item>
                     <List.Item>Mobile configuration over Web Bluetooth (Chrome on Android, Bluefy on iOS)</List.Item>
@@ -486,7 +486,7 @@ export function FirmwareDifferencesPage() {
                   <List size="xs" spacing="xs" icon={<IconX size={12} color="var(--mantine-color-orange-6)" />}>
                     <List.Item>Support for 8-bit AVR microcontrollers (ATmega32U4 / ATmega16U2)</List.Item>
                     <List.Item>Legacy desktop Avalonia (C#) configurator application</List.Item>
-                    <List.Item>Per-configuration firmware compilation</List.Item>
+                    <List.Item>Per-configuration firmware compilation and the local compiler toolchain it required</List.Item>
                   </List>
                 </Paper>
               </SimpleGrid>
