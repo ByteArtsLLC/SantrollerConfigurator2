@@ -73,7 +73,6 @@ export function CommercialToolPage() {
           <>
             <Space h="md" />
             <Button disabled={updating} onClick={connect}>
-              Connect to a Santroller powered device
               {t('connect.connect')}
             </Button>
           </>
