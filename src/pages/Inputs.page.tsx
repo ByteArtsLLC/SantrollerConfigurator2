@@ -9090,117 +9090,129 @@ function Profile({ profileIdx }: { profileIdx: number }) {
           </Table.Tr>
         </Table.Tbody>
       </Table>
-      <Space h="md" />
-      <Title order={3}>{t('leds.label')}</Title>
-      <Space h="md" />
-      <Table stickyHeader stickyHeaderOffset={60} withRowBorders={false} layout="fixed">
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Td>
-              <Group align="stretch">
-                <Button
-                  variant="filled"
-                  onClick={() =>
-                    updateProfile(
-                      {
-                        ...profile,
-                        leds: [
-                          ...profile.leds!,
-                          {
-                            device: {
-                              gpio: {
-                                analog: false,
-                                pin: -1,
-                              },
-                            },
-                            mapping: {
-                              inputMapping: {
-                                input: {
-                                  gpio: { analog: false, pin: 0, pinMode: proto.PinMode.PullUp },
-                                },
-                                max: 65535,
-                                min: 0,
-                              },
-                            },
-                          },
-                        ],
-                      },
-                      profileIdx
-                    )
-                  }
-                >
-                  {t('leds.add')}
-                </Button>
-                <Button variant="filled" onClick={open4}>
-                  {t('clear_all_button')}
-                </Button>
-              </Group>
-            </Table.Td>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          <Table.Tr>
-            <Table.Td>
-              <Space h="md" />
-              <Group align="stretch">
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEndLed}
-                >
-                  <SortableContext
-                    items={profile.leds!.map((_, ledIdx) => ledIdx)!}
-                    strategy={rectSortingStrategy}
-                  >
-                    {profile.leds?.map((led, ledIdx) => (
-                      <SantrollerLed
-                        key={ledIdx}
-                        led={led}
-                        profileIdx={profileIdx}
-                        ledIdx={ledIdx}
-                        mode={profile.opts.faceButtonMappingMode}
-                        type={profile.opts.deviceToEmulate}
-                        legendMode={legendMode}
-                        dispatch={(val) =>
+      {(!simpleMode || !!profile.leds?.length) && (
+        <>
+          <Space h="md" />
+          <Title order={3}>{t('leds.label')}</Title>
+          <Space h="md" />
+          <Table stickyHeader stickyHeaderOffset={60} withRowBorders={false} layout="fixed">
+            <Table.Thead>
+              {!simpleMode && (
+                <Table.Tr>
+                  <Table.Td>
+                    <Group align="stretch">
+                      <Button
+                        variant="filled"
+                        onClick={() =>
                           updateProfile(
                             {
                               ...profile,
                               leds: [
-                                ...profile.leds!.map((cLed, cLedIdx) =>
-                                  cLedIdx === ledIdx ? val : cLed
-                                ),
+                                ...profile.leds!,
+                                {
+                                  device: {
+                                    gpio: {
+                                      analog: false,
+                                      pin: -1,
+                                    },
+                                  },
+                                  mapping: {
+                                    inputMapping: {
+                                      input: {
+                                        gpio: {
+                                          analog: false,
+                                          pin: 0,
+                                          pinMode: proto.PinMode.PullUp,
+                                        },
+                                      },
+                                      max: 65535,
+                                      min: 0,
+                                    },
+                                  },
+                                },
                               ],
                             },
                             profileIdx
                           )
                         }
-                        deleteLed={() =>
-                          updateProfile(
-                            {
-                              ...profile,
-                              leds: [...profile.leds!.filter((_, cLedIdx) => cLedIdx !== ledIdx)],
-                            },
-                            profileIdx
-                          )
-                        }
-                        copyInput={() =>
-                          updateProfile(
-                            {
-                              ...profile,
-                              leds: [...profile.leds!, { ...led }],
-                            },
-                            profileIdx
-                          )
-                        }
-                      />
-                    ))}
-                  </SortableContext>
-                </DndContext>
-              </Group>
-            </Table.Td>
-          </Table.Tr>
-        </Table.Tbody>
-      </Table>
+                      >
+                        {t('leds.add')}
+                      </Button>
+                      <Button variant="filled" onClick={open4}>
+                        {t('clear_all_button')}
+                      </Button>
+                    </Group>
+                  </Table.Td>
+                </Table.Tr>
+              )}
+            </Table.Thead>
+            <Table.Tbody>
+              <Table.Tr>
+                <Table.Td>
+                  <Space h="md" />
+                  <Group align="stretch">
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEndLed}
+                    >
+                      <SortableContext
+                        items={profile.leds!.map((_, ledIdx) => ledIdx)!}
+                        strategy={rectSortingStrategy}
+                      >
+                        {profile.leds?.map((led, ledIdx) => (
+                          <SantrollerLed
+                            key={ledIdx}
+                            led={led}
+                            profileIdx={profileIdx}
+                            ledIdx={ledIdx}
+                            mode={profile.opts.faceButtonMappingMode}
+                            type={profile.opts.deviceToEmulate}
+                            legendMode={legendMode}
+                            dispatch={(val) =>
+                              updateProfile(
+                                {
+                                  ...profile,
+                                  leds: [
+                                    ...profile.leds!.map((cLed, cLedIdx) =>
+                                      cLedIdx === ledIdx ? val : cLed
+                                    ),
+                                  ],
+                                },
+                                profileIdx
+                              )
+                            }
+                            deleteLed={() =>
+                              updateProfile(
+                                {
+                                  ...profile,
+                                  leds: [
+                                    ...profile.leds!.filter((_, cLedIdx) => cLedIdx !== ledIdx),
+                                  ],
+                                },
+                                profileIdx
+                              )
+                            }
+                            copyInput={() =>
+                              updateProfile(
+                                {
+                                  ...profile,
+                                  leds: [...profile.leds!, { ...led }],
+                                },
+                                profileIdx
+                              )
+                            }
+                          />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            </Table.Tbody>
+          </Table>
+        </>
+      )}
     </>
   );
 }
