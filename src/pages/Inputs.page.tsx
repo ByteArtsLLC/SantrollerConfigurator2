@@ -8156,9 +8156,13 @@ function Profile({ profileIdx }: { profileIdx: number }) {
         checked={syncCalibrations}
         onChange={(event) => setSyncMode(event.currentTarget.checked)}
       />
-      <Space h="md" />
-      <InactivitySettings />
-      {hasBluetooth && (
+      {!simpleMode && (
+        <>
+          <Space h="md" />
+          <InactivitySettings />
+        </>
+      )}
+      {hasBluetooth && !simpleMode && (
         <>
           <Space h="md" />
           <Switch
