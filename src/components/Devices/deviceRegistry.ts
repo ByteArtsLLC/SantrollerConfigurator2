@@ -14,8 +14,27 @@ export type DeviceStatusSnapshot = {
   usbDevices: Record<number, unknown>;
 };
 
+export type DeviceCategory =
+  'controllers' | 'instruments' | 'emulation' | 'expansion' | 'lighting' | 'power' | 'other';
+
+export const DEVICE_CATEGORIES: readonly DeviceCategory[] = [
+  'controllers',
+  'instruments',
+  'emulation',
+  'expansion',
+  'lighting',
+  'power',
+  'other',
+] as const;
+
+export interface GroupedDevices {
+  category: DeviceCategory;
+  items: DeviceKind[];
+}
+
 type DeviceDefinitions = {
   [Kind in DeviceKind]: {
+    category: DeviceCategory;
     create: () => NonNullable<proto.IDevice[Kind]>;
     pins?: (device: NonNullable<proto.IDevice[Kind]>) => number[];
     formatStatus?: (status: DeviceStatusSnapshot, pins: string) => string;
@@ -29,14 +48,17 @@ const uart = (baudrate = 0) => ({ tx: -1, rx: -1, block: 0, baudrate });
 
 const deviceRegistry: DeviceDefinitions = {
   accelerometer: {
+    category: 'other',
     create: () => ({ i2c: i2c(400000) }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
   },
   max1704x: {
+    category: 'power',
     create: () => ({ i2c: i2c(400000) }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
   },
   xboxOneAuth: {
+    category: 'controllers',
     create: () => ({ i2c: i2c(400000), resetPin: -1 }),
     pins: ({ i2c, resetPin }) => [
       i2c.sda,
@@ -45,10 +67,12 @@ const deviceRegistry: DeviceDefinitions = {
     ],
   },
   mpr121: {
+    category: 'expansion',
     create: () => ({ i2c: i2c(400000), touchpadCount: 0, ddrPins: 0, enablePins: 0 }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
   },
   wii: {
+    category: 'controllers',
     create: () => ({
       i2c: i2c(400000),
       mappingMode: proto.MappingMode.PerInput,
@@ -59,30 +83,37 @@ const deviceRegistry: DeviceDefinitions = {
       `${status.wiiExtType !== proto.WiiExtType.WiiNoExtension ? i18next.t('connected', 'Connected') : i18next.t('disconnected', 'Disconnected')}, ${pins}`,
   },
   crazyGuitarNeck: {
+    category: 'instruments',
     create: () => ({ i2c: i2c(100000) }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
   },
   gh5Neck: {
+    category: 'instruments',
     create: () => ({ i2c: i2c(150000) }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
   },
   djhTurntable: {
+    category: 'instruments',
     create: () => ({ i2c: i2c(150000), left: true, pollIntervalMs: 5 }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
   },
   bhDrum: {
+    category: 'instruments',
     create: () => ({ i2c: i2c(100000) }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
   },
   midiSerial: {
+    category: 'controllers',
     create: () => ({ uart: uart(31250) }),
     pins: ({ uart }) => [uart.tx, uart.rx],
   },
   infiniumFader: {
+    category: 'instruments',
     create: () => ({ uart: uart(31250) }),
     pins: ({ uart }) => [uart.tx, uart.rx],
   },
   usbHost: {
+    category: 'controllers',
     create: () => ({
       firstPin: -1,
       enable5v: false,
@@ -94,6 +125,7 @@ const deviceRegistry: DeviceDefinitions = {
       `${Object.values(status.usbDevices).length ? i18next.t('connected', 'Connected') : i18next.t('disconnected', 'Disconnected')}, ${pins}`,
   },
   multiplexer: {
+    category: 'expansion',
     create: () => ({
       s0Pin: -1,
       s1Pin: -1,
@@ -112,10 +144,12 @@ const deviceRegistry: DeviceDefinitions = {
     formatStatus: (_, pins) => pins,
   },
   worldTourDrum: {
+    category: 'instruments',
     create: () => ({ spi: spi(500000), csPin: -1 }),
     pins: ({ spi }) => [spi.mosi, spi.miso, spi.sck],
   },
   psx: {
+    category: 'controllers',
     create: () => ({
       spi: spi(500000),
       ackPin: -1,
@@ -127,6 +161,7 @@ const deviceRegistry: DeviceDefinitions = {
       `${status.ps2CntType !== proto.PS2ControllerType.PS2ControllerTypeUnknown ? i18next.t('connected', 'Connected') : i18next.t('disconnected', 'Disconnected')}, ${pins}`,
   },
   snes: {
+    category: 'controllers',
     create: () => ({
       clockPin: -1,
       latchPin: -1,
@@ -138,16 +173,19 @@ const deviceRegistry: DeviceDefinitions = {
       `${status.snesCntType !== proto.SNESControllerType.SNESControllerNone ? i18next.t('connected_with_type', { type: i18next.t(`snes.devices.${proto.SNESControllerType[status.snesCntType]}`) }) : i18next.t('disconnected', 'Disconnected')}, ${pins}`,
   },
   joybus: {
+    category: 'controllers',
     create: () => ({ dataPin: -1, mappingMode: proto.MappingMode.PerInput }),
     pins: ({ dataPin }) => [dataPin],
     formatStatus: (status, pins) =>
       `${status.joybusCntType !== proto.JoybusControllerType.JoybusControllerNone ? i18next.t('connected_with_type', { type: i18next.t(`joybus.devices.${proto.JoybusControllerType[status.joybusCntType]}`) }) : i18next.t('disconnected', 'Disconnected')}, ${pins}`,
   },
   wiiEmulation: {
+    category: 'emulation',
     create: () => ({ i2c: i2c(400000) }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
   },
   psxEmulation: {
+    category: 'emulation',
     create: () => ({
       commandPin: -1,
       attentionPin: -1,
@@ -164,10 +202,12 @@ const deviceRegistry: DeviceDefinitions = {
     ],
   },
   joybusEmulation: {
+    category: 'emulation',
     create: () => ({ dataPin: -1, console: proto.JoybusConsole.JoybusConsoleGameCube }),
     pins: ({ dataPin }) => [dataPin],
   },
   snesEmulation: {
+    category: 'emulation',
     create: () => ({
       clockPin: -1,
       latchPin: -1,
@@ -177,69 +217,97 @@ const deviceRegistry: DeviceDefinitions = {
     pins: ({ clockPin, latchPin, dataPin }) => [clockPin, latchPin, dataPin],
   },
   peripheral: {
+    category: 'instruments',
     create: () => ({ i2c: i2c(400000), address: 0x75 }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
     detail: ({ address }) => `0x${address.toString(16)}`,
   },
   crkdNeck: {
+    category: 'instruments',
     create: () => ({ uart: uart() }),
     pins: ({ uart }) => [uart.tx, uart.rx],
   },
   ads1115: {
+    category: 'expansion',
     create: () => ({ i2c: i2c(400000), interrupt: -1 }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
   },
-  encoder: { create: () => ({ dataPin: -1 }), pins: ({ dataPin }) => [dataPin, dataPin + 1] },
-  debug: { create: () => ({ uart: uart() }), pins: ({ uart }) => [uart.tx, uart.rx] },
+  encoder: {
+    category: 'expansion',
+    create: () => ({ dataPin: -1 }),
+    pins: ({ dataPin }) => [dataPin, dataPin + 1],
+  },
+  debug: {
+    category: 'other',
+    create: () => ({ uart: uart() }),
+    pins: ({ uart }) => [uart.tx, uart.rx],
+  },
   ws2812: {
+    category: 'lighting',
     create: () => ({ pin: -1, count: 0, type: proto.WS2812Type.Ws2812Rgb }),
     pins: ({ pin }) => [pin],
     formatStatus: (_, pins) => pins,
   },
   apa102: {
+    category: 'lighting',
     create: () => ({ spi: spi(12000000), count: 0, type: proto.APA102Type.Apa102Rgb }),
     pins: ({ spi }) => [spi.mosi, spi.sck],
     formatStatus: (_, pins) => pins,
   },
   stp16cpc: {
+    category: 'lighting',
     create: () => ({ spi: spi(500000), oe: -1, le: -1, count: 0 }),
     pins: ({ spi, le, oe }) => [spi.mosi, spi.miso, spi.sck, le, oe],
     formatStatus: (_, pins) => pins,
   },
   bt: {
+    category: 'controllers',
     create: () => ({}),
     pins: ({ syncPin }) => (syncPin != null && syncPin >= 0 ? [syncPin] : []),
   },
   protarNeck: {
+    category: 'instruments',
     create: () => ({ spi: spi(100000), attPin: -1 }),
     pins: ({ spi, attPin }) => [spi.mosi, spi.miso, spi.sck, attPin],
   },
   vtechExpander: {
+    category: 'instruments',
     create: () => ({ spi: spi(10000), attPin: -1 }),
     pins: ({ spi, attPin }) => [spi.mosi, spi.miso, spi.sck, attPin],
   },
   matrix: {
+    category: 'expansion',
     create: () => ({ inPins: 0, outPins: 0 }),
     pins: ({ inPins, outPins }) =>
       Array.from(Array(32).keys()).filter((pin) => (outPins | inPins) & (1 << pin)),
     formatStatus: (_, pins) => pins,
   },
   switchNetwork: {
+    category: 'expansion',
     create: () => ({ pins: 0, buttons: [] }),
     pins: ({ pins }) => Array.from(Array(32).keys()).filter((pin) => pins & (1 << pin)),
     formatStatus: (_, pins) => pins,
   },
   crkdDrum: {
+    category: 'instruments',
     create: () => ({ uart: uart() }),
     pins: ({ uart }) => [uart.tx, uart.rx],
   },
   cycle: {
+    category: 'other',
     create: () => ({ type: proto.CycleType.custom, values: [0] }),
     formatStatus: (status) => status.id,
   },
-  toggle: { create: () => ({}) },
-  dmx: { create: () => ({ pin: -1, channelCount: 1 }) },
+  toggle: {
+    category: 'other',
+    create: () => ({}),
+  },
+  dmx: {
+    category: 'lighting',
+    create: () => ({ pin: -1, channelCount: 1 }),
+  },
   xbox360Rf: {
+    category: 'controllers',
     create: () => ({
       type: proto.Xbox360RfModuleType.Xbox360RfFat,
       dataPin: -1,
@@ -250,12 +318,14 @@ const deviceRegistry: DeviceDefinitions = {
     formatStatus: (_, pins) => pins,
   },
   adcBattery: {
+    category: 'power',
     // GP29 reads VSYS through the Pico's divide by 3, and 3.3V to 4.2V covers a single LiPo cell
     create: () => ({ pin: 29, dividerX1000: 3000, emptyMv: 3300, fullMv: 4200 }),
     pins: ({ pin }) => [pin],
     formatStatus: (_, pins) => pins,
   },
   powerManagement: {
+    category: 'power',
     // Nothing is driven until a pin is picked
     create: () => ({
       heartbeatPin: -1,
@@ -275,6 +345,22 @@ const deviceRegistry: DeviceDefinitions = {
 };
 
 export const deviceKinds = Object.keys(deviceRegistry) as DeviceKind[];
+
+export function getDeviceCategory(kind: DeviceKind): DeviceCategory {
+  return deviceRegistry[kind].category;
+}
+
+export function getGroupedDevices(
+  kinds: DeviceKind[],
+  translate: (key: string) => string
+): GroupedDevices[] {
+  return DEVICE_CATEGORIES.map((category) => {
+    const items = kinds
+      .filter((kind) => deviceRegistry[kind].category === category)
+      .sort((a, b) => translate(`devices.${a}`).localeCompare(translate(`devices.${b}`)));
+    return { category, items };
+  }).filter((group) => group.items.length > 0);
+}
 
 const nonInputDeviceKinds = new Set<DeviceKind>([
   'debug',

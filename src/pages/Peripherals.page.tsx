@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { IconDownload, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -26,7 +26,12 @@ import {
   useCombobox,
 } from '@mantine/core';
 import { useDisclosure, useMounted } from '@mantine/hooks';
-import { DeviceKind, deviceKinds, isDeviceKind } from '@/components/Devices/deviceRegistry';
+import {
+  DeviceKind,
+  deviceKinds,
+  getGroupedDevices,
+  isDeviceKind,
+} from '@/components/Devices/deviceRegistry';
 import { DeviceContext } from '@/components/Devices/Pins';
 import { Layout } from '@/components/Layout/Layout';
 import { RequireDevice } from '@/components/RequireDevice/RequireDevice';
@@ -39,11 +44,14 @@ const subDeviceKinds = deviceKinds.filter((k) => k !== 'peripheral');
 export function PeripheralsPage() {
   const [searchParams] = useSearchParams();
   const id = searchParams.get('id') || '0';
+  const { t } = useTranslation();
+  const groupedDevices = useMemo(() => getGroupedDevices(subDeviceKinds, t), [t]);
 
-  const [deviceType, setDeviceType] = useState<DeviceKind>(subDeviceKinds[0]);
+  const [deviceType, setDeviceType] = useState<DeviceKind>(
+    () => groupedDevices[0]?.items[0] ?? subDeviceKinds[0]
+  );
   const [opened, { open, close }] = useDisclosure(false);
   const [uf2Opened, { open: openUf2, close: closeUf2 }] = useDisclosure(false);
-  const { t } = useTranslation();
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
   });
@@ -186,11 +194,18 @@ export function PeripheralsPage() {
             <Combobox.Target>{mainElement}</Combobox.Target>
 
             <Combobox.Dropdown>
-              <Combobox.Options mah={200} style={{ overflowY: 'auto' }}>
-                {subDeviceKinds.map((item) => (
-                  <Combobox.Option value={item} key={item}>
-                    {t(`devices.${item}`)}
-                  </Combobox.Option>
+              <Combobox.Options mah={300} style={{ overflowY: 'auto' }}>
+                {groupedDevices.map((group) => (
+                  <Combobox.Group
+                    label={t(`add_device_dialog.categories.${group.category}`)}
+                    key={group.category}
+                  >
+                    {group.items.map((item) => (
+                      <Combobox.Option value={item} key={item}>
+                        {t(`devices.${item}`)}
+                      </Combobox.Option>
+                    ))}
+                  </Combobox.Group>
                 ))}
               </Combobox.Options>
             </Combobox.Dropdown>

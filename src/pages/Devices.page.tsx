@@ -41,7 +41,12 @@ import '@/i18n/config';
 import { t } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
-import { DeviceKind, deviceKinds, isDeviceKind } from '@/components/Devices/deviceRegistry';
+import {
+  DeviceKind,
+  deviceKinds,
+  getGroupedDevices,
+  isDeviceKind,
+} from '@/components/Devices/deviceRegistry';
 import { DeviceContext, PinBox } from '@/components/Devices/Pins';
 import {
   AllPinsNamed,
@@ -2679,9 +2684,12 @@ export const deviceEditors: Record<DeviceKind, React.FunctionComponent<{ id: str
   powerManagement: PowerManagementDevice,
 };
 export function DevicesPage() {
-  const [deviceType, setDeviceType] = useState<DeviceKind>(deviceKinds[0]);
-  const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
+  const groupedDevices = useMemo(() => getGroupedDevices(deviceKinds, t), [t]);
+  const [deviceType, setDeviceType] = useState<DeviceKind>(
+    () => groupedDevices[0]?.items[0] ?? deviceKinds[0]
+  );
+  const [opened, { open, close }] = useDisclosure(false);
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
   });
@@ -2730,11 +2738,18 @@ export function DevicesPage() {
               <Combobox.Target>{mainElement}</Combobox.Target>
 
               <Combobox.Dropdown>
-                <Combobox.Options mah={200} style={{ overflowY: 'auto' }}>
-                  {deviceKinds.map((item) => (
-                    <Combobox.Option value={item} key={item}>
-                      {t(`devices.${item}`)}
-                    </Combobox.Option>
+                <Combobox.Options mah={300} style={{ overflowY: 'auto' }}>
+                  {groupedDevices.map((group) => (
+                    <Combobox.Group
+                      label={t(`add_device_dialog.categories.${group.category}`)}
+                      key={group.category}
+                    >
+                      {group.items.map((item) => (
+                        <Combobox.Option value={item} key={item}>
+                          {t(`devices.${item}`)}
+                        </Combobox.Option>
+                      ))}
+                    </Combobox.Group>
                   ))}
                 </Combobox.Options>
               </Combobox.Dropdown>

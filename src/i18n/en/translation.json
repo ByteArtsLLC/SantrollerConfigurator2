@@ -1554,7 +1554,16 @@
   "add_device_dialog": {
     "title": "Add device",
     "confirm": "Add device",
-    "remove_all": "Remove all devices"
+    "remove_all": "Remove all devices",
+    "categories": {
+      "controllers": "Console Controllers & Adapters",
+      "instruments": "Instrument Peripherals",
+      "emulation": "Console Emulation",
+      "expansion": "Expansion & Inputs",
+      "lighting": "LEDs & Lighting",
+      "power": "Power & Battery",
+      "other": "Sensors & Other"
+    }
   },
   "assignmentType": {
     "wiiExt": "Wii Extension Host",
