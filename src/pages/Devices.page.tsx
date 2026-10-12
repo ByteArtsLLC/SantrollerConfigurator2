@@ -19,8 +19,8 @@ import {
   Modal,
   MultiSelect,
   NumberInput,
-  Select,
   SegmentedControl,
+  Select,
   SimpleGrid,
   Space,
   Stack,
@@ -1584,9 +1584,10 @@ function CycleDevice({ id }: { id: string }) {
       {cycle.type === proto.CycleType.pickup && (
         <>
           <SegmentedControl
-            data={
-              cycle.values!.map((_, i) => ({ label: t(`pickup.notch.${i}`), value: i.toString() }))!
-            }
+            data={cycle.values!.map((_, i) => ({
+              label: t(`pickup.notch.${i}`),
+              value: i.toString(),
+            }))!}
             value={status.cycleState.toString()}
             onChange={(val) => updateCycle(parseInt(id, 10), parseInt(val, 10))}
           />

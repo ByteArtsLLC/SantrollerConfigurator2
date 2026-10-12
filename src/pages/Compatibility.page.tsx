@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   IconAlertTriangle,
+  IconArrowsExchange,
   IconBluetooth,
   IconBrandWindows,
   IconCheck,
@@ -14,7 +15,6 @@ import {
   IconPlug,
   IconShieldLock,
   IconTerminal2,
-  IconArrowsExchange,
 } from '@tabler/icons-react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';

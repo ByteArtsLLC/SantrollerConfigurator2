@@ -4447,10 +4447,7 @@
         "interfaceType": "UART (460,800 baud)",
         "badge": "Guitar neck",
         "description": "Reads CRKD guitar necks, which use a PY32F002B microcontroller.",
-        "details": [
-          "460.8 kbps serial",
-          "Frets, the neck D-pad, and solo frets on Rock Band necks"
-        ]
+        "details": ["460.8 kbps serial", "Frets, the neck D-pad, and solo frets on Rock Band necks"]
       },
       "periph_protar_neck": {
         "name": "Mad Catz Rock Band 3 Pro Guitar Neck",

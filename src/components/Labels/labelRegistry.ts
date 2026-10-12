@@ -2,11 +2,7 @@ import i18next from 'i18next';
 import { proto } from '@/components/SettingsContext/config';
 
 export type LabelKind =
-  | 'label'
-  | 'ledLabel'
-  | 'matrixLabel'
-  | 'multiplexerLabel'
-  | 'switchNetworkLabel';
+  'label' | 'ledLabel' | 'matrixLabel' | 'multiplexerLabel' | 'switchNetworkLabel';
 
 type LabelDefinition = {
   create: () => Record<string, unknown>;

@@ -1,5 +1,5 @@
-import { NumberInput, Space, Switch } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { NumberInput, Space, Switch } from '@mantine/core';
 import { PinBox } from '@/components/Devices/Pins';
 import { proto } from '@/components/SettingsContext/config';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';

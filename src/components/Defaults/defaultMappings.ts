@@ -1291,78 +1291,77 @@ export function getWiiDefaults(
   }
 
   if (isClassicProExt) {
-
-  return [
-    wiiAxis(
-      proto.WiiAxisType.WiiAxisClassicLeftStickX,
-      deviceId,
-      { gamepadAxis: proto.GamepadAxisType.Gamepad_LeftStickX },
-      32767
-    ),
-    wiiAxis(
-      proto.WiiAxisType.WiiAxisClassicLeftStickY,
-      deviceId,
-      { gamepadAxis: proto.GamepadAxisType.Gamepad_LeftStickY },
-      32767
-    ),
-    wiiAxis(
-      proto.WiiAxisType.WiiAxisClassicRightStickX,
-      deviceId,
-      { gamepadAxis: proto.GamepadAxisType.Gamepad_RightStickX },
-      32767
-    ),
-    wiiAxis(
-      proto.WiiAxisType.WiiAxisClassicRightStickY,
-      deviceId,
-      { gamepadAxis: proto.GamepadAxisType.Gamepad_RightStickY },
-      32767
-    ),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicA, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_A,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicB, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_B,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicX, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_X,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicY, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_Y,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicDPadUp, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_DpadUp,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicDPadDown, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_DpadDown,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicDPadLeft, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_DpadLeft,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicDPadRight, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_DpadRight,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicLt, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_LeftShoulder,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicRt, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_RightShoulder,
-    }),
-    wiiTriggerButton(proto.WiiButtonType.WiiButtonClassicZl, deviceId, {
-      gamepadAxis: proto.GamepadAxisType.Gamepad_LeftTrigger,
-    }),
-    wiiTriggerButton(proto.WiiButtonType.WiiButtonClassicZr, deviceId, {
-      gamepadAxis: proto.GamepadAxisType.Gamepad_RightTrigger,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicPlus, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_Start,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicMinus, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_Back,
-    }),
-    wiiButton(proto.WiiButtonType.WiiButtonClassicHome, deviceId, {
-      gamepadButton: proto.GamepadButtonType.Gamepad_Guide,
-    }),
-  ];
+    return [
+      wiiAxis(
+        proto.WiiAxisType.WiiAxisClassicLeftStickX,
+        deviceId,
+        { gamepadAxis: proto.GamepadAxisType.Gamepad_LeftStickX },
+        32767
+      ),
+      wiiAxis(
+        proto.WiiAxisType.WiiAxisClassicLeftStickY,
+        deviceId,
+        { gamepadAxis: proto.GamepadAxisType.Gamepad_LeftStickY },
+        32767
+      ),
+      wiiAxis(
+        proto.WiiAxisType.WiiAxisClassicRightStickX,
+        deviceId,
+        { gamepadAxis: proto.GamepadAxisType.Gamepad_RightStickX },
+        32767
+      ),
+      wiiAxis(
+        proto.WiiAxisType.WiiAxisClassicRightStickY,
+        deviceId,
+        { gamepadAxis: proto.GamepadAxisType.Gamepad_RightStickY },
+        32767
+      ),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicA, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_A,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicB, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_B,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicX, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_X,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicY, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Y,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicDPadUp, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_DpadUp,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicDPadDown, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_DpadDown,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicDPadLeft, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_DpadLeft,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicDPadRight, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_DpadRight,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicLt, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_LeftShoulder,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicRt, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_RightShoulder,
+      }),
+      wiiTriggerButton(proto.WiiButtonType.WiiButtonClassicZl, deviceId, {
+        gamepadAxis: proto.GamepadAxisType.Gamepad_LeftTrigger,
+      }),
+      wiiTriggerButton(proto.WiiButtonType.WiiButtonClassicZr, deviceId, {
+        gamepadAxis: proto.GamepadAxisType.Gamepad_RightTrigger,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicPlus, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Start,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicMinus, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Back,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicHome, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Guide,
+      }),
+    ];
   }
 
   // 8. Default / Classic Controller (Full Gamepad)
@@ -1597,7 +1596,6 @@ export function getPs2Defaults(
     ];
   }
 
-
   if (subType === proto.SubType.BeatMania) {
     // beatmania IIDX controllers are plain digital pads, https://github.com/PCSX2/pcsx2/issues/10176
     const B = proto.BeatManiaButtonType;
@@ -1695,7 +1693,6 @@ export function getPs2Defaults(
       }),
     ];
   }
-
 
   if (subType === proto.SubType.Dancepad) {
     return [

@@ -1,5 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { IconArrowRight, IconCpu, IconDeviceGamepad2, IconSearch, IconArrowsExchange } from '@tabler/icons-react';
+import {
+  IconArrowRight,
+  IconArrowsExchange,
+  IconCpu,
+  IconDeviceGamepad2,
+  IconSearch,
+} from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import {
