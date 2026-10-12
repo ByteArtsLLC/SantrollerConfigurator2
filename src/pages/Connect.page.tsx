@@ -1,7 +1,19 @@
-import { IconExclamationCircle } from '@tabler/icons-react';
+import { IconAlertTriangle, IconExclamationCircle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Alert, Button, FileButton, Group, List, Progress, Space } from '@mantine/core';
+import {
+  Alert,
+  Button,
+  FileButton,
+  Flex,
+  Group,
+  List,
+  Modal,
+  Progress,
+  Space,
+  Text,
+} from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { Layout } from '@/components/Layout/Layout';
 import { translateLegacyWarning } from '@/components/Legacy/warnings';
 import { BluetoothConfigDevice } from '@/components/SettingsContext/BluetoothConfigDevice';
@@ -26,12 +38,49 @@ export function ConnectPage() {
   const updateError = useConfigStore((state) => state.updateError);
   const latest = useConfigStore((state) => state.latest);
   const simpleMode = useConfigStore((state) => state.simpleMode);
+  const setSimpleMode = useConfigStore((state) => state.setSimpleMode);
   const needsUf2Update = useConfigStore((state) => state.needsUf2Update);
+  const [advancedModalOpened, { open: openAdvancedModal, close: closeAdvancedModal }] =
+    useDisclosure(false);
   const { t } = useTranslation();
   const bluetoothSupported = BluetoothConfigDevice.isSupported();
   return (
     <>
       <Layout>
+        <Modal
+          opened={advancedModalOpened}
+          onClose={closeAdvancedModal}
+          title={t('connect.advancedMode.title')}
+          centered
+        >
+          <Text size="sm">{t('connect.advancedMode.desc')}</Text>
+          <Space h="md" />
+          <Alert
+            variant="light"
+            color="orange"
+            title={t('connect.advancedMode.warningTitle')}
+            icon={<IconAlertTriangle size={16} />}
+          >
+            {t('connect.advancedMode.warningDesc')}
+          </Alert>
+          <Space h="md" />
+          <Flex justify="flex-end">
+            <Group align="flex-end">
+              <Button
+                onClick={() => {
+                  setSimpleMode(false);
+                  closeAdvancedModal();
+                }}
+                color="orange"
+              >
+                {t('connect.advancedMode.confirm')}
+              </Button>
+              <Button variant="default" onClick={closeAdvancedModal}>
+                {t('connect.advancedMode.cancel')}
+              </Button>
+            </Group>
+          </Flex>
+        </Modal>
         {!navigator.hid && !bluetoothSupported && (
           <Alert
             variant="light"
@@ -81,6 +130,14 @@ export function ConnectPage() {
                 </Button>
               )}
             </FileButton>
+          </>
+        )}
+        {connected && simpleMode && (
+          <>
+            <Space h="md" />
+            <Button disabled={updating || hung} variant="default" onClick={openAdvancedModal}>
+              {t('connect.advancedMode.button')}
+            </Button>
           </>
         )}
         {legacyImportWarnings.length > 0 && (
@@ -135,6 +192,14 @@ export function ConnectPage() {
             <Space h="md" />
             <Button component={Link} to="/setup">
               {t('connect.setup')}
+            </Button>
+          </>
+        )}
+        {!connected && simpleMode && (
+          <>
+            <Space h="md" />
+            <Button disabled={updating} variant="default" onClick={openAdvancedModal}>
+              {t('connect.advancedMode.button')}
             </Button>
           </>
         )}
