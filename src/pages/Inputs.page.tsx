@@ -3904,7 +3904,7 @@ function SantrollerMapping({
                   {axis && !crkdDrum && (
                     <>
                       {/* pro keys keys don't calibrate like an axis, so a range can't apply */}
-                      {mapping.mapping.proKeySingle == null && (
+                      {mapping.mapping.proKeySingle == null && !simpleMode && (
                         <>
                           <Input.Wrapper
                             label={t('axis.section.label')}
