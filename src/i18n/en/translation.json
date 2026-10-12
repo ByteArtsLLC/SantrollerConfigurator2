@@ -1814,6 +1814,187 @@
       "intermediate": "Intermediate",
       "advanced": "Advanced"
     },
+    "wireless": {
+      "title": "Wireless: Bluetooth & Battery (Pico W)",
+      "subtitle": "LiPo Battery Power and Bluetooth Output on a Pico W / Pico 2 W",
+      "description": "Run your controller from a single-cell LiPo battery and pair it with a PC or phone over Bluetooth, with battery level reporting and sleep when idle. USB keeps working too.",
+      "badge": "Bluetooth",
+      "estimatedTime": "45 - 60 mins",
+      "board": {
+        "title": "Which Pico is this?",
+        "desc": "Santroller runs the same firmware on wireless and non-wireless Picos, so the configurator can't tell whether the wireless chip is fitted. Pick your board:",
+        "wireless": "Pico W / Pico 2 W",
+        "plain": "Pico / Pico 2 (no wireless)",
+        "chip": "Connected chip: {{chip}}",
+        "chipRp2040": "RP2040 (Pico / Pico W)",
+        "chipRp2350": "RP2350 (Pico 2 / Pico 2 W)",
+        "chipUnknown": "Connect your Pico to see which chip it uses.",
+        "identify": "A genuine Pico W / Pico 2 W has a silver metal shield with the Raspberry Pi logo over its wireless chip.",
+        "unknownPrompt": "Pick your board to enable the Bluetooth setup.",
+        "plainWarning": "A Pico without the wireless chip can't be a Bluetooth controller on its own, so the Bluetooth setup is disabled. Santroller can use a supported USB Bluetooth adapter on a USB host port instead, which this guide doesn't cover. The battery and sleep steps still apply."
+      },
+      "steps": {
+        "wireless-intro": {
+          "shortTitle": "Overview",
+          "title": "Supplies, Overview & Safety",
+          "badge": "Pico W",
+          "description": "What a wireless build gives you, what it needs, and how to handle LiPo batteries safely.",
+          "intro": "A Pico W or Pico 2 W has a CYW43439 wireless chip that Santroller uses to act as a Bluetooth (BLE) gamepad. Add a LiPo battery and the controller can go fully wireless, while USB keeps working whenever it is plugged in.",
+          "getTitle": "What You Get",
+          "getList": [
+            "Bluetooth controller: The Pico advertises as a BLE gamepad called SantrollerBT, which PCs and phones can pair with directly.",
+            "USB and Bluetooth at once: The same profile keeps working over USB, so you can still play wired, update firmware and configure over the cable.",
+            "Battery level: The battery percentage is reported to the paired host through the standard Bluetooth battery service.",
+            "Power saving: Bluetooth can turn off, and the Pico can sleep, when the controller is left unused."
+          ],
+          "consoleNote": "Most consoles won't pair with a Bluetooth gamepad. To play on one, a second Pico W plugged into the console can act as the receiver (give its profile a Bluetooth controller slot on the Inputs page). For a Wii, the Inputs page also has a Wii Remote Bluetooth mode.",
+          "requiresTitle": "Requirements",
+          "requiresList": [
+            "A genuine Pico W or Pico 2 W: Bluetooth needs the CYW43439 wireless chip. Plain Picos, and clone \"Pico W\" boards with an ESP8266 / ESP8285 chip, have no Bluetooth radio Santroller can use.",
+            "USB access: Keep the Pico's USB port reachable in the finished controller for configuring, firmware updates and charging."
+          ],
+          "suppliesTitle": "Supplies Required",
+          "supplies": [
+            "Raspberry Pi Pico W or Pico 2 W",
+            "Single-cell 3.7V LiPo / Li-ion battery with a built in protection circuit",
+            "Single-cell LiPo charger board with protection (eg a TP4056 module with protection)",
+            "Schottky diode rated for at least 1A and over 10V reverse voltage (eg 1N5817 or 1N5819)",
+            "Optional: MAX17043 / MAX17048 fuel gauge board for a more accurate battery percentage",
+            "Optional: power switch for the battery output",
+            "Soldering Iron, Wire & Multimeter"
+          ],
+          "safetyTitle": "LiPo Battery Safety",
+          "safetyList": [
+            "Use a protected cell and a proper charger: Only charge a LiPo with a charger made for single-cell lithium batteries, and use a cell or charger board with over-discharge, over-current and short circuit protection.",
+            "Never connect the battery to 3V3 or VBUS: The battery only goes to VSYS (pin 39), through a Schottky diode. 3V3 (pin 36) is the Pico's regulator output and VBUS (pin 40) is the USB 5V line.",
+            "Check the polarity: Reversing the battery leads can destroy the charger and the Pico. Battery connector colours aren't always standard, so check + and − with a multimeter before connecting.",
+            "Don't short or puncture the cell: Insulate every joint, keep the battery away from sharp edges and screws, and secure it so it can't move inside the controller.",
+            "Retire damaged cells: Disconnect a swollen, dented or hot battery straight away and take it to a battery recycling point. Don't leave a LiPo charging unattended near anything flammable."
+          ]
+        },
+        "wireless-battery": {
+          "shortTitle": "Battery",
+          "title": "Battery Wiring & Level Sensing",
+          "badge": "VSYS",
+          "description": "Wire the charger and battery to VSYS through a Schottky diode, then pick how the battery level is measured.",
+          "wiringTitle": "Power Wiring",
+          "wiringSteps": [
+            "Battery to charger: With nothing plugged in, solder the LiPo to the charger board's battery pads (B+ / B−, sometimes BAT+ / BAT−).",
+            "Charger to diode: Wire the charger board's protected output (OUT+) to the diode's anode (the end without the stripe). If you're adding a power switch, put it in this wire.",
+            "Diode to VSYS: Wire the diode's cathode (the striped end) to VSYS (pin 39). The diode stops USB's 5V from flowing back into the battery, and the Pico's own diode stops the battery feeding back into USB.",
+            "Ground: Wire the charger's OUT− to any Pico GND, eg pin 38.",
+            "Charging: Charge through the charger board's own USB socket. To charge from the Pico's USB port instead, feed the charger's IN+ from VBUS (pin 40) and IN− from GND, but only if its charge current is within what your USB port can supply (many TP4056 boards default to 1A, set by their RPROG resistor).",
+            "Check before powering up: With USB unplugged, measure VSYS to GND with a multimeter. It should read the battery voltage minus the diode's drop (a few tenths of a volt)."
+          ],
+          "pinTitle": "Pico Power Pins",
+          "thPin": "Pico Pin",
+          "thConnect": "Connect",
+          "pinRows": [
+            ["VSYS (pin 39)", "Diode cathode (striped end), fed from the charger's OUT+"],
+            ["GND (pin 38)", "Charger OUT−"],
+            ["VBUS (pin 40)", "Optional: charger IN+, only to charge from the Pico's USB port"],
+            ["3V3 (pin 36)", "Never connect the battery here"]
+          ],
+          "sensorTitle": "Battery Level Sensing",
+          "sensorDesc": "Pick how the Pico measures the battery. The level is reported to the paired host over Bluetooth.",
+          "sensorAdc": "GP29 / VSYS",
+          "sensorGauge": "MAX1704x fuel gauge",
+          "adcInfo": "GP29 reads VSYS through the Pico's built in divide by 3, so it needs no extra wiring. It reads after the diode, so it sees the battery voltage minus the diode's drop, and while USB is plugged in it reads the USB voltage instead and shows full. The level is a straight line between the empty and full voltages (3300 to 4200 mV suits one LiPo cell); lower both by your diode's drop for a closer reading.",
+          "adcPicoW": "On a Pico W, GP29 is shared with the wireless chip, so it can only be read while Bluetooth is set up (the next step).",
+          "gaugeInfo": "A MAX17043 / MAX17048 style fuel gauge measures the cell itself and works out a more accurate percentage. Connect its battery side as your board's markings show, and wire it to the Pico on its own I2C bus:",
+          "gaugeWiring": [
+            "SDA: GP{{sda}} (pin {{sdaPin}})",
+            "SCL: GP{{scl}} (pin {{sclPin}})",
+            "GND: Any Pico GND",
+            "Pull-ups: SDA and SCL must be pulled up to 3.3V, never to the battery. If your board's pull-ups go to the battery voltage, remove them and fit 4.7kΩ pull-ups to 3V3 (pin 36) instead."
+          ],
+          "addAdcBtn": "Add GP29 Battery Monitor",
+          "addGaugeBtn": "Add MAX1704x Fuel Gauge on GP{{sda}} / GP{{scl}}",
+          "adcAdded": "Battery monitor on GP{{pin}} (divider {{divider}})",
+          "gaugeAdded": "Fuel gauge on GP{{sda}} (SDA) / GP{{scl}} (SCL)",
+          "otherSensorAdc": "A GP29 battery monitor is already set up. Remove it on the Devices page first, so only one sensor reports the battery level.",
+          "otherSensorGauge": "A MAX1704x fuel gauge is already set up. Remove it on the Devices page first, so only one sensor reports the battery level.",
+          "gaugeConflict": "GP{{sda}} / GP{{scl}} can't be used for the fuel gauge, as {{conflicts}} is already in use. Add the gauge on the Devices page with free I2C pins instead.",
+          "emptyLabel": "Empty voltage",
+          "fullLabel": "Full voltage",
+          "connectFirst": "Connect your Pico to set this up."
+        },
+        "wireless-bluetooth": {
+          "shortTitle": "Bluetooth",
+          "title": "Bluetooth Controller Setup",
+          "badge": "BLE Gamepad",
+          "description": "Turn on the Pico W's radio, make the active profile output over Bluetooth, then pair it with your PC or phone.",
+          "howTitle": "How It Works",
+          "howText": "Bluetooth output is part of a profile's assignments. It is added next to the profile's USB output, so the controller works over USB and Bluetooth at the same time.",
+          "pairTitle": "Pairing",
+          "pairSteps": [
+            "Enable Bluetooth: Use the button on the right. The change applies to the connected Pico straight away.",
+            "Pair from the host: On your PC or phone, open the Bluetooth settings, add a new device and pick SantrollerBT.",
+            "Reconnecting: The host remembers the pairing and reconnects when the controller turns on. One host can be connected at a time, and the controller advertises again once it disconnects.",
+            "If pairing fails: Usually one side has forgotten the pairing (eg after the Pico was erased). Remove SantrollerBT from the host's Bluetooth settings and pair again."
+          ],
+          "syncNote": "The Bluetooth device's optional pairing button pin (on the Devices page) only searches for Bluetooth controllers to connect to this Pico as inputs. Pairing it as a controller doesn't need one.",
+          "setupTitle": "Bluetooth Output",
+          "setupDesc": "Adds the Bluetooth radio, and adds a Bluetooth output to each USB assignment list in the active profile ({{profile}}).",
+          "enableBtn": "Enable Bluetooth Controller Output",
+          "radioBadge": "Bluetooth radio set up",
+          "radioMissing": "Bluetooth radio not set up",
+          "outputBadge": "Profile outputs over Bluetooth",
+          "outputBadgeWiimote": "Profile outputs over Bluetooth (Wii Remote mode)",
+          "outputMissing": "Profile doesn't output over Bluetooth yet",
+          "inputsNote": "The Inputs page shows the first output of each assignment list, so these lists still show as USB there. The Bluetooth output stays on as long as it is in the list."
+        },
+        "wireless-power": {
+          "shortTitle": "Power",
+          "title": "Sleep & Power Saving",
+          "badge": "Battery Life",
+          "description": "Turn Bluetooth off and put the Pico to sleep when the controller isn't being used.",
+          "optionsTitle": "Power Saving Options",
+          "optionsList": [
+            "Bluetooth timeout: Turns the radio off after this long without a button press, while acting as a Bluetooth controller with no controllers connected to it. The next press turns it back on and reconnects.",
+            "Sleep: Puts the Pico into a deep sleep after this long without a button press, but only while it isn't plugged into USB. It needs a wake button, and pressing it restarts the controller.",
+            "LED timeout: Turns any LEDs off after this long, as they can be a big drain on the battery."
+          ],
+          "wakeTip": "For the wake button, pick the pin of a button you have already wired (eg Start or Guide) that connects its pin to GND when pressed. Sleep still draws a little current, so fit a power switch if the controller will be stored for a long time.",
+          "powerMgmtTitle": "Battery modules with a power button",
+          "powerMgmtText": "If the controller runs from a charger / boost module with its own power button (eg a power bank style board) instead of a LiPo on VSYS, add a Battery Power Management device on the Devices page. It can press the module's power button to turn it off when idle, and pulse a load so the module doesn't switch itself off while you play.",
+          "btTitle": "Bluetooth",
+          "btMissing": "Set up Bluetooth in the previous step to set its timeout.",
+          "inactivityTitle": "Sleep & LEDs",
+          "sleepActive": "Sleep on: after {{seconds}} s on battery, wake with GP{{pin}}",
+          "sleepInactive": "Sleep is off (it needs a timeout and a wake button pin)"
+        },
+        "wireless-test": {
+          "shortTitle": "Test & Save",
+          "title": "Live Test & Save",
+          "badge": "Save to Pico",
+          "description": "Check the battery reading and the Bluetooth connection, then save the configuration to the Pico.",
+          "testTitle": "Testing",
+          "testSteps": [
+            "Battery: The reading on the right updates about once a second. The GP29 monitor reads the USB voltage while plugged in and shows full, so check it on battery through the host's Bluetooth settings.",
+            "Bluetooth: Pair with your PC or phone. The status on the right shows when a host connects.",
+            "Save: Save to write the configuration to the Pico's flash, otherwise it is lost when the Pico restarts.",
+            "Go wireless: Unplug USB and run from the battery. The controller reconnects to the paired host by itself."
+          ],
+          "btnSave": "Save Configuration to Pico Flash",
+          "btnSaved": "Saved to Controller",
+          "statusTitle": "WIRELESS STATUS",
+          "batteryLabel": "Battery",
+          "batteryNone": "No battery sensor set up",
+          "batteryWaiting": "Waiting for a reading",
+          "batteryLevel": "{{level}}%",
+          "gaugeMissing": "Fuel gauge not detected, check its I2C wiring",
+          "btLabel": "Bluetooth",
+          "btNone": "Bluetooth not set up",
+          "btNoOutput": "The profile doesn't output over Bluetooth",
+          "btStackDown": "Bluetooth didn't start",
+          "btHostConnected": "Host connected",
+          "btAdvertising": "Waiting for a host to pair or connect",
+          "hostNote": "A host connection also includes the configurator itself connecting over Bluetooth.",
+          "connectPrompt": "Connect your Pico to see live status."
+        }
+      }
+    },
     "direct-pico-guitar": {
       "title": "Direct-Wired Guitar (Raspberry Pi Pico)",
       "subtitle": "Interactive Wiring & Configuration Walkthrough",
@@ -2796,6 +2977,326 @@
         }
       }
     },
+    "xbox-auth": {
+      "title": "Xbox One / Series Authentication",
+      "subtitle": "Pass Auth to a Real Controller or a Harvested Auth Chip",
+      "description": "Xbox One and Xbox Series consoles only accept genuine controllers. Let Santroller pass the console's auth requests to an official controller on the USB Host port, or to an auth chip taken from an Xbox One controller and wired over I2C.",
+      "badge": "Console Auth",
+      "estimatedTime": "15 - 45 mins",
+      "steps": {
+        "auth-intro": {
+          "shortTitle": "Overview",
+          "title": "1. Why Xbox Needs Authentication",
+          "badge": "Overview",
+          "description": "Which consoles check for genuine controllers, and the ways to pass the check.",
+          "intro": "Some consoles check that a controller is genuine. Santroller controllers are unofficial, so on an Xbox One or Xbox Series console Santroller passes the console's authentication requests on to something genuine: an official controller plugged into a USB Host port, or an auth chip taken from an Xbox One controller.",
+          "consolesTitle": "Which Consoles Need This",
+          "consoles": [
+            "Xbox 360: Santroller has the authentication keys built in, so nothing extra is needed.",
+            "Xbox One / Series S|X: Needs an auth source from this guide, unless you're playing Fortnite Festival.",
+            "Fortnite Festival: Doesn't need authentication. Use a keyboard profile instead (see the Fortnite Festival tab on the Compatibility page).",
+            "PS4 / PS5: Not covered here. See the Authentication tab on the Compatibility page."
+          ],
+          "suppliesTitle": "What You'll Need",
+          "supplies": [
+            "A Raspberry Pi Pico running Santroller",
+            "USB method: an official Xbox One / Series controller (wired with a USB cable, or on an Xbox Wireless Adapter) and a USB Host port on the Pico",
+            "Auth chip method: an auth chip removed from an Xbox One controller, fine wire and a soldering iron"
+          ],
+          "compatibilityLink": "Compatibility & authentication overview",
+          "usbTitle": "Method 1: Donor controller on USB Host",
+          "usbBody": "Plug an official Xbox One / Series controller into a USB Host port on the Pico. When the console asks for authentication, Santroller passes the request to that controller and sends its answer back.",
+          "usbNote": "Official Microsoft controllers are the safe choice. The Santroller docs say third-party controllers don't work for this, even though Santroller will try any Xbox One controller plugged in.",
+          "chipTitle": "Method 2: Harvested auth chip (I2C)",
+          "chipBody": "Take the auth chip off an Xbox One controller board and wire it to the Pico's I2C pins. Santroller talks to the chip directly, so nothing needs to be plugged into a USB Host port.",
+          "priorityNote": "You only need one of these. If both are set up, whichever is ready first answers the console."
+        },
+        "auth-wiring": {
+          "shortTitle": "Wiring",
+          "title": "2. Wire Your Auth Source",
+          "badge": "Wiring",
+          "description": "Add a USB Host port for a donor controller, or wire an auth chip over I2C.",
+          "methodUsb": "Donor controller (USB)",
+          "methodChip": "Auth chip (I2C)",
+          "stepsTitle": "Wiring Steps",
+          "usbIntro": "The donor controller plugs into a USB Host port built from a USB socket wired to the Pico. If you've already built one with the USB Host guide, just enable it below.",
+          "usbCaption": "USB socket wiring: D+ and D- each go through a 27Ω series resistor (R1/R2) to consecutive Pico GPIOs; the 47pF capacitors (C1/C2) are optional",
+          "usbSteps": [
+            "Power (Red): Solder the socket's VBUS wire to VBUS (Pin 40).",
+            "Ground (Black): Solder the socket's GND wire to any GND (Pin 38).",
+            "D+ (Green): Connect to GP2 (Pin 4) through a 22Ω to 27Ω series resistor.",
+            "D- (White): Connect to GP3 (Pin 5) through a second 22Ω to 27Ω series resistor. D- must always be on the GPIO directly after D+.",
+            "Plug in the donor: Connect an official Xbox One / Series controller with a USB cable, or an Xbox Wireless Adapter with an official controller connected to it."
+          ],
+          "usbGuideLink": "Open the full USB Host guide",
+          "usbSetupTitle": "USB Host Port",
+          "usbSetupDesc": "Adds a USB Host port on GP2 (D+) / GP3 (D-) and a USB controller slot to the active profile, the same as the USB Host guide:",
+          "usbConfiguredBadge": "USB Host Configured on GP{{dp}} (D+) / GP{{dm}} (D-)",
+          "usbEnableBtn": "Enable USB Host Port",
+          "chipIntro": "The auth chip talks to the Pico over I2C, on the same I2C1 header pins the other guides use. It answers on its own address, so it can share these pins with a Wii extension, a Guitar Hero 5 neck or other I2C devices.",
+          "chipSteps": [
+            "Remove the chip: Take the auth chip off an Xbox One controller board.",
+            "SDA: Wire the chip's SDA to GP18 (Pin 24).",
+            "SCL: Wire the chip's SCL to GP19 (Pin 25).",
+            "Power: Wire the chip's 3.3V to 3V3(OUT) (Pin 36), and its GND to any GND (Pin 38).",
+            "Reset (optional): Wire the chip's reset line to any free GPIO, then set that pin as Reset on the Xbox One Auth Chip card on the Devices page."
+          ],
+          "chipWarningTitle": "Check the chip before powering it",
+          "chipWarning": "This guide doesn't cover finding the chip or its pins on each Xbox One controller revision. Double check SDA, SCL, power and ground before plugging the Pico in, and only power the chip from 3.3V.",
+          "chipSetupTitle": "Auth Chip Device",
+          "chipSetupDesc": "Adds an Xbox One Auth Chip device on I2C1. The reset pin is optional and can be set on the Devices page:",
+          "thSignal": "Signal",
+          "thPicoPin": "Pico Pin",
+          "resetLabel": "Reset (optional)",
+          "resetNotSet": "Not used",
+          "chipConfiguredBadge": "Auth Chip Configured on GP{{sda}} (SDA) / GP{{scl}} (SCL)",
+          "chipAddBtn": "Add Xbox One Auth Chip",
+          "devicesLink": "Edit pins on the Devices page"
+        },
+        "auth-test": {
+          "shortTitle": "Test & Save",
+          "title": "3. Check, Save & Play",
+          "badge": "Test Bench",
+          "description": "Check the auth source is detected, save to the Pico, and plug into your Xbox.",
+          "saveText": "Save the configuration to the Pico, then check the status panel shows your auth source.",
+          "btnSave": "Save Configuration to Pico Flash",
+          "btnSaved": "Saved to Controller",
+          "consoleTitle": "On the Console",
+          "consoleStepsUsb": [
+            "Plug the donor controller (or the Xbox Wireless Adapter with its controller) into the Pico's USB Host port.",
+            "Plug the Pico into the Xbox. Santroller switches to Xbox One mode on its own when it detects the console.",
+            "When the console starts up the controller, Santroller passes its authentication requests to the donor controller.",
+            "If the controller works in the console menus, authentication passed."
+          ],
+          "consoleStepsChip": [
+            "Plug the Pico into the Xbox. Santroller switches to Xbox One mode on its own when it detects the console.",
+            "When the console starts up the controller, Santroller passes its authentication requests to the auth chip.",
+            "If the controller works in the console menus, authentication passed."
+          ],
+          "troubleTitle": "Troubleshooting",
+          "troubleUsb": [
+            "Nothing detected: Check the USB Host wiring, and that D- is on the pin directly after D+.",
+            "Detected but auth fails: Use an official Microsoft controller. The Santroller docs say third-party controllers don't work for this.",
+            "Plugged in late: If the donor is plugged in after the Xbox has started the controller, Santroller reconnects to the console so it can authenticate again."
+          ],
+          "troubleChip": [
+            "Chip not detected: Check SDA, SCL, power and ground. The Pico only looks for the chip when it starts, so unplug and replug the Pico after changing the wiring.",
+            "Sharing I2C pins: Other I2C devices on GP18 / GP19 are fine, but every device on those pins runs at the slowest device's speed."
+          ],
+          "usbStatusTitle": "USB HOST STATUS",
+          "chipStatusTitle": "AUTH CHIP STATUS",
+          "usbNotConfigured": "USB Host Not Configured",
+          "usbWaiting": "USB Host Enabled, No Device Detected",
+          "usbDetected": "USB Device Detected ({{count}})",
+          "unnamedDevice": "Unnamed USB device",
+          "usbNotConfiguredPrompt": "Go back to the Wiring step and enable the USB Host port first.",
+          "usbVerifyPrompt": "Plug the donor controller into the USB Host port and check it shows up here.",
+          "connectPrompt": "Connect your Pico to see the live status.",
+          "chipNotConfigured": "Auth Chip Not Configured",
+          "chipReady": "Auth Chip Responding",
+          "chipNotDetected": "Auth Chip Not Detected",
+          "chipNotConfiguredPrompt": "Go back to the Wiring step and add the auth chip first.",
+          "chipReadyPrompt": "The Pico found the auth chip and will use it for Xbox One / Series authentication.",
+          "chipNotDetectedPrompt": "The Pico couldn't find the chip. Save, then unplug and replug the Pico. If it still isn't found, check the wiring."
+        }
+      }
+    },
+    "console-output": {
+      "title": "Play on a Wii or PS2 (Console Output)",
+      "subtitle": "Plug your Pico controller into a Wii Remote or a PS2 controller port",
+      "description": "Wire a Wii extension plug or a PS2 controller plug to your Raspberry Pi Pico so it acts as a Wii extension or a PS2 controller on the real console, optionally with a USB host port so a USB controller can be played on the old console.",
+      "badge": "Wii / PS2",
+      "estimatedTime": "30 - 45 mins",
+      "supplies": [
+        "Raspberry Pi Pico 1 or Pico 2 (with a controller already built on it, or a USB host port)",
+        "Wii extension plug or PS2 controller plug (e.g. from a broken controller or an extension cable)",
+        "Schottky diode (when powering from the console)",
+        "Optional for USB host: USB socket, plus an MT3608 boost converter when powering from the console",
+        "Soldering Iron & Wire"
+      ],
+      "steps": {
+        "console-intro": {
+          "shortTitle": "Overview",
+          "title": "Choose Your Console & Supplies",
+          "badge": "Console Output",
+          "description": "Pick the console you are plugging into, and whether a USB controller should be played through it.",
+          "intro": "Console output turns the Pico into the controller itself: plugged into a Wii Remote it answers as a Wii extension (like a Guitar Hero guitar or a Classic Controller), and plugged into a PS2 it answers as a PS2 controller. Your profile's mappings are used just like they are over USB. Add a USB host port and a USB controller plugged into the Pico can be played on the old console too.",
+          "consoleSelectLabel": "Console",
+          "consoleWii": "Wii (extension plug into a Wii Remote)",
+          "consolePs2": "PS2 (controller plug into the console)",
+          "usbSelectLabel": "Controller",
+          "usbNo": "A controller wired to the Pico",
+          "usbYes": "Also play a USB controller through a USB host port",
+          "usbHelp": "The USB host option adds a USB socket, so a USB controller plugged into the Pico can be played on the console. Powered from the console, it also needs a boost converter to make 5V for the socket.",
+          "powerSelectLabel": "Power the Pico From",
+          "powerConsole": "The Console (3.3V through a diode)",
+          "powerUsb": "USB (the Pico's own USB port)",
+          "usbPowerWarningTitle": "Powering from USB: leave the console's power lines off the Pico",
+          "usbPowerWarningWii": "Do not connect the plug's 3.3V (VCC) pin to the Pico. Only the signal wires and GND go to the Pico; the Pico runs from its own USB port.",
+          "usbPowerWarningPs2": "Do not connect pin 5 (3.3V) or pin 3 (7.6V rumble) to the Pico. Only the signal wires and GND go to the Pico; the Pico runs from its own USB port.",
+          "howTitle": "How It Works",
+          "howWii": "The Wii Remote reads extensions over I2C, with the Pico answering as the extension. Until a profile takes over, the Pico shows up as a Guitar Hero guitar so the Wii Remote keeps talking to it, and as soon as the Wii Remote is talking the profile switches to its Wii assignment list.",
+          "howPs2": "The PS2 polls its controller ports over an SPI style bus, with the console as the master. The Pico stays silent until the console starts polling, then the profile switches to its PS2 assignment list and the Pico answers as a PS2 controller.",
+          "rumbleTitle": "Be extremely careful with the rumble wire",
+          "rumbleText": "Pin 3 of the PS2 plug is the rumble motor supply (7.6V). Never connect it to the Pico. If your plug has a rumble wire, cut it short and insulate it properly, as you can easily blow the rumble fuse inside the console if it touches something it shouldn't.",
+          "coloursTitle": "Do not rely on the wire colours",
+          "coloursText": "Manufacturers are all over the place with Wii extension cable colours, so check each wire with a multimeter against the plug pinout. Some cables use green as ground and black as 3.3V, and some (even from Guitar Hero guitars) already short device detect to 3.3V inside the cable.",
+          "diodeTitle": "Power goes through a Schottky diode",
+          "diodeText": "The console's 3.3V line feeds the Pico through a Schottky diode. It protects the console if the Pico is plugged into USB at the same time; never wire the console's power straight to the Pico.",
+          "suppliesTitle": "Supplies Required",
+          "suppliesWii": [
+            "Raspberry Pi Pico 1 or Pico 2",
+            "A Wii extension plug (the end that plugs into the Wii Remote)",
+            "Soldering Iron & Wire"
+          ],
+          "suppliesPs2": [
+            "Raspberry Pi Pico 1 or Pico 2",
+            "A PS2 controller plug (the end that plugs into the console)",
+            "Soldering Iron & Wire"
+          ],
+          "suppliesConsolePower": [
+            "A Schottky diode (rated for more than 10V reverse voltage)"
+          ],
+          "suppliesUsbPower": [
+            "A USB power source for the Pico (a phone charger, power bank or PC) and a USB cable for the Pico's own USB port"
+          ],
+          "suppliesBoost": [
+            "An MT3608 boost converter module (3.3V up to 5V for the USB socket)"
+          ],
+          "suppliesUsb": [
+            "A USB extension cable cut in half (keep the socket end) or a USB socket breakout"
+          ],
+          "profileTitle": "What the Console Will See",
+          "profileDesc": "The console sees the controller type your active profile emulates.",
+          "profileSees": "{{console}} sees: {{type}}",
+          "consoleNameWii": "Wii Remote",
+          "consoleNamePs2": "PS2",
+          "classicController": "Classic Controller",
+          "wiiTypesHint": "Guitar Hero guitars, Guitar Hero drums, DJ Hero turntables and Taiko drums are sent as those extensions. Every other profile type is sent as a Classic Controller.",
+          "ps2TypesHint": "PS2 output supports Gamepad, Guitar Hero guitar, Taiko, pop'n music, beatmania, GuitarFreaks and DrumMania profiles.",
+          "ps2UnsupportedTitle": "This profile type has no PS2 output",
+          "ps2UnsupportedText": "The active profile emulates a {{type}}, which the firmware has no PS2 report for, so the console would get no inputs. Switch the profile to one of the supported types on the Inputs page."
+        },
+        "console-wiring": {
+          "shortTitle": "Wiring",
+          "title": "Wire the Console Plug",
+          "badge": "Solder",
+          "description": "Wire the plug's signals and power to the Pico, then add console output to your config.",
+          "plugCaptionWii": "Wii extension plug pinout, looking into the plug",
+          "plugCaptionPs2": "PS2 controller plug pinout (pin 1 DATA on the left, pin 9 ACK on the right)",
+          "signalTitle": "Signal Wiring",
+          "wiiSteps": [
+            "SDA: Connect the plug's SDA pin to {{sda}}.",
+            "SCL: Connect the plug's SCL pin to {{scl}}.",
+            "Ground: Connect the plug's GND pin to any Pico GND (e.g. Pin 38).",
+            "Device detect: If your plug doesn't already connect device detect to 3.3V inside the cable, connect device detect to the plug's 3.3V pin. The Wii Remote only reads the extension while detect is high."
+          ],
+          "ps2Steps": [
+            "Pin 1, DATA (Brown): Connect to {{data}}. The Pico sends its button data to the console on this line.",
+            "Pin 2, COMMAND (Orange): Connect to {{command}}. The console sends its commands to the Pico on this line.",
+            "Pin 3, Rumble 7.6V: Do not connect. Cut it short and insulate it.",
+            "Pin 4, GND (Black): Connect to any Pico GND (e.g. Pin 38).",
+            "Pin 6, ATTENTION (Yellow): Connect to {{attention}}.",
+            "Pin 7, CLOCK (Blue): Connect to {{clock}}.",
+            "Pin 9, ACKNOWLEDGE (Green): Connect to {{acknowledge}}."
+          ],
+          "ps2ColoursNote": "Wire colours vary between cables, so check each one against the plug pinout with a multimeter.",
+          "powerTitle": "Power from the Console",
+          "wiiPower": [
+            "3.3V: Connect the plug's 3.3V (VCC) pin to the Pico's VSYS (Pin 39) through the Schottky diode, with the diode's stripe (cathode) facing VSYS."
+          ],
+          "ps2Power": [
+            "Pin 5, 3.3V (Red): Connect to the Pico's VSYS (Pin 39) through the Schottky diode, with the diode's stripe (cathode) facing VSYS.",
+            "Never use pin 3 (7.6V rumble) to power the Pico."
+          ],
+          "usbPowerTitle": "Power from the Console (with USB Host)",
+          "usbPowerIntro": "USB controllers need 5V, so the console's 3.3V is boosted to 5V and fed into VBUS, which also powers the USB socket. We recommend an MT3608 boost converter module. These are adjustable, so set the output to 5V with a multimeter (turn the small trim pot) before connecting it to the Pico.",
+          "usbSupplyTitle": "Power from USB",
+          "usbSupplyPower": [
+            "Power the Pico from its own USB port, using a phone charger, power bank or PC.",
+            "Ground: the plug's GND must still connect to Pico GND (from the signal steps above), so the console and Pico share a ground.",
+            "No diode or boost converter is needed. With a USB host port, the socket's VBUS wire takes its 5V from the Pico's VBUS (Pin 40)."
+          ],
+          "wiiUsbPower": [
+            "Boost input: Connect the plug's 3.3V (VCC) pin to the boost converter's voltage input.",
+            "Boost output: Connect the boost converter's 5V output to the Pico's VBUS (Pin 40) through the Schottky diode, with the diode's stripe (cathode) facing VBUS.",
+            "Boost ground: Connect the boost converter's ground to Pico GND."
+          ],
+          "ps2UsbPower": [
+            "Boost input: Connect pin 5, 3.3V (Red) to the boost converter's voltage input.",
+            "Boost output: Connect the boost converter's 5V output to the Pico's VBUS (Pin 40) through the Schottky diode, with the diode's stripe (cathode) facing VBUS.",
+            "Boost ground: Connect the boost converter's ground to Pico GND.",
+            "Never use pin 3 (7.6V rumble) to power anything."
+          ],
+          "usbTitle": "USB Host Socket",
+          "usbSteps": [
+            "VBUS (Red): Connect the socket's red wire to the Pico's VBUS (Pin 40).",
+            "Ground (Black): Connect the socket's black wire to any Pico GND.",
+            "D+ (Green): Connect the socket's green wire to {{dp}}.",
+            "D- (White): Connect the socket's white wire to {{dm}}. D- always goes on the GPIO directly after D+."
+          ],
+          "usbCaption": "USB socket wiring (the USB Host guide's series resistors and capacitors apply here too)",
+          "usbNoPins": "No free pair of consecutive pins was found for D+ / D-. Free up two pins, or add a USB host port on the Devices page.",
+          "setupTitle": "Console Output Setup",
+          "setupDescWii": "Adds Wii extension emulation on {{sda}} (SDA) / {{scl}} (SCL), then adds a Wii Remote assignment list to the top of the active profile so the profile switches to it whenever the Wii Remote is talking.",
+          "setupDescPs2": "Adds PS2 controller emulation on the pins above, then adds a PS2 assignment list to the top of the active profile so the profile switches to it whenever the console is polling.",
+          "setupDescUsb": "The USB host port is added on {{dp}} (D+) / {{dm}} (D-), and its USB controller slot goes into both the USB list and the console's list so they share the same mappings.",
+          "setupBtn": "Set Up Console Output",
+          "finishBtn": "Finish Console Output Setup",
+          "configuredBadge": "Console Output Configured",
+          "deviceMissing": "Console output device not added yet",
+          "listMissing": "The active profile has no assignment list for this console yet",
+          "usbHostMissing": "No USB host port yet",
+          "usbSlotMissing": "The console's assignment list has no USB controller slot yet",
+          "conflictTitle": "Pins already in use",
+          "conflictText": "{{pins}} are already used by another device. Free them up on the Devices page, or add the console output there on different pins.",
+          "pinsTitle": "Pins in Your Config",
+          "thSignal": "Signal",
+          "thPlugPin": "Plug Pin",
+          "thPicoPin": "Pico Pin",
+          "sigSda": "SDA",
+          "sigScl": "SCL",
+          "sigData": "DATA",
+          "sigCommand": "COMMAND",
+          "sigAttention": "ATTENTION",
+          "sigClock": "CLOCK",
+          "sigAcknowledge": "ACKNOWLEDGE",
+          "sigDp": "USB D+",
+          "sigDm": "USB D-",
+          "plugUsb": "USB socket"
+        },
+        "console-test": {
+          "shortTitle": "Test & Save",
+          "title": "Save & Play on the Console",
+          "badge": "Save to Pico",
+          "description": "Save the config to the Pico, then plug it into the console.",
+          "saveText": "Save the config to the Pico's flash before you unplug it from the PC, so it keeps the console output settings.",
+          "btnSave": "Save Configuration to Pico",
+          "btnSaved": "Saved to Controller",
+          "expectTitle": "What to Expect on the Console",
+          "wiiExpect": [
+            "Plug in: Plug the extension plug into the Wii Remote and turn it on.",
+            "Detection: The Wii Remote reads the extension, and the profile switches to its Wii assignment list as soon as the Wii Remote starts talking.",
+            "Type: Games see the controller type shown on the right."
+          ],
+          "ps2Expect": [
+            "Plug in: Plug the PS2 plug into a controller port with the console on.",
+            "Detection: The Pico stays silent until the console polls the port, then the profile switches to its PS2 assignment list and the Pico answers as a PS2 controller.",
+            "Type: Games see the controller type shown on the right. Changing the profile's type makes the Pico briefly disconnect so the game sets the controller up again."
+          ],
+          "usbExpect": "USB host: Plug a supported USB controller into the socket. Most wired controllers work, but things like the Xbox 360 Play & Charge kit won't work over USB.",
+          "liveHint": "When powering from USB, or from the console with the diode fitted, the Pico can stay plugged into your PC while it is plugged into the console, so the status here shows when the console starts talking.",
+          "statusTitle": "CONSOLE OUTPUT STATUS",
+          "notConfiguredBadge": "Console Output Not Configured",
+          "notConfiguredPrompt": "Go back to the Wiring step and set up console output first.",
+          "connectPrompt": "Connect the Pico to see live status.",
+          "waitingBadge": "Configured, Waiting for the Console",
+          "detectedBadge": "Console Is Talking to the Pico",
+          "usbDetected": "USB controllers detected: {{count}}",
+          "usbNone": "No USB controller detected yet"
+        }
+      }
+    },
     "xbox360-rf": {
       "title": "Xbox 360 RF Wireless Module & Sync",
       "subtitle": "Use Original Fat & Slim RF Modules with Wireless Controllers",
@@ -3335,7 +3836,7 @@
         "details": [
           "Wired over I2C: SDA, SCL, 3.3V, GND and an optional reset pin",
           "Add it as an Xbox One Auth Chip device in the Configurator",
-          "No controller needed on the USB Host port (an Xbox controller plugged into the USB Host port takes priority if one is connected)",
+          "No controller needed on the USB Host port (if an Xbox controller is also plugged into the USB Host port, whichever is ready first handles auth)",
           "Handles Xbox One and Series authentication"
         ],
         "guideLabel": "Authentication guide"

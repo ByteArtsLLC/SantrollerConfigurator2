@@ -4,14 +4,17 @@ import { useTranslation } from 'react-i18next';
 import { PS2_ADAPTER_GUIDE } from './adapters/ps2AdapterGuide';
 import { WII_ADAPTER_GUITAR_GUIDE } from './adapters/wiiAdapterGuide';
 import { BH_DRUM_GUIDE } from './bhdrums/bhDrumGuide';
+import { CONSOLE_OUTPUT_GUIDE } from './consoleout/consoleOutputGuide';
 import { DRUM_KIT_GUIDE } from './drums/drumGuide';
 import { DIRECT_PICO_GUITAR_GUIDE } from './guitar/guitarGuide';
 import { RGB_LED_GUIDE } from './leds/ledGuide';
 import { DJ_TURNTABLE_GUIDE } from './turntable/turntableGuide';
 import { GuideCategory, GuideDefinition } from './types';
 import { USB_HOST_GUIDE } from './usb/usbHostGuide';
+import { WIRELESS_GUIDE } from './wireless/wirelessGuide';
 import { WT_DRUM_GUIDE } from './wtdrums/wtDrumGuide';
 import { XBOX360_RF_GUIDE } from './xbox360rf/xbox360RfGuide';
+import { XBOX_AUTH_GUIDE } from './xboxauth/xboxAuthGuide';
 
 export const GUIDE_REGISTRY: Record<string, GuideDefinition> = {
   [DIRECT_PICO_GUITAR_GUIDE.id]: DIRECT_PICO_GUITAR_GUIDE,
@@ -22,8 +25,11 @@ export const GUIDE_REGISTRY: Record<string, GuideDefinition> = {
   [WT_DRUM_GUIDE.id]: WT_DRUM_GUIDE,
   [DJ_TURNTABLE_GUIDE.id]: DJ_TURNTABLE_GUIDE,
   [USB_HOST_GUIDE.id]: USB_HOST_GUIDE,
+  [CONSOLE_OUTPUT_GUIDE.id]: CONSOLE_OUTPUT_GUIDE,
   [RGB_LED_GUIDE.id]: RGB_LED_GUIDE,
+  [WIRELESS_GUIDE.id]: WIRELESS_GUIDE,
   [XBOX360_RF_GUIDE.id]: XBOX360_RF_GUIDE,
+  [XBOX_AUTH_GUIDE.id]: XBOX_AUTH_GUIDE,
 };
 
 export interface CategoryInfo {

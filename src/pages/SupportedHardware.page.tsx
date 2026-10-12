@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   IconAlertTriangle,
   IconArrowRight,
+  IconArrowsExchange,
   IconBatteryCharging,
   IconCheck,
   IconCpu,
@@ -15,7 +16,6 @@ import {
   IconPlug,
   IconSearch,
   IconTopologyStarRing3,
-  IconArrowsExchange,
 } from '@tabler/icons-react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -109,7 +109,12 @@ const HARDWARE_CATALOG: HardwareItem[] = [
     badgeColor: 'dark',
     guideLink: '/compatibility',
   },
-  { id: 'auth_xone_harvested', category: 'bus', badgeColor: 'green', guideLink: '/compatibility' },
+  {
+    id: 'auth_xone_harvested',
+    category: 'bus',
+    badgeColor: 'green',
+    guideLink: '/guides/xbox-auth',
+  },
   {
     id: 'switches_mechanical',
     category: 'sensors',
