@@ -175,6 +175,15 @@ const COMPARISON_DATA: FeatureComparisonRow[] = [
       'Web app using WebHID and Web Bluetooth, with no install required. On phones, Bluetooth-capable controllers can be configured over Web Bluetooth (Chrome on Android, Bluefy on iOS).',
     status: 'major',
   },
+  {
+    category: 'Configuration Tooling',
+    feature: 'Build Guides',
+    santroller1:
+      'A static written guide on santroller.com. You followed the steps, then configured everything separately in the configurator.',
+    santroller2:
+      'Interactive guides built into the configurator that set up your configuration as you go, testing each input as you wire it.',
+    status: 'major',
+  },
 ];
 
 export function FirmwareDifferencesPage() {
@@ -377,7 +386,8 @@ export function FirmwareDifferencesPage() {
                     WebHID (for USB) and Web Bluetooth. You can configure controllers, map inputs,
                     test sensors, and update firmware from a desktop browser, and Bluetooth-capable
                     controllers can also be configured from <strong>mobile phones</strong> (Chrome
-                    on Android, Bluefy on iOS).
+                    on Android, Bluefy on iOS). The build guides are interactive too, configuring
+                    your controller step by step as you wire it.
                   </Text>
                 </Card>
               </SimpleGrid>
@@ -580,6 +590,10 @@ export function FirmwareDifferencesPage() {
                     </List.Item>
                     <List.Item>
                       Mobile configuration over Web Bluetooth (Chrome on Android, Bluefy on iOS)
+                    </List.Item>
+                    <List.Item>
+                      Interactive build guides that configure your controller as you go, instead of
+                      a static written guide
                     </List.Item>
                   </List>
                 </Paper>
