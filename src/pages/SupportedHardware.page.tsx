@@ -99,8 +99,9 @@ const HARDWARE_CATALOG: HardwareItem[] = [
   { id: 'usb_xone_series', category: 'usb_host', badgeColor: 'green' },
   { id: 'usb_nintendo_devices', category: 'usb_host', badgeColor: 'red' },
   { id: 'rhythm_dance_pads', category: 'usb_host', badgeColor: 'orange' },
-  { id: 'rhythm_bemanistyle', category: 'usb_host', badgeColor: 'orange' },
+  { id: 'rhythm_arcade', category: 'usb_host', badgeColor: 'orange' },
   { id: 'usb_streamdeck', category: 'usb_host', badgeColor: 'grape' },
+  { id: 'usb_other_controllers', category: 'usb_host', badgeColor: 'gray' },
   { id: 'usb_generic_hid', category: 'usb_host', badgeColor: 'gray' },
   {
     id: 'auth_security_dongles',
@@ -161,6 +162,7 @@ const HARDWARE_CATALOG: HardwareItem[] = [
   },
   { id: 'bus_ps2_emulation', category: 'bus', badgeColor: 'indigo' },
   { id: 'bus_snes_pad', category: 'bus', badgeColor: 'red' },
+  { id: 'bus_snes_emulation', category: 'bus', badgeColor: 'red' },
   { id: 'bus_joybus', category: 'bus', badgeColor: 'purple' },
   { id: 'bus_joybus_emulation', category: 'bus', badgeColor: 'purple' },
   {

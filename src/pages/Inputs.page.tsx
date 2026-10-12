@@ -828,6 +828,29 @@ function OutputBox({
           dispatchMidi={dispatchMidi}
         />
       );
+    case proto.SubType.DrumMania:
+      return (
+        <DropdownOutputBox
+          {...actionProps}
+          label={label}
+          title={title}
+          type={type}
+          mode={mode}
+          legendMode={legendMode}
+          midi={midi}
+          valMidi={valMidi}
+          e={proto.DrumManiaButtonType}
+          e2={proto.GamepadAxisType}
+          e3={proto.GamepadButtonType}
+          val={mapping?.dmButton ?? undefined}
+          val2={mapping?.gamepadAxis ?? undefined}
+          val3={mapping?.gamepadButton ?? undefined}
+          dispatch={(button) => dispatch({ dmButton: button }, false, false)}
+          dispatch2={gamepadAxisCallback}
+          dispatch3={gamepadButtonCallback}
+          dispatchMidi={dispatchMidi}
+        />
+      );
     case proto.SubType.BeatMania:
       return (
         <DropdownOutputBox
@@ -3348,6 +3371,7 @@ function SantrollerMapping({
     proto.PopNMusicButtonType[mapping.mapping.popnButton ?? -1] ||
     proto.BeatManiaButtonType[mapping.mapping.bmButton ?? -1] ||
     proto.GuitarFreaksButtonType[mapping.mapping.gfButton ?? -1] ||
+    proto.DrumManiaButtonType[mapping.mapping.dmButton ?? -1] ||
     proto.ProKeyboardButtonType[mapping.mapping.proKeyboardButton ?? -1] ||
     (mapping.mapping.keycode != null
       ? hidKeyName(mapping.mapping.keycode)
@@ -4425,6 +4449,7 @@ function SantrollerLed({
           proto.PopNMusicButtonType[mapping.mapping.popnButton ?? -1] ||
           proto.BeatManiaButtonType[mapping.mapping.bmButton ?? -1] ||
           proto.GuitarFreaksButtonType[mapping.mapping.gfButton ?? -1] ||
+          proto.DrumManiaButtonType[mapping.mapping.dmButton ?? -1] ||
           proto.ProKeyboardButtonType[mapping.mapping.proKeyboardButton ?? -1];
 
         const fixedLabel = FixLabel(mode, type, label, legendMode);
@@ -4533,6 +4558,7 @@ function SantrollerLed({
       proto.PopNMusicButtonType[mapping.mapping.popnButton ?? -1] ||
       proto.BeatManiaButtonType[mapping.mapping.bmButton ?? -1] ||
       proto.GuitarFreaksButtonType[mapping.mapping.gfButton ?? -1] ||
+      proto.DrumManiaButtonType[mapping.mapping.dmButton ?? -1] ||
       proto.ProKeyboardButtonType[mapping.mapping.proKeyboardButton ?? -1];
     const fixedLabel = FixLabel(mode, type, label, legendMode);
     if (fixedLabel) {

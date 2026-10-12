@@ -55,6 +55,19 @@ describe('PS2 input choices by controller type', () => {
     expect(gh.button('PS2ButtonGuitarFreaksPick')).toBe(false);
   });
 
+  it('offers drum pads but not the identifier dpad for a DrumMania kit', () => {
+    const dm = getPS2InputFilters([proto.PS2ControllerType.PS2ControllerTypeDrumMania]);
+    expect(dm.button('PS2ButtonDrumManiaBassPedal')).toBe(true);
+    expect(dm.button('PS2ButtonStart')).toBe(true);
+    expect(dm.button('PS2ButtonDpadUp')).toBe(false);
+    expect(dm.button('PS2ButtonGuitarFreaksPick')).toBe(false);
+  });
+
+  it('offers Taiko drum inputs for a digital pad', () => {
+    const digital = getPS2InputFilters([proto.PS2ControllerType.PS2ControllerTypeDigital]);
+    expect(digital.button('PS2ButtonTaikoRimLeft')).toBe(true);
+  });
+
   it('keeps an existing selection even when it does not fit the controller', () => {
     const filters = getPS2InputFilters([proto.PS2ControllerType.PS2ControllerTypePopNMusic]);
     expect(filters.button('PS2ButtonTriangle', 'PS2ButtonTriangle')).toBe(true);

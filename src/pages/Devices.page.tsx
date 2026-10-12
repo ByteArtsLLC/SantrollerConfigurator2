@@ -667,11 +667,10 @@ function DJHeroTurntableDevice({ id }: { id: string }) {
     </DeviceCard>
   );
 }
+// The secondary Pico picks 0x75 or 0x76 from its ID pin
 const peripheralData = [
-  { label: '0x45', value: '0x45' },
-  { label: '0x46', value: '0x46' },
-  { label: '0x47', value: '0x47' },
-  { label: '0x48', value: '0x48' },
+  { label: '0x75', value: '0x75' },
+  { label: '0x76', value: '0x76' },
 ];
 function PeripheralDevice({ id }: { id: string }) {
   const status = useConfigStore((state) => state.deviceStatus[id]);

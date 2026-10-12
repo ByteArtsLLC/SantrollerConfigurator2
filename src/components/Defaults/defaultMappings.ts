@@ -1445,6 +1445,63 @@ export function getPs2Defaults(
   const isDigital = cntType === proto.PS2ControllerType.PS2ControllerTypeDigital;
   const isPopn = cntType === proto.PS2ControllerType.PS2ControllerTypePopNMusic;
   const isGuitarFreaks = cntType === proto.PS2ControllerType.PS2ControllerTypeGuitarFreaks;
+  const isDrumMania = cntType === proto.PS2ControllerType.PS2ControllerTypeDrumMania;
+
+  if (isDrumMania || subType === proto.SubType.DrumMania) {
+    // DrumMania kits are plain digital pads, each pad sends a fixed button
+    const P = proto.PS2ButtonType;
+    const D = proto.DrumManiaButtonType;
+    const inputs: [proto.PS2ButtonType, proto.DrumManiaButtonType][] = isDrumMania
+      ? [
+          [P.PS2ButtonDrumManiaHiHat, D.DrumMania_HiHat],
+          [P.PS2ButtonDrumManiaSnare, D.DrumMania_Snare],
+          [P.PS2ButtonDrumManiaHighTom, D.DrumMania_HighTom],
+          [P.PS2ButtonDrumManiaLowTom, D.DrumMania_LowTom],
+          [P.PS2ButtonDrumManiaCymbal, D.DrumMania_Cymbal],
+          [P.PS2ButtonDrumManiaBassPedal, D.DrumMania_BassPedal],
+        ]
+      : [
+          [P.PS2ButtonTriangle, D.DrumMania_HiHat],
+          [P.PS2ButtonCircle, D.DrumMania_Snare],
+          [P.PS2ButtonR2, D.DrumMania_HighTom],
+          [P.PS2ButtonR1, D.DrumMania_LowTom],
+          [P.PS2ButtonCross, D.DrumMania_Cymbal],
+          [P.PS2ButtonL2, D.DrumMania_BassPedal],
+        ];
+    const output = (button: proto.DrumManiaButtonType): proto.IOutput => {
+      if (subType === proto.SubType.DrumMania) {
+        return { dmButton: button };
+      }
+      switch (button) {
+        case D.DrumMania_HiHat:
+          return { gamepadButton: proto.GamepadButtonType.Gamepad_Y };
+        case D.DrumMania_Snare:
+          return { gamepadButton: proto.GamepadButtonType.Gamepad_B };
+        case D.DrumMania_HighTom:
+          return { gamepadAxis: proto.GamepadAxisType.Gamepad_RightTrigger };
+        case D.DrumMania_LowTom:
+          return { gamepadButton: proto.GamepadButtonType.Gamepad_RightShoulder };
+        case D.DrumMania_Cymbal:
+          return { gamepadButton: proto.GamepadButtonType.Gamepad_A };
+        default:
+          return { gamepadAxis: proto.GamepadAxisType.Gamepad_LeftTrigger };
+      }
+    };
+    return [
+      ...inputs.map(([input, button]) => {
+        const mapping = output(button);
+        return mapping.gamepadAxis != null
+          ? ps2TriggerButton(input, deviceId, mapping)
+          : ps2Button(input, deviceId, mapping);
+      }),
+      ps2Button(P.PS2ButtonSelect, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Back,
+      }),
+      ps2Button(P.PS2ButtonStart, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Start,
+      }),
+    ];
+  }
 
   if (isGuitarFreaks || subType === proto.SubType.GuitarFreaks) {
     // GuitarFreaks has one pick, so both strums go to it. The firmware queues the pick so a quick

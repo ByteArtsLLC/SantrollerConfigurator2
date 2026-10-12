@@ -46,10 +46,14 @@ function ps2InputsForType(type: proto.PS2ControllerType): { axes: string[]; butt
     case T.PS2ControllerTypeDualshock:
     case T.PS2ControllerTypeFlightStick:
       return { axes: PS2_STICK_AXES, buttons: PS2_STANDARD_BUTTONS };
+    // A TaTaCon can't be told apart from a digital pad, so its drum inputs are offered here too
     case T.PS2ControllerTypeDigital:
       return {
         axes: [],
-        buttons: PS2_STANDARD_BUTTONS.filter((b) => b !== 'PS2ButtonL3' && b !== 'PS2ButtonR3'),
+        buttons: [
+          ...PS2_STANDARD_BUTTONS.filter((b) => b !== 'PS2ButtonL3' && b !== 'PS2ButtonR3'),
+          ...prefixed(proto.PS2ButtonType, 'PS2ButtonTaiko'),
+        ],
       };
     case T.PS2ControllerTypePopNMusic:
       return {
@@ -65,6 +69,15 @@ function ps2InputsForType(type: proto.PS2ControllerType): { axes: string[]; butt
         axes: [],
         buttons: [
           ...prefixed(proto.PS2ButtonType, 'PS2ButtonGuitarFreaks'),
+          'PS2ButtonSelect',
+          'PS2ButtonStart',
+        ],
+      };
+    case T.PS2ControllerTypeDrumMania:
+      return {
+        axes: [],
+        buttons: [
+          ...prefixed(proto.PS2ButtonType, 'PS2ButtonDrumMania'),
           'PS2ButtonSelect',
           'PS2ButtonStart',
         ],
