@@ -3879,7 +3879,8 @@ function SantrollerMapping({
                 <Accordion.Panel>
                   {axis && !crkdDrum && (
                     <>
-                      {stick && (
+                      {/* pro keys keys don't calibrate like an axis, so a range can't apply */}
+                      {mapping.mapping.proKeySingle == null && (
                         <>
                           <Input.Wrapper
                             label={t('axis.section.label')}
@@ -3900,22 +3901,79 @@ function SantrollerMapping({
                                   value: proto.AxisSection.AxisSectionNegative.toString(),
                                   label: t('axis.section.negative'),
                                 },
+                                {
+                                  value: proto.AxisSection.AxisSectionCustom.toString(),
+                                  label: t('axis.section.custom'),
+                                },
                               ]}
                               value={(
                                 mapping.section ?? proto.AxisSection.AxisSectionFull
                               ).toString()}
                               onChange={(value) => {
                                 const section = parseInt(value, 10) as proto.AxisSection;
+                                const custom = section === proto.AxisSection.AxisSectionCustom;
                                 dispatch({
                                   ...mapping,
                                   section:
                                     section === proto.AxisSection.AxisSectionFull
                                       ? undefined
                                       : section,
+                                  sectionStart: custom ? (mapping.sectionStart ?? 0) : undefined,
+                                  sectionEnd: custom ? (mapping.sectionEnd ?? 65535) : undefined,
                                 });
                               }}
                             />
                           </Input.Wrapper>
+                          {mapping.section === proto.AxisSection.AxisSectionCustom && (
+                            <>
+                              <Space h="sm" />
+                              <Text size="sm" fw={700}>
+                                {t('axis.section.start')}
+                              </Text>
+                              <Group>
+                                <Slider
+                                  flex={1}
+                                  value={mapping.sectionStart ?? 0}
+                                  min={0}
+                                  max={65535}
+                                  onChange={(val) => dispatch({ ...mapping, sectionStart: val })}
+                                />
+                                <NumberInput
+                                  value={mapping.sectionStart ?? 0}
+                                  min={0}
+                                  max={65535}
+                                  onChange={(e) =>
+                                    dispatch({
+                                      ...mapping,
+                                      sectionStart: parseInt(e.toString(), 10),
+                                    })
+                                  }
+                                  w={100}
+                                />
+                              </Group>
+                              <Text size="sm" fw={700}>
+                                {t('axis.section.end')}
+                              </Text>
+                              <Group>
+                                <Slider
+                                  flex={1}
+                                  value={mapping.sectionEnd ?? 65535}
+                                  min={0}
+                                  max={65535}
+                                  onChange={(val) => dispatch({ ...mapping, sectionEnd: val })}
+                                />
+                                <NumberInput
+                                  value={mapping.sectionEnd ?? 65535}
+                                  min={0}
+                                  max={65535}
+                                  onChange={(e) =>
+                                    dispatch({ ...mapping, sectionEnd: parseInt(e.toString(), 10) })
+                                  }
+                                  w={100}
+                                />
+                              </Group>
+                            </>
+                          )}
                           <Space h="md" />
                         </>
                       )}

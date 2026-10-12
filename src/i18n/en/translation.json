@@ -292,10 +292,13 @@
     "calibration": "Axis Calibration",
     "section": {
       "label": "Axis range",
-      "description": "Drive only one half of the axis with this input, so two inputs (like a pair of triggers) can share it. Calibrate min as the input's resting position and max as fully pressed.",
+      "description": "Drive only part of the axis with this input, so two inputs (like a pair of triggers) can share it. Calibrate min as the input's resting position and max as fully pressed. Custom lets you pick the exact axis values to move between.",
       "full": "Full axis",
       "positive": "Positive half",
-      "negative": "Negative half"
+      "negative": "Negative half",
+      "custom": "Custom",
+      "start": "Axis value at rest",
+      "end": "Axis value when fully pressed"
     },
     "pressed": "Pressed Value",
     "released": "Released Value",
