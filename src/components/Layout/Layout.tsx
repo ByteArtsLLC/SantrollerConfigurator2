@@ -258,7 +258,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             label={t('nav.main', 'Main')}
             leftSection={<IconSettings size={16} stroke={1.5} />}
           />
-          <NavLink
+          {!simpleMode && <NavLink
             component={RouterNavLink}
             to="/guides"
             onClick={() => {
@@ -267,8 +267,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             }}
             label={t('guides.navTitle', 'Build Guides & Docs')}
             leftSection={<IconGuitarPick size={16} stroke={1.5} />}
-          />
-          <NavLink
+          />}
+          {!simpleMode && <NavLink
             component={RouterNavLink}
             to="/supported-hardware"
             onClick={() => {
@@ -277,8 +277,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             }}
             label={t('nav.supportedHardware', 'Supported Hardware')}
             leftSection={<IconCpu size={16} stroke={1.5} />}
-          />
-          <NavLink
+          />}
+          {!simpleMode && <NavLink
             component={RouterNavLink}
             to="/compatibility"
             onClick={() => {
@@ -287,8 +287,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             }}
             label={t('nav.compatibility', 'Console Compatibility')}
             leftSection={<IconDeviceGamepad2 size={16} stroke={1.5} />}
-          />
-          <NavLink
+          />}
+          {!simpleMode && <NavLink
             component={RouterNavLink}
             to="/differences"
             onClick={() => {
@@ -297,7 +297,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             }}
             label={t('nav.differences', 'Firmware Differences')}
             leftSection={<IconGitCompare size={16} stroke={1.5} />}
-          />
+          />}
           {!connected && (
             <NavLink
               component={RouterNavLink}
