@@ -8,7 +8,6 @@ export const USB_HOST_GUIDE: GuideDefinition = {
   description:
     'Add a USB Host port to your Raspberry Pi Pico to connect wired controllers, wireless receivers, or security authentication donor controllers.',
   category: 'adapters',
-  difficulty: 'beginner',
   estimatedTime: '15 - 20 mins',
   badge: 'Console Auth',
   supplies: [

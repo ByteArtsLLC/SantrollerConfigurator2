@@ -17,9 +17,6 @@
     "stp16cpc": "STP16CPC LED Driver",
     "vtechExpander": "IO Expander from a VTech Guitar",
     "bhDrum": "Band Hero Drum Body",
-    "adxl": "ADXL345 Accelerometer",
-    "mpu6050": "MPU6050 Accelerometer",
-    "lis3dh": "LIS3DH Accelerometer",
     "worldTourDrum": "World Tour Drum Body",
     "usbHost": "USB Host",
     "max1704x": "MAX1704X",
@@ -71,7 +68,10 @@
     "bluetooth_sync_pin": "Pairing Button Pin (optional)",
     "bluetooth_scan": "Pair New Device",
     "bluetooth_scanning": "Scanning (10s)...",
-    "connected_devices": "Connected Devices"
+    "connected_devices": "Connected Devices",
+    "peripheral_suffix": "(Peripheral {{address}})",
+    "bluetooth_mode_ble": "BLE",
+    "bluetooth_mode_classic": "Classic"
   },
   "keyboard": {
     "keycode": "Keyboard key",
@@ -86,7 +86,9 @@
       "Mouse_MoveY": "Mouse move Y",
       "Mouse_ScrollX": "Mouse scroll horizontal",
       "Mouse_ScrollY": "Mouse scroll vertical"
-    }
+    },
+    "keyFallback": "Key {{code}}",
+    "mediaFallback": "Media {{code}}"
   },
   "midiOutput": {
     "output": "MIDI output",
@@ -100,7 +102,61 @@
     "controlNumber_desc": "For example 4 for a hi-hat pedal, or 64 for a sustain pedal",
     "fixedVelocity": "Fixed velocity",
     "fixedVelocity_desc": "Always send this velocity, instead of one from how hard the input is hit",
-    "velocity": "Velocity"
+    "velocity": "Velocity",
+    "percussion": {
+      "acousticBassDrum": "Acoustic Bass Drum",
+      "bassDrum": "Bass Drum",
+      "sideStick": "Side Stick",
+      "acousticSnare": "Acoustic Snare",
+      "handClap": "Hand Clap",
+      "electricSnare": "Electric Snare",
+      "lowFloorTom": "Low Floor Tom",
+      "closedHiHat": "Closed Hi-Hat",
+      "highFloorTom": "High Floor Tom",
+      "pedalHiHat": "Pedal Hi-Hat",
+      "lowTom": "Low Tom",
+      "openHiHat": "Open Hi-Hat",
+      "lowMidTom": "Low-Mid Tom",
+      "hiMidTom": "Hi-Mid Tom",
+      "crashCymbal1": "Crash Cymbal 1",
+      "highTom": "High Tom",
+      "rideCymbal1": "Ride Cymbal 1",
+      "chineseCymbal": "Chinese Cymbal",
+      "rideBell": "Ride Bell",
+      "tambourine": "Tambourine",
+      "splashCymbal": "Splash Cymbal",
+      "cowbell": "Cowbell",
+      "crashCymbal2": "Crash Cymbal 2",
+      "vibraslap": "Vibraslap",
+      "rideCymbal2": "Ride Cymbal 2",
+      "hiBongo": "Hi Bongo",
+      "lowBongo": "Low Bongo",
+      "muteHiConga": "Mute Hi Conga",
+      "openHiConga": "Open Hi Conga",
+      "lowConga": "Low Conga",
+      "highTimbale": "High Timbale",
+      "lowTimbale": "Low Timbale",
+      "highAgogo": "High Agogo",
+      "lowAgogo": "Low Agogo",
+      "cabasa": "Cabasa",
+      "maracas": "Maracas",
+      "shortWhistle": "Short Whistle",
+      "longWhistle": "Long Whistle",
+      "shortGuiro": "Short Guiro",
+      "longGuiro": "Long Guiro",
+      "claves": "Claves",
+      "hiWoodBlock": "Hi Wood Block",
+      "lowWoodBlock": "Low Wood Block",
+      "muteCuica": "Mute Cuica",
+      "openCuica": "Open Cuica",
+      "muteTriangle": "Mute Triangle",
+      "openTriangle": "Open Triangle"
+    },
+    "label": {
+      "note": "{{name}} (Ch {{channel}})",
+      "control": "CC {{control}} (Ch {{channel}})",
+      "pitchBend": "Pitch Bend (Ch {{channel}})"
+    }
   },
   "common": {
     "copy": "Copy",
@@ -118,13 +174,14 @@
     "commercial": "Commercial Tooling",
     "supportedHardware": "Supported Hardware",
     "compatibility": "Console Compatibility",
-    "differences": "Firmware Differences"
+    "differences": "Firmware Differences",
+    "peripherals": "Peripherals",
+    "peripheralAddress": "Peripheral ({{address}})"
   },
   "colorScheme": {
     "light": "Light",
     "dark": "Dark",
-    "auto": "Auto",
-    "toggle": "Toggle color scheme"
+    "auto": "Auto"
   },
   "layout": {
     "theme": "Theme"
@@ -282,6 +339,9 @@
     "addButton": "Add button"
   },
   "encoder": {
+    "data_pin": "Data Pin",
+    "clock_pin": "Clock Pin",
+    "divisor": "Step divisor",
     "deltaRate": "Sampling Rate (ms)",
     "positionScale": "Position scale (per step)",
     "inputs": {
@@ -328,7 +388,6 @@
     "CrkdBluePad": "Blue Pad",
     "CrkdKick1": "Kick Pedal",
     "CrkdKick2": "2x Kick Pedal",
-    "CrkdOrangePad": "Orange Pad",
     "CrkdYellowCymbal": "Yellow Cymbal",
     "CrkdGreenCymbal": "Green Cymbal",
     "CrkdBlueCymbal": "Blue Cymbal",
@@ -382,7 +441,6 @@
     "WiiAxisGuitarJoystickX": "Guitar Hero Guitar - Stick X Axis",
     "WiiAxisGuitarJoystickY": "Guitar Hero Guitar - Stick Y Axis",
     "WiiAxisGuitarWhammy": "Guitar Hero Guitar - Whammy",
-    "WiiAxisGuitarTapBar": "Guitar Hero Guitar - Tap Bar / Slider",
     "WiiAxisNunchukStickX": "Nunchuk - Stick X Axis",
     "WiiAxisNunchukStickY": "Nunchuk - Stick Y Axis",
     "WiiAxisNunchukAccelerationX": "Nunchuk - Acceleration X Axis",
@@ -610,7 +668,14 @@
     "extensions": {
       "WiiClassicController": "Classic Controller",
       "WiiClassicControllerPro": "Classic Controller Pro",
-      "WiiGuitarHeroGuitar": "Guitar Hero Guitar"
+      "WiiGuitarHeroGuitar": "Guitar Hero Guitar",
+      "WiiNunchuk": "Nunchuk",
+      "WiiThqUdrawTablet": "uDraw Tablet",
+      "WiiUbisoftDrawsomeTablet": "Drawsome Tablet",
+      "WiiGuitarHeroDrums": "Guitar Hero Drums",
+      "WiiDjHeroTurntable": "DJ Hero Turntable",
+      "WiiTaikoNoTatsujinController": "Taiko Drum",
+      "WiiMotionPlus": "Motion Plus"
     }
   },
   "pick_value": "Pick value",
@@ -646,8 +711,11 @@
     "min": "Min",
     "max": "Max",
     "buttonMapping": "Button Mapping",
-    "axisMapping": "Axis Mapping",
-    "inverted": "Inverted"
+    "inverted": "Inverted",
+    "center": "Center",
+    "deadzone": "Deadzone",
+    "rawValue": "Raw Value",
+    "value": "Value"
   },
   "getting_started": {
     "title": "Getting started",
@@ -691,6 +759,219 @@
       "pin": "GP{{pin}} - SCL, I2C Channel {{channel}}"
     },
     "incorrect_group": "I2C Pins are not from the same group"
+  },
+  "dmx": {
+    "pin": "Pin",
+    "channelCount": "Channel Count"
+  },
+  "worldTourDrum": {
+    "csPin": "CS Pin"
+  },
+  "ads1115": {
+    "interrupt": {
+      "pin": "Interrupt Pin"
+    }
+  },
+  "stp16cpc": {
+    "mosi": {
+      "pin": "SDI Pin (Data)"
+    },
+    "clock": {
+      "pin": "CLK Pin (Clock)"
+    },
+    "oe": {
+      "pin": "OE Pin (Output Enable)"
+    },
+    "le": {
+      "pin": "LE Pin (Latch Enable)"
+    },
+    "count": "LED Count"
+  },
+  "firmwareDifferences": {
+    "title": "Firmware Differences (Santroller 2 vs Santroller 1)",
+    "subtitle": "A comprehensive breakdown of architectural changes, hardware support, and new features between Santroller 2 and the legacy Ardwiino/Santroller 1 firmware.",
+    "tabs": {
+      "overview": "Key Architectural Differences",
+      "matrix": "Side-by-Side Comparison",
+      "migration": "Migration & Compatibility Guide"
+    },
+    "status": {
+      "major": "Major Upgrade",
+      "improved": "Improved",
+      "dropped": "Architecture Shift",
+      "unchanged": "Unchanged"
+    },
+    "categories": {
+      "architecture": "Architecture & Profiles",
+      "hardware": "Hardware & Microcontrollers",
+      "firmwareUpdates": "Firmware Updates & Flashing",
+      "usbHost": "USB Host & Peripherals",
+      "consoleEmulation": "Console Emulation & Auth",
+      "wireless": "Wireless & Bluetooth",
+      "input": "Input & Processing",
+      "sensors": "Sensors & Peripherals",
+      "tooling": "Configuration Tooling"
+    },
+    "rows": {
+      "multiProfile": {
+        "feature": "Multi-Profile Architecture",
+        "santroller1": "One configuration per controller, with button-combo switching between console emulation modes. Changing bindings or controller type meant rebuilding and re-flashing the firmware.",
+        "santroller2": "Multiple profiles with conditional Assignments (USB, Bluetooth, console mode, connected extensions), switchable at runtime without re-flashing."
+      },
+      "configBuilds": {
+        "feature": "Configuration & Firmware Builds",
+        "santroller1": "The configurator saved configs as .picoconfig files, then generated a config header and compiled a custom firmware build (PlatformIO) for every configuration change. This required around a gigabyte of compilers and toolchains to be downloaded onto your machine.",
+        "santroller2": "A single prebuilt firmware. Configuration is sent to the device at runtime as Protocol Buffers (nanopb on device, protobuf.js in the configurator), so changes apply instantly without a rebuild, and no compilers or toolchains need to be installed."
+      },
+      "rp2040": {
+        "feature": "Raspberry Pi Pico & RP2040",
+        "santroller1": "Primary platform, built on the Arduino-Pico core with multicore, PIO USB and PIO-driven LEDs.",
+        "santroller2": "Rewritten directly on the Pico SDK 2.x in C++ with a modular device, emulation and profile framework."
+      },
+      "rp2350": {
+        "feature": "Raspberry Pi Pico 2 (RP2350)",
+        "santroller1": "Supported (Pico 2 and Pico 2 W builds, including secondary-Pico builds).",
+        "santroller2": "Supported (Pico 2 and Pico 2 W), using the same prebuilt firmware approach as RP2040."
+      },
+      "avr": {
+        "feature": "Legacy AVR Microcontrollers (Pro Micro / Leonardo / Uno / Mega)",
+        "santroller1": "Supported (ATmega32U4 directly; Uno/Mega via the ATmega16U2 USB chip).",
+        "santroller2": "Not supported. RP2040/RP2350 is required. AVR boards stay on the legacy firmware (v10.1.189-legacy)."
+      },
+      "firmwareUpdates": {
+        "feature": "Firmware Updates",
+        "santroller1": "The desktop configurator compiled and flashed firmware over USB.",
+        "santroller2": "In-browser updates over USB, plus Bluetooth FOTA (Firmware Over-The-Air) on Pico W / Pico 2 W."
+      },
+      "usbHost": {
+        "feature": "USB Host Subsystem",
+        "santroller1": "PIO USB host with hub support, Xbox 360 wired and wireless receivers, PS4/PS5 controllers, generic HID devices and USB MIDI.",
+        "santroller2": "Reworked TinyUSB + Pico-PIO-USB host stack, adding Xbox One wireless adapters, OG Xbox controllers and USB Bluetooth dongles."
+      },
+      "consoleEmulation": {
+        "feature": "Console Emulation Breadth",
+        "santroller1": "XInput, Xbox One, OG Xbox, PS2 (via PS3 adapters and on AVR), PS3, PS4/PS5, Switch, Wii (RB and extension emulation), PC HID, Raphnet and Fortnite Festival modes.",
+        "santroller2": "Modular emulators for all of the above, plus Joybus (N64/GC), SNES and Wii Remote over Bluetooth."
+      },
+      "consoleAuth": {
+        "feature": "Console Authentication",
+        "santroller1": "PS4 and Xbox One authentication passthrough using a connected USB controller, and PS5 authentication via a P5General.",
+        "santroller2": "The same USB passthrough authentication (including PS5 via a P5General), plus support for dedicated Xbox One security chips over I2C."
+      },
+      "festival": {
+        "feature": "Fortnite Festival Support",
+        "santroller1": "Festival was a separate emulation type with a single hardcoded mapping that could not be customized.",
+        "santroller2": "Festival is a profile like any other, so it can have its own layout and bindings and be selected by Assignments alongside your standard profiles."
+      },
+      "bluetooth": {
+        "feature": "Bluetooth",
+        "santroller1": "Pico W BLE HID gamepad and keyboard/mouse emulation, plus Bluetooth input from another Santroller.",
+        "santroller2": "BTstack integration on Pico W and USB Bluetooth dongles, adding Wii Remote emulation alongside the BLE gamepad and keyboard profiles."
+      },
+      "inputPipeline": {
+        "feature": "Input Pipeline & Filtering",
+        "santroller1": "Debouncing, deadzones, multipliers, analog-to-digital and digital-to-analog conversion, joystick-to-dpad and macros.",
+        "santroller2": "Reworked input manager with the same processing options, plus custom analog range remapping."
+      },
+      "coreDevices": {
+        "feature": "Core Instruments, Peripherals & LEDs (Already Supported in v1)",
+        "santroller1": "Already supported: MPR121 fret sensing, analog multiplexers, matrix keypads, rotary encoders, APA102 & WS2812 RGB LEDs, STP16CPC constant-current LED drivers, I2C accelerometers, GH5 tap bars, DJ Hero turntables, WT/BH drums, CRKD guitar necks, and MAX1704x battery monitors.",
+        "santroller2": "All ported to the modular device framework with unified pin assignments, per-device configuration, and profile-aware mapping."
+      },
+      "newDevices": {
+        "feature": "Newly Added Peripherals & Input Buses",
+        "santroller1": "Not supported.",
+        "santroller2": "Switch Network (paired pin key matrix), Xbox 360 RF front panel module, Joybus controller input (N64 / GameCube), SNES/NES controller input, ADS1115 ADCs, Infinium optical crossfaders, DMX512 lighting output, CRKD drum kits, and VTech guitar expanders."
+      },
+      "configurator": {
+        "feature": "Configurator Application & Mobile Support",
+        "santroller1": "Desktop Avalonia (C#) application for Windows, macOS and Linux.",
+        "santroller2": "Web app using WebHID and Web Bluetooth, with no install required. On phones, Bluetooth-capable controllers can be configured over Web Bluetooth (Chrome on Android, Bluefy on iOS)."
+      },
+      "buildGuides": {
+        "feature": "Build Guides",
+        "santroller1": "A static written guide on santroller.com. You followed the steps, then configured everything separately in the configurator.",
+        "santroller2": "Interactive guides built into the configurator that set up your configuration as you go, testing each input as you wire it."
+      }
+    },
+    "overview": {
+      "multiProfile": {
+        "title": "Multi-Profile & Assignments",
+        "body": "In Santroller 1, each controller had one configuration (with button-combo console mode switching), and changing it meant rebuilding and re-flashing the firmware. Santroller 2 introduces <strong>Profiles</strong> paired with conditional <strong>Assignments</strong>, so a single controller can use different bindings depending on the console mode, connection type, or which guitar neck or USB device is plugged in."
+      },
+      "protobuf": {
+        "title": "Protocol Buffers & Nanopb",
+        "body": "Santroller 1 compiled your configuration directly into a custom firmware build every time you changed it, which meant downloading around a gigabyte of compilers and toolchains first. Santroller 2 ships one prebuilt firmware and sends configuration, commands, and debug data at runtime as <strong>Google Protocol Buffers</strong> (nanopb), so changes apply instantly and the schema can grow without breaking existing configs."
+      },
+      "usbHost": {
+        "title": "Modern USB Host & PIO USB",
+        "body": "Santroller 2 reworks the TinyUSB + PIO USB host stack. Alongside the hubs, Xbox 360 wireless receivers, PlayStation controllers, and USB MIDI devices supported in Santroller 1, it adds Xbox One wireless adapters, OG Xbox controllers, and USB Bluetooth dongles."
+      },
+      "picoSdk": {
+        "title": "Native Pico SDK Rewrite",
+        "body": "Santroller 1 was built on the Arduino-Pico core. Santroller 2 is rewritten directly on the Raspberry Pi Pico SDK 2.x, with a modular framework for devices, console emulators, and profiles on both RP2040 and RP2350."
+      },
+      "fota": {
+        "title": "FOTA (Firmware Over-The-Air)",
+        "body": "On wireless hardware (Pico W and Pico 2 W), Santroller 2 includes a FOTA bootloader, so firmware can be updated over Bluetooth from the web configurator without plugging the controller in."
+      },
+      "webConfigurator": {
+        "title": "Web & Mobile Configurator",
+        "body": "Replaced the desktop Avalonia (C#) application with a zero-install web app using WebHID (for USB) and Web Bluetooth. You can configure controllers, map inputs, test sensors, and update firmware from a desktop browser, and Bluetooth-capable controllers can also be configured from <strong>mobile phones</strong> (Chrome on Android, Bluefy on iOS). The build guides are interactive too, configuring your controller step by step as you wire it."
+      },
+      "avrDeprecation": {
+        "title": "Microcontroller Hardware Deprecation",
+        "body": "Santroller 1 originated as \"Ardwiino\" and still supports 8-bit AVR microcontrollers like the ATmega32U4 (Arduino Leonardo / SparkFun Pro Micro) and ATmega16U2 (Arduino Uno / Mega). Due to their limited flash and RAM (32 KB / 2.5 KB on the ATmega32U4), AVR chips cannot support multi-profile storage, protocol buffers, USB host stacks, or Bluetooth emulation. Santroller 2 requires a <strong>Raspberry Pi Pico (RP2040)</strong> or <strong>Pico 2 (RP2350)</strong>. Existing AVR builds should remain on the legacy Santroller 1 firmware (v10.1.189-legacy.2)."
+      }
+    },
+    "matrix": {
+      "title": "Technical Specifications Comparison",
+      "description": "Side-by-side comparison of capabilities between legacy Ardwiino / Santroller 1 and the new Santroller 2 firmware.",
+      "headers": {
+        "feature": "Feature",
+        "santroller1": "Legacy Santroller 1 (Ardwiino)",
+        "santroller2": "Santroller 2 (Current)",
+        "status": "Status"
+      }
+    },
+    "migration": {
+      "title": "Migrating from Santroller 1 to Santroller 2",
+      "description": "If you have existing controllers configured with Santroller 1, here is what you need to know about migrating your configuration and hardware.",
+      "configImport": {
+        "title": "Automated Legacy Config (.picoconfig) Import",
+        "body": "The Santroller Configurator provides an automated import tool for legacy <code>.picoconfig</code> files. It translates legacy bindings, pins, axis thresholds, multipliers, and peripheral definitions into Santroller 2 Profiles and Assignments."
+      },
+      "pinout": {
+        "title": "Pinout Compatibility",
+        "body": "If you already built a controller using a Raspberry Pi Pico on Santroller 1, your physical wiring stays the same. Flash Santroller 2 and import your .picoconfig (or set up your existing GPIO pins manually) without re-soldering."
+      },
+      "avr": {
+        "title": "Legacy AVR Boards (Pro Micro / Uno)",
+        "body": "If your controller is built on an ATmega32U4 (Pro Micro) or ATmega16U2 (Uno/Mega), it cannot run Santroller 2. You can continue using the legacy Santroller 1 configurator and firmware at <legacyLink>legacy.santroller.com</legacyLink>. For new builds or upgrades, drop-in replacement RP2040 boards (such as RP2040-Zero or Pro Micro RP2040 pin-compatible clones) are strongly recommended."
+      },
+      "gains": {
+        "title": "What You Gain in Santroller 2",
+        "items": {
+          "profiles": "Multiple profiles with Assignments, changeable at runtime without re-flashing",
+          "usbHost": "Xbox One wireless adapters, OG Xbox controllers and USB Bluetooth dongles over USB host, plus I2C Xbox One auth chip support",
+          "festival": "Customizable Fortnite Festival profiles instead of a single hardcoded mapping",
+          "fota": "Bluetooth FOTA updates on Pico W & Pico 2 W",
+          "protobuf": "One prebuilt firmware with runtime Protocol Buffers configuration (no per-config rebuilds, and no gigabyte of compilers to download)",
+          "emulation": "New console emulation: Joybus (N64/GC), SNES, and Wii Remote over Bluetooth",
+          "hardware": "New input buses & hardware: Joybus (N64/GC), SNES/NES pads, Xbox 360 RF module, Switch Network, ADS1115, DMX output, and optical crossfaders",
+          "mobile": "Mobile configuration over Web Bluetooth (Chrome on Android, Bluefy on iOS)",
+          "guides": "Interactive build guides that configure your controller as you go, instead of a static written guide"
+        }
+      },
+      "removed": {
+        "title": "Deprecated / Removed",
+        "items": {
+          "avr": "Support for 8-bit AVR microcontrollers (ATmega32U4 / ATmega16U2)",
+          "desktopApp": "Legacy desktop Avalonia (C#) configurator application",
+          "compilation": "Per-configuration firmware compilation and the local compiler toolchain it required"
+        }
+      }
+    }
   },
   "ws2812": {
     "pin": "Pin",
@@ -894,7 +1175,6 @@
   "leds": {
     "item_title": "LED #{{num}}",
     "summary_mode": "LED Mode",
-    "summary_device": "Device",
     "label": "Leds",
     "device": "LED Device",
     "mode": "LED Mode",
@@ -922,7 +1202,10 @@
     "pattern": {
       "label": "Pattern",
       "PatternRainbow": "Rainbow",
-      "PatternFade": "Breathing"
+      "PatternFade": "Breathing",
+      "PatternStatic": "Static",
+      "PatternHeatmap": "Heatmap",
+      "PatternSpread": "Spread"
     },
     "set_off": "Set off colour",
     "mpr121_pin": "MPR121 pin",
@@ -1043,7 +1326,6 @@
       "PS2ControllerTypeTaiko": "Taiko Drum",
       "PS2ControllerTypePopNMusic": "Pop'n Music Controller",
       "PS2ControllerTypeGuitarFreaks": "GuitarFreaks Guitar",
-    "PS2ControllerTypeDrumMania": "DrumMania Drum Kit",
       "PS2ControllerTypeDrumMania": "DrumMania Drum Kit",
       "PS2ControllerTypeUnknown": "Disconnected"
     }
@@ -1061,13 +1343,8 @@
       "label": "SCK Pin",
       "pin": "GP{{pin}} - SCK, SPI Channel {{channel}}"
     },
-    "csn": {
-      "label": "CSn Pin",
-      "pin": "GP{{pin}} - CSn, SPI Channel {{channel}}"
-    },
     "cs": {
-      "label": "CS Pin",
-      "pin": "GP{{pin}}"
+      "label": "CS Pin"
     },
     "incorrect_group": "SPI Pins are not from the same group"
   },
@@ -1089,7 +1366,8 @@
       "midi_drums_rb": "General MIDI drum kit - from Rock Band drums",
       "midi_drums_gh": "General MIDI drum kit - from Guitar Hero drums",
       "ps2_guitar_on_ps3": "Guitar Hero guitar for PS2 games on PS3"
-    }
+    },
+    "load_type": "Load {{type}} defaults"
   },
   "clear_all_button": "Clear All",
   "clear_all_dialog": {
@@ -1133,7 +1411,6 @@
     "type": "Assignment Type",
     "title": "Assignments",
     "description": "One of the key improvements with Santroller 2 is that you can have multiple profiles, but this means you need to tell Santroller 2 when you want your profiles used. Assignments are how this is done. Assignments come in two parts - one is the assignment itself, such as say assigning to plugging a Wii Guitar into a Wii Adapter, and the emulation type, such as USB or Bluetooth. This lets you do things like using different profiles for bluetooth vs for USB, but does mean you have to wrap your head around assignments.",
-    "match": "Add match",
     "add": "Add Assignment",
     "specificConsole": "Require specific device",
     "specificConsoleDesc": "Enable to apply this profile when plugged into a specific device, for example setting this to PS3 would only apply this profile when plugged into a PS3.",
@@ -1165,13 +1442,11 @@
     "preset_wii_adapter": "Wii Adapter",
     "preset_ps2_adapter": "PS1/2 Adapter",
     "preset_boot_switch": "Button Boot Switch",
-    "preset_apply": "Apply Preset",
     "step1_title": "1. Target Connection",
     "step1_desc": "How this Santroller device connects to the console or PC",
     "step2_title": "2. Connected Controller / Adapter (Optional)",
     "step2_desc": "Buttons and sensors wired directly to board pins are enabled automatically. Only add a source here if connecting an external controller or adapter (Wii, PS2, USB, Bluetooth, or MIDI). Slot numbers are scoped by source type and shared across alternative activation lists.",
     "step3_title": "3. Activation Trigger",
-    "step3_desc": "Optional button trigger for this profile. Any connected-controller requirements still apply.",
     "emulation_mode": {
       "usb": "USB",
       "bluetooth": "Bluetooth",
@@ -1188,7 +1463,6 @@
     },
     "source": {
       "label": "Input Source",
-      "builtin": "Built-in / Direct Pins",
       "wiiExt": "Wii Extension Port",
       "ps2Cnt": "PS1/2 Controller Port",
       "usbType": "USB Host (By Type)",
@@ -1200,13 +1474,11 @@
       "midiChannel": "MIDI Channel"
     },
     "trigger": {
-      "label": "Activation Condition",
       "always": "No Extra Button Trigger (Default)",
       "boot": "Hold Button at Startup",
       "anytime": "Press Button Anytime"
     },
     "logic_or": "OR",
-    "logic_and": "AND",
     "slot": "Slot",
     "no_slots_assigned": "No controller sources assigned in Profile",
     "not_assigned": "Not assigned",
@@ -1221,7 +1493,13 @@
     "setup_wizard_desc": "Configure how your controller connects, any connected adapters (Wii, PS2, USB, MIDI), and activation triggers.",
     "setup_wizard_apply": "Apply & Load Defaults",
     "setup_wizard_skip": "Skip (Start Blank)",
-    "emulated_device": "Emulated Device"
+    "summary": {
+      "usb": "USB ({{type}})",
+      "wii": "Wii ({{type}})",
+      "ps2": "PS2 ({{type}})",
+      "bluetooth": "Bluetooth ({{type}})",
+      "midiChannel": "MIDI Ch {{channel}}"
+    }
   },
   "toggle": {
     "state": "Current State",
@@ -1291,7 +1569,9 @@
     "ps2Emulation": "PS1/2 Controller Emulation",
     "wiiEmulation": "Wii Extension Emulation",
     "joybusEmulation": "GameCube / N64 Controller Emulation",
-    "snesEmulation": "SNES / NES Controller Emulation"
+    "snesEmulation": "SNES / NES Controller Emulation",
+    "bluetoothType": "Bluetooth Host By Type",
+    "bluetoothDevice": "Bluetooth Host Specific"
   },
   "assignmentTypeDesc": {
     "wiiExt": "Match when a Wii Extension is plugged into this device",
@@ -1306,14 +1586,18 @@
     "ps2Emulation": "Match when plugged into a PS1/PS2 via the PS controller port",
     "wiiEmulation": "Match when plugged into a wii remote via the wii extension port",
     "joybusEmulation": "Match when plugged into a GameCube or N64 via the controller port",
-    "snesEmulation": "Match when plugged into a SNES or NES via the controller port"
+    "snesEmulation": "Match when plugged into a SNES or NES via the controller port",
+    "bluetoothType": "Match when a bluetooth device type is connected to this device via Bluetooth host",
+    "bluetoothDevice": "Match when a specific bluetooth device is connected to this device via Bluetooth host"
   },
   "activation": {
     "usbType": "Usb Controller Type",
     "consoleType": "Plugged in device type",
     "wiiExt": "Wii extension type",
     "ps2Cnt": "PS2 Controller Type",
-    "forcedType": "Device type"
+    "forcedType": "Device type",
+    "bluetooth": "Bluetooth mode",
+    "bluetoothType": "Bluetooth controller type"
   },
   "consoleType": {
     "ConsoleWii_WiiU": "Wii / Wii U",
@@ -1332,7 +1616,6 @@
     "ModeOgXbox": "OG Xbox",
     "ModeXbox360": "Xbox 360",
     "ModeXboxOne": "Xbox One / Series",
-    "ModePs2": "PlayStation 2",
     "ModePs3": "PlayStation 3",
     "ModePs4": "PlayStation 4",
     "ModePs5": "PlayStation 5",
@@ -1356,6 +1639,7 @@
     "rootMidiNote_desc": "Keys are mapped sequentially starting from this note (Note {{root}} to {{end}})",
     "midiChannel": "MIDI Channel",
     "midiControlChange": "MIDI Control Change (CC)",
+    "midiPitchBend": "MIDI Pitch Bend",
     "midiProGuitarButton": {
       "title": "MIDI Pro Guitar Button",
       "ProGuitarMidi_A": "A Button",
@@ -1423,11 +1707,12 @@
     },
     "vtechExpander": {
       "pin": "VTech Expander Pin"
-    }
+    },
+    "ccNumber": "CC {{cc}}"
   },
   "device": "Device",
-  "channel": "Channel",
   "subType": {
+    "Unknown": "Unknown",
     "Gamepad": "Gamepad",
     "Dancepad": "Dancepad",
     "GuitarHeroGuitar": "Guitar Hero Guitar",
@@ -1436,8 +1721,6 @@
     "RockBandDrums": "Rock Band Drums",
     "LiveGuitar": "Guitar Hero Live Guitar",
     "DjHeroTurntable": "DJ Hero Turntable",
-    "ProGuitar_Mustang": "Rock Band Mustang Pro Guitar",
-    "ProGuitar_Squire": "Rock Band Squire Pro Guitar",
     "ProGuitarMustang": "Rock Band Mustang Pro Guitar",
     "ProGuitarSquire": "Rock Band Squire Pro Guitar",
     "ProKeys": "Rock Band Pro Keys",
@@ -1477,7 +1760,11 @@
       "Gamepad_AccelX": "Acceleration - X Axis",
       "Gamepad_AccelY": "Acceleration - Y Axis",
       "Gamepad_AccelZ": "Acceleration - Z Axis",
-      "Gamepad_Gyro": "Gyro"
+      "Gamepad_Gyro": "Gyro",
+      "Gamepad_South": "South Button",
+      "Gamepad_East": "East Button",
+      "Gamepad_West": "West Button",
+      "Gamepad_North": "North Button"
     },
     "Xbox360": {
       "Gamepad_A": "A Button",
@@ -1558,12 +1845,7 @@
     "GuitarHeroGuitar_Pedal": "Pedal",
     "GuitarHeroGuitar_Whammy": "Whammy",
     "GuitarHeroGuitar_Tilt": "Tilt",
-    "GuitarHeroGuitar_Slider": "Slider Bar",
-    "GuitarHeroGuitar_LeftStickX": "Stick X Axis",
-    "GuitarHeroGuitar_LeftStickY": "Stick Y Axis",
     "GuitarHeroLiveGuitar_GHTV": "GHTV Button",
-    "GuitarHeroLiveGuitar_DpadUp": "Strum Up",
-    "GuitarHeroLiveGuitar_DpadDown": "Strum Down",
     "GuitarHeroLiveGuitar_White1": "White 1 Fret",
     "GuitarHeroLiveGuitar_White2": "White 2 Fret",
     "GuitarHeroLiveGuitar_White3": "White 3 Fret",
@@ -1672,7 +1954,11 @@
     "ProKeyboardTouchPad": "Touch Strip",
     "ProKeyboardOverdrive": "Overdrive",
     "ActionRestartDeviceStack": "Restart USB / Bluetooth",
-    "ActionBootloader": "Enter Bootloader"
+    "ActionBootloader": "Enter Bootloader",
+    "GuitarHeroLiveGuitar_StrumUp": "Strum Up",
+    "GuitarHeroLiveGuitar_StrumDown": "Strum Down",
+    "RockBandGuitar_Pedal": "Pedal",
+    "ProjectDiva_Slider": "Slider"
   },
   "save": {
     "saveChanges": "Save changes",
@@ -1738,7 +2024,8 @@
     "buildUf2Pico": "Build UF2 from Current Config (Pico 1 / RP2040)",
     "buildUf2Pico2": "Build UF2 from Current Config (Pico 2 / RP2350)",
     "toolName": "Tool name",
-    "toolLogo": "Tool Logo"
+    "toolLogo": "Tool Logo",
+    "defaultToolName": "Seller Tool"
   },
   "debug": {
     "midi": {
@@ -1749,14 +2036,12 @@
       "data": "Data",
       "noteOff": "Note Off",
       "noteOn": "Note On",
-      "noteAftertouch": "Note Aftertouch",
       "controlChange": "Control Change",
       "pitchBend": "Pitch Bend",
       "programChange": "Program Change",
       "channelAftertouch": "Channel Aftertouch",
       "polyAftertouch": "Poly Aftertouch",
       "sysEx": "System Exclusive",
-      "systemExclusive": "System Exclusive",
       "unknown": "Unknown"
     },
     "logs": {
@@ -1808,11 +2093,6 @@
       "drums": "E-drum MIDI setup and piezo triggers",
       "turntable": "DJ Hero turntable conversions",
       "mods": "WS2812B addressable LEDs and custom peripherals"
-    },
-    "difficulty": {
-      "beginner": "Beginner",
-      "intermediate": "Intermediate",
-      "advanced": "Advanced"
     },
     "wireless": {
       "title": "Wireless: Bluetooth & Battery (Pico W)",
@@ -2028,7 +2308,6 @@
             "Solder & Verify: Solder to your chosen GP pin, then test."
           ],
           "standardPinout": "Default Guitar Pinout",
-          "recommended": "Default",
           "pinoutDesc": "Use the default Santroller pin layout or choose your own GPIO pins.",
           "applyStandardPinout": "Apply Default Pinout",
           "pinoutApplied": "Standard Pinout Applied",
@@ -2038,7 +2317,23 @@
           "thPhysical": "Physical Pin",
           "pinNum": "Pin {{pin}}",
           "familyNameGh": "Guitar Hero",
-          "familyNameRb": "Rock Band"
+          "familyNameRb": "Rock Band",
+          "pinoutLabels": {
+            "greenFret": "Green Fret",
+            "redFret": "Red Fret",
+            "yellowFret": "Yellow Fret",
+            "blueFret": "Blue Fret",
+            "orangeFret": "Orange Fret",
+            "strumUp": "Strum Up",
+            "strumDown": "Strum Down",
+            "startPlus": "Start / Plus",
+            "selectMinus": "Select / Minus",
+            "tiltSwitch": "Digital Tilt Switch",
+            "whammyAdc0": "Whammy Bar (ADC0)",
+            "upperFretsCommon": "Upper Frets Common (Matrix Row 1)",
+            "soloFretsCommon": "Solo Frets Common (Matrix Row 2)",
+            "pickupSelectorAdc1": "Pickup Selector (ADC1)"
+          }
         },
         "frets": {
           "shortTitle": "Frets",
@@ -3345,15 +3640,11 @@
             "A PS2 controller plug (the end that plugs into the console)",
             "Soldering Iron & Wire"
           ],
-          "suppliesConsolePower": [
-            "A Schottky diode (rated for more than 10V reverse voltage)"
-          ],
+          "suppliesConsolePower": ["A Schottky diode (rated for more than 10V reverse voltage)"],
           "suppliesUsbPower": [
             "A USB power source for the Pico (a phone charger, power bank or PC) and a USB cable for the Pico's own USB port"
           ],
-          "suppliesBoost": [
-            "An MT3608 boost converter module (3.3V up to 5V for the USB socket)"
-          ],
+          "suppliesBoost": ["An MT3608 boost converter module (3.3V up to 5V for the USB socket)"],
           "suppliesUsb": [
             "A USB extension cable cut in half (keep the socket end) or a USB socket breakout"
           ],
@@ -3625,6 +3916,16 @@
           "usbHostMissing": "The receiver's controller data needs a USB host port (D+ GP2 / D- GP3) and a USB slot in the profile:",
           "addUsbHostBtn": "Add USB Host Port for Receiver"
         }
+      },
+      "pinout": {
+        "syncButtonOpt": "Sync Button (Opt)",
+        "syncPower": "Sync / Power",
+        "syncPowerButton": "Sync / Power Button",
+        "buttonContact": "Button Contact",
+        "mountingPad": "Mounting Pad",
+        "modelFatShort": "Fat / RF01",
+        "modelSlimShort": "Slim / Trinity",
+        "dataClockPins": "Data: GP{{data}} | Clock: GP{{clock}}"
       }
     },
     "rgb-leds": {
@@ -3726,6 +4027,71 @@
           "verifyPrompt": "Once each fret has an LED assigned, press the frets to verify real-time LED triggering."
         }
       }
+    },
+    "common": {
+      "wiring": {
+        "pin": "Pin {{n}}",
+        "pinWithLabel": "Pin {{n}} ({{label}})",
+        "labelWithPin": "{{label}} (Pin {{n}})",
+        "picoPinWithLabel": "Pico Pin {{n}} ({{label}})",
+        "picoGpPinExample": "Pico GP Pin (e.g. {{pin}})",
+        "picoGpPinOptional": "Pico GP Pin (Optional)",
+        "picoUsbHostPin": "Pico {{pin}} (USB host {{signal}})",
+        "topPin": "Top Pin {{n}}",
+        "bottomPin": "Bottom Pin {{n}}",
+        "pullup1k": "{{pin}} + 1kΩ to 3V3",
+        "signalWithName": "{{signal}} ({{name}})",
+        "names": {
+          "data": "Data",
+          "clock": "Clock"
+        },
+        "dataIn": "Data In ({{id}})",
+        "clockIn": "Clock In ({{id}})",
+        "serialData": "Serial Data",
+        "serialClock": "Serial Clock",
+        "usbDataMinus": "USB Data- (D-)",
+        "usbDataPlus": "USB Data+ (D+)",
+        "power3v3": "+3.3V Power",
+        "groundGnd": "Ground (GND)",
+        "colours": {
+          "black": "Black",
+          "blue": "Blue",
+          "brown": "Brown",
+          "cyan": "Cyan",
+          "green": "Green",
+          "grey": "Grey",
+          "orange": "Orange",
+          "pink": "Pink",
+          "red": "Red",
+          "white": "White",
+          "yellow": "Yellow"
+        }
+      },
+      "imageAlt": {
+        "ps2PlugPinout": "PS2 controller plug pinout",
+        "wiiAdapter": "Wii Guitar Adapter",
+        "wiiExtSocketPins": "Wii extension socket pin numbers",
+        "wiiExtPlugPinout": "Wii extension plug pinout",
+        "mux4051": "4051 multiplexer pinout",
+        "mux4067": "4067 multiplexer pinout",
+        "guitarRewire": "Finished guitar rewire",
+        "fretPcbTraces": "Fret PCB traces",
+        "wtSliderTraces": "WT Slider PCB Traces",
+        "wtSliderVias": "WT Slider Vias",
+        "wiiStrumPcb": "Wii Strum PCB",
+        "traceCuts": "Trace cuts on PCB",
+        "whammy2Wire": "2-wire whammy modification",
+        "xbox360StartSelect": "Xbox 360 Start Select",
+        "wiiLesPaulStartSelect": "Wii Les Paul Start Select",
+        "inlineFretLeds": "Inline fret LEDs",
+        "inlineFretLedSchematic": "Inline fret LED schematic",
+        "usbHostCable": "USB Host cable wiring",
+        "usbSocket": "USB socket wiring",
+        "rfFatPinout": "Xbox 360 Fat RF Module Connector Pinout",
+        "rfSlimScheme": "Xbox 360 Slim RF Module Wiring Scheme",
+        "rfFatTestPoints": "Xbox 360 Fat RF Module Rev H Test Points",
+        "xboxOneAuthChip": "Xbox One auth chip pinout"
+      }
     }
   },
   "supportedHardware": {
@@ -3803,9 +4169,7 @@
         "interfaceType": "Legacy microcontroller",
         "badge": "Old firmware only",
         "description": "Only supported by the legacy AVR build of Santroller 1 (v10.1.189-legacy.2). Uses the ATmega32U4, which has built-in USB.",
-        "details": [
-          "No USB host, Bluetooth or most of the newer peripheral support"
-        ],
+        "details": ["No USB host, Bluetooth or most of the newer peripheral support"],
         "warning": "This board only runs the old Santroller 1 firmware, which may have bugs and is missing a lot of newer features. For new builds, use a Pico or Pico 2 instead.",
         "guideLabel": "Legacy Firmware Documentation"
       },
@@ -4104,9 +4468,7 @@
         "interfaceType": "I2C (100 kHz)",
         "badge": "Guitar neck",
         "description": "Reads Crazy Guitar clone neck boards over I2C.",
-        "details": [
-          "5 frets and 5 solo frets, read from the neck's EKT2101 key controller"
-        ]
+        "details": ["5 frets and 5 solo frets, read from the neck's EKT2101 key controller"]
       },
       "periph_wt_drum": {
         "name": "Guitar Hero World Tour Drum Module",
@@ -4165,10 +4527,7 @@
         "interfaceType": "SPI (10 kHz) with Chip Select",
         "badge": "Guitar",
         "description": "Reads the VTech KidiStar guitar's I/O expander, so it can be converted into a Santroller controller.",
-        "details": [
-          "Reads its 8 button inputs",
-          "Drives the guitar's 8 LEDs (on / off)"
-        ]
+        "details": ["Reads its 8 button inputs", "Drives the guitar's 8 LEDs (on / off)"]
       },
       "periph_secondary_pico": {
         "name": "Secondary Pi Pico (I2C Coprocessor)",
@@ -4423,7 +4782,8 @@
           "Works with RF boards from both original and Slim consoles",
           "Wireless controllers, guitars and drums",
           "Sync from a button or from the Configurator; Ring of Light boot animation"
-        ]
+        ],
+        "guideLabel": "Xbox 360 RF module guide"
       },
       "bus_midi": {
         "name": "MIDI 5-Pin DIN & USB-MIDI Devices",
@@ -4820,5 +5180,99 @@
         "save": "<strong>Save:</strong> Click <strong>Save Settings</strong>."
       }
     }
+  },
+  "legacyImport": {
+    "peripheralFirmware": "Inputs on the secondary Pico were imported, but it needs to be flashed with the new peripheral firmware.",
+    "macroAnalog": "A macro (two inputs at once) used an analog input, which the new shortcut input only reads digitally.",
+    "peripheralMoved": "{{device}} on the secondary Pico was imported onto the main Pico, so check its pins.",
+    "peripheralDevices": {
+      "multiplexer": "A multiplexer",
+      "mpr121": "An MPR121",
+      "encoder": "An encoder",
+      "gh5Neck": "A GH5 neck",
+      "gh5CloneNeck": "A GH5 clone neck",
+      "crkdNeck": "A CRKD neck",
+      "djTurntable": "A DJ Hero turntable",
+      "wiiExtension": "A Wii extension",
+      "ps2Controller": "A PS2 controller"
+    },
+    "inputTypeUnsupported": "Inputs of type {{type}} can't be imported yet, so they were skipped.",
+    "gh5SliderSkipped": "GH5 slider bindings were skipped, set the slider up again with the GH5 neck.",
+    "pickupSkipped": "A pickup selector binding was skipped, only Rock Band guitars have one.",
+    "drumBindingSkipped": "A drum binding that the emulated drum kit doesn't have was skipped.",
+    "drumSensitivitySkipped": "Drum sensitivity inputs were skipped.",
+    "turntableBindingSkipped": "A turntable binding was skipped.",
+    "turntableMultiplierSkipped": "Turntable velocity multipliers were skipped.",
+    "xbox360WakeupSkipped": "The Xbox 360 wakeup binding was skipped.",
+    "bindingTypeUnsupported": "Bindings of type {{type}} can't be imported yet, so they were skipped.",
+    "fortniteFestival": "Fortnite Festival mode was imported as the controller type it was set up with.",
+    "tooManyCombinations": "There were too many controllers to try every combination of, so all of them have to be connected for the profile to match.",
+    "hostBindingSkipped": "A USB host or Bluetooth binding that the new firmware can't read was skipped.",
+    "hostDrumPadsSkipped": "Drum pad bindings from a USB host or Bluetooth drum kit were skipped, set them up again.",
+    "hostSliderSkipped": "A USB host GH5 slider binding was skipped, the new firmware reads the slider as the tap frets.",
+    "usbHostControllerType": "USB host bindings were imported for a {{controller}} controller, add another USB host slot for other controllers.",
+    "bluetoothPairAgain": "The Bluetooth controller couldn't be imported, pair it again.",
+    "bluetoothKeyboardMouseSkipped": "Bluetooth keyboard and mouse bindings were skipped.",
+    "usbHostKeySkipped": "A USB host keyboard binding for a key the new firmware can't read was skipped.",
+    "proGuitarFretsCalibration": "USB host pro guitar fret bindings were imported with the default calibration.",
+    "midiChannel": "MIDI bindings now only listen to MIDI channel {{channel}}, change the MIDI slot's channel if your MIDI device uses another one.",
+    "pitchBendCalibration": "Pitch bend bindings were given the default calibration, so check them.",
+    "absoluteMouse": "Mouse movement was set to absolute, the new firmware only moves the mouse relatively.",
+    "keyboardRollover": "The new firmware sends at most 10 keyboard keys at once.",
+    "keyboardKeySkipped": "A keyboard binding for a key the new firmware can't send was skipped.",
+    "turntableSmoothing": "Turntable smoothing was skipped, the new firmware doesn't smooth the platters.",
+    "combinedOutsideDevice": "A combined input outside of its device was skipped.",
+    "tapBarSkipped": "A tap bar binding was skipped, the tap bar can now only be bound as tap frets.",
+    "worldTourSkipped": "The World Tour tap bar was skipped, the new firmware doesn't support it.",
+    "sliderNoSlider": "A tap bar slider binding was skipped, the emulated controller has no slider.",
+    "peripheralLedsSkipped": "LEDs on the secondary Pico were skipped, they aren't supported yet.",
+    "analogLedsSkipped": "LEDs on analog inputs used as buttons were skipped, as the new LEDs would fade instead of switching on and off.",
+    "peripheralOutputsSkipped": "Outputs on the secondary Pico were skipped, they aren't supported yet.",
+    "ps2OnPs3Unsupported": "PS2 on PS3 mode isn't supported anymore, so bindings and LEDs for it were skipped.",
+    "fortniteModesUnsupported": "Fortnite Festival modes aren't supported anymore, so bindings and LEDs for them were skipped.",
+    "invertedOutputsSkipped": "Inverted outputs for LED bindings were skipped, as they can't be inverted anymore.",
+    "pollRate": "The poll rate limit wasn't imported, the new firmware always polls as fast as it can.",
+    "sleepNoWakePin": "Sleep was skipped as it had no wake up pin, set it up again with one.",
+    "nunchukAcceleration": "Nunchuk acceleration bindings were skipped, the new firmware reads them on a different scale.",
+    "wiiOtherExtensions": "Wii bindings for other extensions than the {{extension}} were skipped, as a profile only uses one type of extension now. Add a profile for each other extension you use.",
+    "wiiBindingUnsupported": "A Wii binding the new firmware doesn't have was skipped.",
+    "wiiExtensions": {
+      "Classic": "Classic Controller",
+      "Nunchuk": "Nunchuk",
+      "Guitar": "guitar",
+      "Drum": "drum kit",
+      "Dj": "DJ Hero turntable",
+      "UDraw": "uDraw tablet",
+      "Drawsome": "Drawsome tablet",
+      "TaTaCon": "Taiko drum"
+    },
+    "wiiOneExtension": "Only one Wii extension is used per profile now, so add a profile for each other one.",
+    "wiiExtensionType": "The Wii bindings were imported for a {{extension}}, so the profile now only works with that type of Wii extension.",
+    "ps2OneController": "Only one PS2 controller is used per profile now, so add a profile for each other one.",
+    "ps2ControllerType": "The PS2 bindings were imported for a {{controller}}, so the profile now only works with that type of PS2 controller.",
+    "ps2BindingsMissing": "PS2 bindings that a {{controller}} doesn't have were skipped. Add a profile for each other type of PS2 controller you use.",
+    "ps2Types": {
+      "Dualshock2": "DualShock 2",
+      "Dualshock": "DualShock",
+      "FlightStick": "flight stick",
+      "Digital": "digital controller",
+      "Guitar": "Guitar Hero guitar",
+      "NegCon": "NeGcon",
+      "JogCon": "JogCon",
+      "GunCon": "GunCon",
+      "Mouse": "PS2 mouse"
+    },
+    "wiiShortcutOutside": "A Wii shortcut binding outside of its device was skipped.",
+    "ps2ShortcutOutside": "A PS2 shortcut binding outside of its device was skipped.",
+    "wiiOutputEnable": "The Wii output enable pin was skipped, the new firmware detects the Wii Remote itself.",
+    "invalidConfig": "The imported config is invalid: {{error}}",
+    "withFile": "{{file}}: {{message}}",
+    "sharedTimeouts": "The sleep and LED timeouts are shared by every profile, so the ones from {{file}} were kept.",
+    "readFailed_one": "This file couldn't be read as a Santroller 1 config: {{error}}",
+    "readFailed_other": "These files couldn't be read as a Santroller 1 config: {{error}}"
+  },
+  "profileDefaults": {
+    "name": "Device",
+    "copyName": "{{name}} (Copy)"
   }
 }

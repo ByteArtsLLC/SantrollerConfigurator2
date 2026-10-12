@@ -129,7 +129,10 @@ describe('Wii extensions', () => {
     });
     const right = find({ gamepadButton: proto.GamepadButtonType.Gamepad_DpadRight });
     expect(right.map((m) => m.triggerValue)).toContain(32768 + 16383);
-    expect(warnings.some((w) => w.includes('imported for a guitar'))).toBe(true);
+    expect(warnings).toContainEqual({
+      key: 'legacyImport.wiiExtensionType',
+      params: { extension: { key: 'legacyImport.wiiExtensions.Guitar' } },
+    });
 
     const guide = find({ gamepadButton: proto.GamepadButtonType.Gamepad_Guide });
     expect(guide).toHaveLength(1);
@@ -190,9 +193,13 @@ describe('Wii extensions', () => {
       { deviceid: 1, button: proto.WiiButtonType.WiiButtonClassicA },
       { deviceid: 2, button: proto.WiiButtonType.WiiButtonClassicA },
     ]);
-    expect(warnings.some((w) => w.includes('other extensions than the Classic Controller'))).toBe(
-      true
-    );
+    expect(
+      warnings.some(
+        (w) =>
+          w.key === 'legacyImport.wiiOtherExtensions' &&
+          JSON.stringify(w.params).includes('wiiExtensions.Classic')
+      )
+    ).toBe(true);
 
     // a Classic Controller Pro gets a copy of the assignment list, in a slot of its own
     expect(profile.assignments.map((a) => a.assignments.map((x) => x.wiiExt ?? null))).toEqual([
@@ -242,8 +249,8 @@ describe('Wii extensions', () => {
       find({ gamepadButton: proto.GamepadButtonType.Gamepad_B })[0].input?.wiiButton?.button
     ).toBe(proto.WiiButtonType.WiiButtonNunchukZ);
     expect(find({ gamepadButton: proto.GamepadButtonType.Gamepad_X })).toHaveLength(0);
-    expect(warnings.some((w) => w.includes('secondary Pico'))).toBe(true);
-    expect(warnings.some((w) => w.includes('acceleration'))).toBe(true);
+    expect(warnings.some((w) => w.key === 'legacyImport.peripheralMoved')).toBe(true);
+    expect(warnings.some((w) => w.key === 'legacyImport.nunchukAcceleration')).toBe(true);
   });
 });
 
@@ -305,7 +312,7 @@ describe('PS2 controllers', () => {
       { ps2Button: { deviceid: 1, button: proto.PS2ButtonType.PS2ButtonStart } },
       { ps2Button: { deviceid: 1, button: proto.PS2ButtonType.PS2ButtonSelect } },
     ]);
-    expect(warnings.some((w) => w.includes('DualShock 2'))).toBe(true);
+    expect(warnings.some((w) => JSON.stringify(w).includes('ps2Types.Dualshock2'))).toBe(true);
   });
 
   it('imports a PS2 guitar', () => {
@@ -416,7 +423,7 @@ describe('console output', () => {
       attentionPin: 16,
       acknowledgePin: 17,
     });
-    expect(ctx.warnings.some((w) => w.includes('enable pin'))).toBe(true);
+    expect(ctx.warnings.some((w) => w.key === 'legacyImport.wiiOutputEnable')).toBe(true);
   });
 
   it('puts the USB assignment lists after the console ones', () => {

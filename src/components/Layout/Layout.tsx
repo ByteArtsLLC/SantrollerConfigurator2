@@ -345,7 +345,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         component={RouterLink}
                         to={`/peripherals?id=${pStatus.id}`}
                         active={isActive}
-                        label={`Peripheral (0x${addrHex})`}
+                        label={t('nav.peripheralAddress', { address: `0x${addrHex}` })}
                         leftSection={<IconCpu size={16} stroke={1.5} />}
                       />
                     );

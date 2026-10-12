@@ -5,6 +5,7 @@ import { Alert, Group, Image, List, Stack, Text, Title } from '@mantine/core';
 import { InputTestRow } from '@/guides/components/InputTestRow';
 import { StepWorkbench } from '@/guides/components/StepWorkbench';
 import { GuideStepProps } from '@/guides/types';
+import { IMAGE_ALT } from '../../wiringText';
 import { GUITAR_TARGETS } from '../guitarMappingUtils';
 
 export function NavStep(props: GuideStepProps) {
@@ -16,7 +17,11 @@ export function NavStep(props: GuideStepProps) {
 
       <Group grow align="start">
         <Stack gap={4}>
-          <Image src="/guides/guitar/360startselect.jpg" radius="md" alt="Xbox 360 Start Select" />
+          <Image
+            src="/guides/guitar/360startselect.jpg"
+            radius="md"
+            alt={t(`${IMAGE_ALT}.xbox360StartSelect`)}
+          />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.direct-pico-guitar.steps.nav.x360Caption')}
           </Text>
@@ -25,7 +30,7 @@ export function NavStep(props: GuideStepProps) {
           <Image
             src="/guides/guitar/wiiLPstartselect.jpg"
             radius="md"
-            alt="Wii Les Paul Start Select"
+            alt={t(`${IMAGE_ALT}.wiiLesPaulStartSelect`)}
           />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.direct-pico-guitar.steps.nav.wiiCaption')}

@@ -14,7 +14,6 @@ export const DIRECT_PICO_GUITAR_GUIDE: GuideDefinition = {
   description:
     'Step-by-step interactive build guide for rewiring any Guitar Hero or Rock Band guitar with mechanical or original switches to a Raspberry Pi Pico or Pico 2.',
   category: 'guitar',
-  difficulty: 'intermediate',
   estimatedTime: '1 - 2 hours',
   featured: true,
   badge: 'Mechanical / Direct Wire',

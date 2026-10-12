@@ -12,7 +12,6 @@ export const DJ_TURNTABLE_GUIDE: GuideDefinition = {
   description:
     'Rewire any DJ Hero turntable to a Raspberry Pi Pico for low-latency scratch vinyl and crossfader controls in DJ Hero.',
   category: 'turntable',
-  difficulty: 'intermediate',
   estimatedTime: '45 - 60 mins',
   badge: 'Optical Scratching',
   supplies: [

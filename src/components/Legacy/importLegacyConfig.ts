@@ -15,24 +15,25 @@ import './families';
 
 import { legacy } from './legacy';
 import { convertOutput } from './outputs';
+import { legacyErrorReason, LegacyImportError, legacyWarning, LegacyWarning } from './warnings';
 
 export interface LegacyImportResult {
   config: proto.Config;
   aux: proto.AuxConfigBlock;
   // Things that couldn't be imported exactly, to show to the user
-  warnings: string[];
+  warnings: LegacyWarning[];
 }
 
 function emulatedSubType(
   old: legacy.SerializedConfiguration,
-  warn: (m: string) => void
+  warn: (key: string) => void
 ): proto.SubType {
   switch (old.emulationType) {
     case legacy.EmulationType.EmulationType_KeyboardMouse:
     case legacy.EmulationType.EmulationType_BluetoothKeyboardMouse:
       return proto.SubType.KeyboardMouse;
     case legacy.EmulationType.EmulationType_FortniteFestival:
-      warn('Fortnite Festival mode was imported as the controller type it was set up with.');
+      warn('legacyImport.fortniteFestival');
       break;
   }
   // The old controller types use the same numbers as the new ones
@@ -88,9 +89,7 @@ function expandOptionalSlots(
     let combinations: proto.IProfileAssignmentInfo[][] = [[]];
     const count = [...groups.values()].reduce((n, group) => n * (group.length + 1), 1);
     if (count > MAX_SLOT_COMBINATIONS) {
-      ctx.warn(
-        'There were too many controllers to try every combination of, so all of them have to be connected for the profile to match.'
-      );
+      ctx.warn('legacyImport.tooManyCombinations');
       combinations = [[...groups.values()].flat(), []];
     } else {
       for (const group of groups.values()) {
@@ -142,9 +141,9 @@ function assignSlotIds(
 export function importLegacyConfig(data: Uint8Array, name = 'Imported'): LegacyImportResult {
   const old = legacy.SerializedConfiguration.decode(data);
   const warnings: string[] = [];
-  const subType = emulatedSubType(old, (m) => warnings.push(m));
+  const subType = emulatedSubType(old, (key) => warnings.push(key));
   const ctx = new LegacyImportContext(old, subType);
-  ctx.warnings.push(...warnings);
+  warnings.forEach((key) => ctx.warn(key));
 
   for (const binding of old.bindings) {
     convertOutput(ctx, binding);
@@ -220,7 +219,10 @@ export function importLegacyConfig(data: Uint8Array, name = 'Imported'): LegacyI
   });
   const error = proto.Config.verify(config);
   if (error) {
-    throw new Error(`The imported config is invalid: ${error}`);
+    throw new LegacyImportError(
+      legacyWarning('legacyImport.invalidConfig', { error }),
+      `The imported config is invalid: ${error}`
+    );
   }
   return {
     config,
@@ -302,7 +304,7 @@ export function importLegacyConfigs(
   const devices: proto.IDevice[] = [];
   const deviceKeys = new Map<string, number>();
   const profiles: proto.IProfile[] = [];
-  const warnings: string[] = [];
+  const warnings: LegacyWarning[] = [];
   // The sleep and LED timeouts are for the whole device, so the first file's are used
   let inactivity: { config: proto.IInactivityConfig; from: string } | undefined;
   for (const file of files) {
@@ -310,7 +312,13 @@ export function importLegacyConfigs(
     try {
       result = importLegacyConfig(file.data, file.name);
     } catch (e) {
-      throw new Error(files.length > 1 ? `${file.name}: ${e}` : `${e}`);
+      if (files.length === 1) {
+        throw e;
+      }
+      throw new LegacyImportError(
+        legacyWarning('legacyImport.withFile', { file: file.name, message: legacyErrorReason(e) }),
+        `${file.name}: ${e}`
+      );
     }
     const config = proto.Config.toObject(result.config) as proto.IConfig;
     const ids = new Map<number, number>();
@@ -326,14 +334,18 @@ export function importLegacyConfigs(
     }
     const profile = remapProfileDeviceIds(config.profiles![0], (id) => ids.get(id) ?? id);
     profiles.push({ ...profile, opts: { ...profile.opts!, uid: profiles.length + 1 } });
-    const prefix = files.length > 1 ? `${file.name}: ` : '';
-    warnings.push(...result.warnings.map((w) => prefix + w));
+    // Warnings are prefixed with the file they're about when there are several
+    const withFile = (warning: LegacyWarning) =>
+      files.length > 1
+        ? legacyWarning('legacyImport.withFile', { file: file.name, message: warning })
+        : warning;
+    warnings.push(...result.warnings.map(withFile));
     if (config.inactivity) {
       if (!inactivity) {
         inactivity = { config: config.inactivity, from: file.name };
       } else if (JSON.stringify(inactivity.config) !== JSON.stringify(config.inactivity)) {
         warnings.push(
-          `${prefix}The sleep and LED timeouts are shared by every profile, so the ones from ${inactivity.from} were kept.`
+          withFile(legacyWarning('legacyImport.sharedTimeouts', { file: inactivity.from }))
         );
       }
     }
@@ -346,7 +358,10 @@ export function importLegacyConfigs(
   });
   const error = proto.Config.verify(config);
   if (error) {
-    throw new Error(`The imported config is invalid: ${error}`);
+    throw new LegacyImportError(
+      legacyWarning('legacyImport.invalidConfig', { error }),
+      `The imported config is invalid: ${error}`
+    );
   }
   return {
     config,

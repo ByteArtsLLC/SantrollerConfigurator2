@@ -8,7 +8,6 @@ export const BH_DRUM_GUIDE: GuideDefinition = {
   description:
     "Replace the main microcontroller in a Band Hero or Guitar Hero 5 era drum kit brain with a Raspberry Pi Pico, reading the pads from the brain's own drum chip over I2C.",
   category: 'drums',
-  difficulty: 'intermediate',
   estimatedTime: '30 - 45 mins',
   badge: 'MIDI over I2C',
   supplies: [

@@ -12,7 +12,6 @@ export const XBOX360_RF_GUIDE: GuideDefinition = {
   description:
     'Repurpose an authentic Xbox 360 RF module (Original/Fat or Slim) as an ultra-low latency wireless receiver for Xbox 360 controllers with sync and Ring of Light support.',
   category: 'adapters',
-  difficulty: 'intermediate',
   estimatedTime: '25 - 40 mins',
   badge: 'Wireless RF',
   supplies: [

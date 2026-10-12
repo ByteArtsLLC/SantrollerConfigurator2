@@ -49,7 +49,7 @@ describe('importLegacyConfig', () => {
     expect(pickup.pickupThresholds).toEqual([14659, 27076, 40701, 56567]);
 
     // the old Fortnite Festival toggle on GP7 has no new equivalent
-    expect(warnings.some((w) => w.includes('Fortnite Festival'))).toBe(true);
+    expect(warnings.some((w) => w.key === 'legacyImport.fortniteModesUnsupported')).toBe(true);
   });
 
   it('imports a USB keyboard layout with a PS3 pressure binding', () => {
@@ -74,7 +74,7 @@ describe('importLegacyConfig', () => {
       input: { usbButton: { button: { keycode: 0x4d } } },
       debounce100us: 10,
     });
-    expect(warnings.some((w) => w.includes('pressure'))).toBe(false);
+    expect(warnings).not.toContainEqual({ key: 'legacyImport.hostBindingSkipped' });
 
     // both key sets were kept: S and left arrow
     expect(keys(proto.GamepadButtonType.Gamepad_DpadLeft)).toEqual([0x16, 0x50]);

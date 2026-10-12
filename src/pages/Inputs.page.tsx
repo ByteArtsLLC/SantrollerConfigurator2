@@ -128,7 +128,7 @@ import {
 import {
   GM_PERCUSSION,
   MIDI_PERCUSSION_CHANNEL,
-  midiNoteName,
+  midiNoteDisplayName,
   midiOutputLabel,
 } from '@/devices/midi';
 import { AllPinsNamed, AnalogPinsNamed } from '@/devices/pico/pins';
@@ -433,11 +433,12 @@ function StateSlider({
   crkdId?: number;
   crkd?: keyof proto.ICrkdCalibrationData;
 }) {
+  const { t } = useTranslation();
   if (raw) {
     return (
       <>
         <Text size="sm" fw={700}>
-          Raw Value
+          {t('calibration.rawValue')}
         </Text>
         <Progress.Root size={40} transitionDuration={0}>
           <Progress.Label w="100%" h="100%" style={{ position: 'absolute' }}>
@@ -475,7 +476,7 @@ function StateSlider({
   return (
     <>
       <Text size="sm" fw={700}>
-        Value
+        {t('calibration.value')}
       </Text>
       <Progress.Root size={40} transitionDuration={0}>
         <Progress.Label w="100%" h="100%" style={{ position: 'absolute' }}>
@@ -1166,10 +1167,7 @@ function MidiOutputBox({
         <>
           <NumberInput
             label={t('midiOutput.noteNumber')}
-            description={
-              (note.channel === MIDI_PERCUSSION_CHANNEL && GM_PERCUSSION[note.note]) ||
-              midiNoteName(note.note)
-            }
+            description={midiNoteDisplayName(note.note, note.channel, t)}
             min={0}
             max={127}
             value={note.note}
@@ -1301,6 +1299,22 @@ function MappingBox({
     </Stack>
   );
 }
+const MIDI_INPUT_KINDS = [
+  'midiNote',
+  'midiControlChange',
+  'midiPitchBend',
+  'midiProGuitarButton',
+  'midiProGuitarAxis',
+] as const;
+type MidiInputKind = (typeof MIDI_INPUT_KINDS)[number];
+const MIDI_INPUT_KIND_LABEL_KEYS: Record<MidiInputKind, string> = {
+  midiNote: 'input.midiNote',
+  midiControlChange: 'input.midiControlChange',
+  midiPitchBend: 'input.midiPitchBend',
+  midiProGuitarButton: 'input.midiProGuitarButton.title',
+  midiProGuitarAxis: 'input.midiProGuitarAxis.title',
+};
+
 function DropdownOutputBox<
   T extends StandardEnum<unknown>,
   T2 extends StandardEnum<unknown>,
@@ -1374,7 +1388,7 @@ function DropdownOutputBox<
     (e2 && e2[val2 as keyof T2]) ||
     (e3 && e3[val3 as keyof T3]) ||
     (e4 && e4[val4 as keyof T4]) ||
-    (valMidi && Object.entries(valMidi).find((x) => x[0] !== 'deviceid' && x[1])?.[0])) as string;
+    (valMidi && MIDI_INPUT_KINDS.find((kind) => valMidi[kind]))) as string;
   const actionOptions = dispatchAction
     ? Object.entries(proto.ActionType)
         .filter(([, value]) => typeof value === 'number')
@@ -1385,6 +1399,10 @@ function DropdownOutputBox<
         }))
     : [];
   const extraLabel = [...(extraOptions ?? []), ...actionOptions].find((x) => x.value === v)?.label;
+  const midiKindLabel =
+    valMidi && MIDI_INPUT_KINDS.includes(v as MidiInputKind)
+      ? t(MIDI_INPUT_KIND_LABEL_KEYS[v as MidiInputKind])
+      : undefined;
   const titleLabel = title === 'input' ? t('input.title', 'Input') : t(title);
   const base =
     label === 'outputs' ? (
@@ -1399,8 +1417,8 @@ function DropdownOutputBox<
       >
         {extraLabel
           ? extraLabel
-          : valMidi
-            ? t(`input.${v}`)
+          : valMidi && midiKindLabel
+            ? midiKindLabel
             : t(
                 `${label}.${FixLabel(mode ?? proto.FaceButtonMappingMode.LegendBased, type, v, legendMode)}`
               )}
@@ -1415,7 +1433,7 @@ function DropdownOutputBox<
         rightSectionPointerEvents="none"
         onClick={() => inputCombobox.toggleDropdown()}
       >
-        {extraLabel || t(`${label}.${v}`)}
+        {extraLabel || midiKindLabel || t(`${label}.${v}`)}
       </InputBase>
     );
   return (
@@ -1741,7 +1759,7 @@ function SantrollerLabel({
           );
         }
         if (input.midi?.midiControlChange) {
-          return <Text>CC {input.midi.midiControlChange.cc}</Text>;
+          return <Text>{t('input.ccNumber', { cc: input.midi.midiControlChange.cc })}</Text>;
         }
         if (input.midi?.midiPitchBend) {
           return <Text>{t('input.midiPitchBend', 'Pitch Bend')}</Text>;
@@ -1897,7 +1915,7 @@ function SantrollerLabel({
     );
   }
   if (input.midi?.midiControlChange) {
-    return <Text>CC {input.midi.midiControlChange.cc}</Text>;
+    return <Text>{t('input.ccNumber', { cc: input.midi.midiControlChange.cc })}</Text>;
   }
   if (input.midi?.midiPitchBend) {
     return <Text>{t('input.midiPitchBend', 'Pitch Bend')}</Text>;
@@ -2058,8 +2076,8 @@ function SantrollerInput({
           {t('devices.gpio')}
         </Text>
         <Text fz="xs" span opacity="0.7">
-          {t(input.peripheral.analog ? 'devices.gpio_analog' : 'devices.gpio_digital')} (Peripheral{' '}
-          {addr})
+          {t(input.peripheral.analog ? 'devices.gpio_analog' : 'devices.gpio_digital')}{' '}
+          {t('devices.peripheral_suffix', { address: addr })}
         </Text>
       </Group>
     );
@@ -2103,7 +2121,8 @@ function SantrollerInput({
               {t(`devices.${dev.type}`)}
             </Text>
             <Text fz="xs" span opacity="0.7">
-              ({DeviceStatus.label(dev)}){parentAddr && ` (Peripheral ${parentAddr})`}
+              ({DeviceStatus.label(dev)})
+              {parentAddr && ` ${t('devices.peripheral_suffix', { address: parentAddr })}`}
             </Text>
           </Group>
         );
@@ -2249,7 +2268,8 @@ function SantrollerInput({
 
                           <Text fz="xs" span opacity="0.7">
                             ({DeviceStatus.label(item)})
-                            {parentAddr && ` (Peripheral ${parentAddr})`}
+                            {parentAddr &&
+                              ` ${t('devices.peripheral_suffix', { address: parentAddr })}`}
                           </Text>
                         </Group>
                       </Group>
@@ -2270,7 +2290,8 @@ function SantrollerInput({
                             {t('devices.gpio')}
                           </Text>
                           <Text fz="xs" span opacity="0.7">
-                            {t('devices.gpio_analog')} (Peripheral {addr})
+                            {t('devices.gpio_analog')}{' '}
+                            {t('devices.peripheral_suffix', { address: addr })}
                           </Text>
                         </Group>
                       </Combobox.Option>
@@ -2280,7 +2301,8 @@ function SantrollerInput({
                             {t('devices.gpio')}
                           </Text>
                           <Text fz="xs" span opacity="0.7">
-                            {t('devices.gpio_digital')} (Peripheral {addr})
+                            {t('devices.gpio_digital')}{' '}
+                            {t('devices.peripheral_suffix', { address: addr })}
                           </Text>
                         </Group>
                       </Combobox.Option>
@@ -3376,12 +3398,13 @@ function SantrollerMapping({
     (mapping.mapping.keycode != null
       ? hidKeyName(mapping.mapping.keycode)
         ? `${hidKeyName(mapping.mapping.keycode)}`
-        : `Key ${mapping.mapping.keycode}`
+        : t('keyboard.keyFallback', { code: mapping.mapping.keycode })
       : undefined) ||
     (mapping.mapping.consumerKey != null
-      ? (mediaKeyName(mapping.mapping.consumerKey) ?? `Media ${mapping.mapping.consumerKey}`)
+      ? (mediaKeyName(mapping.mapping.consumerKey) ??
+        t('keyboard.mediaFallback', { code: mapping.mapping.consumerKey }))
       : undefined) ||
-    midiOutputLabel(mapping.mapping) ||
+    midiOutputLabel(mapping.mapping, t) ||
     proto.ActionType[mapping.mapping.action ?? -1];
   const fixedLabel = FixLabel(mode, type, label || '', legendMode);
   const img = `Icons/Input/${FixIcon(mode, type, label || '', legendMode)}.png`;
@@ -3398,9 +3421,14 @@ function SantrollerMapping({
     Object.entries(mapping.mapping).find(([k, v]) => k.endsWith('Axis') && v);
   // pitch bend rests in the middle like a stick does
   const stick = (axis && label?.includes('Stick')) || mapping.mapping.midiPitchBend != null;
+  // MIDI labels are translated, so check GM drum names by their (English) key instead
+  const midiDrumKey =
+    mapping.mapping.midiNote?.channel === MIDI_PERCUSSION_CHANNEL
+      ? GM_PERCUSSION[mapping.mapping.midiNote.note]
+      : undefined;
   const drum =
-    label?.includes('Pad') ||
-    label?.includes('Cymbal') ||
+    (mapping.mapping.midiNote == null && (label?.includes('Pad') || label?.includes('Cymbal'))) ||
+    !!midiDrumKey?.includes('Cymbal') ||
     mapping.mapping.ghDrumAxis === proto.GuitarHeroDrumsAxisType.GuitarHeroDrums_KickPedal ||
     isDrumInput(mapping.input);
   const analogInput = isAnalog(mapping.input);
@@ -3502,10 +3530,10 @@ function SantrollerMapping({
           </Group>
           {!simpleMode && (
             <Group gap={4}>
-              <ActionIcon variant="subtle" onClick={copyInput} title="Copy">
+              <ActionIcon variant="subtle" onClick={copyInput} title={t('common.copy')}>
                 <IconCopy size={18} />
               </ActionIcon>
-              <ActionIcon variant="subtle" color="red" onClick={open} title="Delete">
+              <ActionIcon variant="subtle" color="red" onClick={open} title={t('common.delete')}>
                 <IconTrash size={18} />
               </ActionIcon>
             </Group>
@@ -3695,7 +3723,7 @@ function SantrollerMapping({
             <Space h="md" />
             <Accordion defaultValue={simpleMode ? 'main' : undefined}>
               <Accordion.Item value="main">
-                <Accordion.Control>Button Mapping</Accordion.Control>
+                <Accordion.Control>{t('calibration.buttonMapping')}</Accordion.Control>
                 <Accordion.Panel>
                   <>
                     {!simpleMode && (
@@ -4014,7 +4042,7 @@ function SantrollerMapping({
                       {stick && !mapping.section && (
                         <>
                           <Text size="sm" fw={700}>
-                            Center
+                            {t('calibration.center')}
                           </Text>
                           <Group>
                             <Slider
@@ -4054,7 +4082,7 @@ function SantrollerMapping({
                         </>
                       )}
                       <Text size="sm" fw={700}>
-                        Min
+                        {t('calibration.min')}
                       </Text>
                       <Group>
                         <Slider
@@ -4090,7 +4118,7 @@ function SantrollerMapping({
                       </Group>
                       <Space h="md" />
                       <Text size="sm" fw={700}>
-                        Max
+                        {t('calibration.max')}
                       </Text>
                       <Group>
                         <Slider
@@ -4125,7 +4153,7 @@ function SantrollerMapping({
                       </Group>
                       <Space h="md" />
                       <Text size="sm" fw={700}>
-                        Deadzone
+                        {t('calibration.deadzone')}
                       </Text>
                       <Group>
                         <Slider
@@ -4173,7 +4201,7 @@ function SantrollerMapping({
                         zeroBased={drum}
                       />
                       <Text size="sm" fw={700}>
-                        Min
+                        {t('calibration.min')}
                       </Text>
                       <Group>
                         <Slider
@@ -4221,7 +4249,7 @@ function SantrollerMapping({
                       </Group>
                       <Space h="md" />
                       <Text size="sm" fw={700}>
-                        Max
+                        {t('calibration.max')}
                       </Text>
                       <Group>
                         <Slider
@@ -4624,10 +4652,10 @@ function SantrollerLed({
           </Group>
           {!simpleMode && (
             <Group gap={4}>
-              <ActionIcon variant="subtle" onClick={copyInput} title="Copy">
+              <ActionIcon variant="subtle" onClick={copyInput} title={t('common.copy')}>
                 <IconCopy size={18} />
               </ActionIcon>
-              <ActionIcon variant="subtle" color="red" onClick={open} title="Delete">
+              <ActionIcon variant="subtle" color="red" onClick={open} title={t('common.delete')}>
                 <IconTrash size={18} />
               </ActionIcon>
             </Group>
@@ -4646,7 +4674,7 @@ function SantrollerLed({
         </Card>
 
         <Center py="xs">
-          <Image src={img} height={70} w="auto" fit="contain" alt="LED icon" />
+          <Image src={img} height={70} w="auto" fit="contain" alt={t('inputs.led_icon')} />
         </Center>
         {!simpleMode && (
           <>
@@ -5794,10 +5822,10 @@ export function SantrollerAssignment({
             {label || t('pick_value')}
           </Text>
           <Group gap={4}>
-            <ActionIcon variant="subtle" onClick={copyAssignment} title="Copy">
+            <ActionIcon variant="subtle" onClick={copyAssignment} title={t('common.copy')}>
               <IconCopy size={18} />
             </ActionIcon>
-            <ActionIcon variant="subtle" color="red" onClick={open} title="Delete">
+            <ActionIcon variant="subtle" color="red" onClick={open} title={t('common.delete')}>
               <IconTrash size={18} />
             </ActionIcon>
           </Group>
@@ -6298,7 +6326,7 @@ export function ControllerSourcesEditor({
                 variant="subtle"
                 color="red"
                 onClick={() => onRemoveSource(idx)}
-                title="Remove source"
+                title={t('assignments.removeSource')}
               >
                 <IconTrash size={14} />
               </ActionIcon>
@@ -6785,9 +6813,13 @@ function SantrollerAssignmentList({
     let emul = '';
     if (emulationItem?.consoleType) {
       if (emulationItem.consoleType.forcedType) {
-        emul = `USB (${t(`consoleMode.${proto.ConsoleMode[emulationItem.consoleType.forcedType]}`)})`;
+        emul = t('assignments.summary.usb', {
+          type: t(`consoleMode.${proto.ConsoleMode[emulationItem.consoleType.forcedType]}`),
+        });
       } else if (emulationItem.consoleType.consoleType) {
-        emul = `USB (${t(`consoleType.${proto.ConsoleType[emulationItem.consoleType.consoleType]}`)})`;
+        emul = t('assignments.summary.usb', {
+          type: t(`consoleType.${proto.ConsoleType[emulationItem.consoleType.consoleType]}`),
+        });
       } else {
         emul = t('assignments.preset_usb_auto');
       }
@@ -6809,19 +6841,31 @@ function SantrollerAssignmentList({
 
     for (const { item } of hostIndices) {
       if (item.wiiExt != null) {
-        hostParts.push(`Wii (${t(`wiiExt.${proto.WiiExtType[item.wiiExt]}`)})`);
+        hostParts.push(
+          t('assignments.summary.wii', { type: t(`wiiExt.${proto.WiiExtType[item.wiiExt]}`) })
+        );
       } else if (item.ps2Cnt != null) {
-        hostParts.push(`PS2 (${t(`ps2Cnt.${proto.PS2ControllerType[item.ps2Cnt]}`)})`);
+        hostParts.push(
+          t('assignments.summary.ps2', {
+            type: t(`ps2Cnt.${proto.PS2ControllerType[item.ps2Cnt]}`),
+          })
+        );
       } else if (item.usbType != null) {
-        hostParts.push(`USB (${t(`subType.${proto.SubType[item.usbType]}`)})`);
+        hostParts.push(
+          t('assignments.summary.usb', { type: t(`subType.${proto.SubType[item.usbType]}`) })
+        );
       } else if (item.usbDevice != null) {
         hostParts.push(t('assignments.source.usbDevice'));
       } else if (item.bluetoothType != null) {
-        hostParts.push(`Bluetooth (${t(`subType.${proto.SubType[item.bluetoothType]}`)})`);
+        hostParts.push(
+          t('assignments.summary.bluetooth', {
+            type: t(`subType.${proto.SubType[item.bluetoothType]}`),
+          })
+        );
       } else if (item.bluetoothDevice != null) {
         hostParts.push(t('assignments.source.bluetoothDevice'));
       } else if (item.midiChannel != null) {
-        hostParts.push(`MIDI Ch ${item.midiChannel}`);
+        hostParts.push(t('assignments.summary.midiChannel', { channel: item.midiChannel }));
       }
     }
 
@@ -6940,10 +6984,10 @@ function SantrollerAssignmentList({
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>
-            <ActionIcon variant="subtle" onClick={copyAssignment} title="Copy">
+            <ActionIcon variant="subtle" onClick={copyAssignment} title={t('common.copy')}>
               <IconCopy size={18} />
             </ActionIcon>
-            <ActionIcon variant="subtle" color="red" onClick={open} title="Delete">
+            <ActionIcon variant="subtle" color="red" onClick={open} title={t('common.delete')}>
               <IconTrash size={18} />
             </ActionIcon>
           </Group>
@@ -6964,7 +7008,7 @@ function SantrollerAssignmentList({
           <Alert
             variant="light"
             color="red"
-            title="Missing Emulation"
+            title={t('assignments.missingEmulation')}
             icon={<IconExclamationCircle size={16} />}
             mb="xs"
           >
@@ -7363,6 +7407,12 @@ enum LegendMode {
   XboxOne = 2,
   Nintendo = 3,
   PlayStation = 4,
+}
+
+function readStoredLegendMode(): LegendMode {
+  const stored = localStorage.getItem('legendMode');
+  const mode = stored ? LegendMode[stored as keyof typeof LegendMode] : undefined;
+  return typeof mode === 'number' ? mode : LegendMode.Xbox360;
 }
 
 function BlankProfileWizard({
@@ -7828,11 +7878,7 @@ function BlankProfileWizard({
                 mode={
                   profile.opts?.faceButtonMappingMode ?? proto.FaceButtonMappingMode.LegendBased
                 }
-                legendMode={
-                  LegendMode[
-                    (localStorage.getItem('legendMode') ?? 'Xbox360') as keyof typeof LegendMode
-                  ] ?? LegendMode.Xbox360
-                }
+                legendMode={readStoredLegendMode()}
                 input={triggerInput ?? {}}
                 dispatch={(input) => setTriggerInput(input)}
               />
@@ -7876,9 +7922,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
   const cloneProfile = useConfigStore((state) => state.cloneProfile);
   const loadDefaults = useConfigStore((state) => state.loadDefaults);
   const setSyncMode = useConfigStore((state) => state.setSyncMode);
-  const [legendMode, setLegendMode] = useState<LegendMode>(
-    LegendMode[(localStorage.getItem('legendMode') ?? 'Xbox') as keyof typeof LegendMode]
-  );
+  const [legendMode, setLegendMode] = useState<LegendMode>(readStoredLegendMode);
   const deviceStatus = useConfigStore((state) => state.deviceStatus);
   const [defaultTarget, setDefaultTarget] = useState<DeviceStatus | ProfileSlot | undefined>(
     undefined
@@ -8067,7 +8111,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
       {!simpleMode && (
         <>
           <Group gap="xs" align="center">
-            <Title order={2}>Settings</Title>
+            <Title order={2}>{t('main.settings')}</Title>
             <ActionIcon
               color="blue"
               title={t('main.clone_profile')}
@@ -8373,7 +8417,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                   )}
                   {profile.assignments?.length === 0 && (
                     <>
-                      <Alert variant="light" color="red" title="Error" icon={errorIcon}>
+                      <Alert variant="light" color="red" title={t('common.error')} icon={errorIcon}>
                         {t('assignments.missing')}
                       </Alert>
                       <Space h="md" />
@@ -8694,7 +8738,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
       )}
 
       <Space h="md" />
-      <Title order={3}>Inputs</Title>
+      <Title order={3}>{t('inputs.title')}</Title>
       <Space h="md" />
       <Table stickyHeader stickyHeaderOffset={60} withRowBorders={false} layout="fixed">
         <Table.Thead>
@@ -8731,7 +8775,9 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                       open();
                     }}
                   >
-                    Load {t(`subType.${proto.SubType[profile.opts.deviceToEmulate]}`)} defaults
+                    {t('defaults_dialog.load_type', {
+                      type: t(`subType.${proto.SubType[profile.opts.deviceToEmulate]}`),
+                    })}
                   </Button>
                   {profileSlots.map((slot) => {
                     const deviceKind = slot.deviceKind === 'midi' ? 'midiSerial' : slot.deviceKind;

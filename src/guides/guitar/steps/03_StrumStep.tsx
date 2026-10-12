@@ -15,6 +15,7 @@ import {
 import { InputTestRow } from '@/guides/components/InputTestRow';
 import { StepWorkbench } from '@/guides/components/StepWorkbench';
 import { GuideStepProps } from '@/guides/types';
+import { IMAGE_ALT } from '../../wiringText';
 import { GUITAR_TARGETS } from '../guitarMappingUtils';
 
 export type StrumWiringMode = 'direct' | 'trace_cut';
@@ -92,7 +93,11 @@ export function StrumStep(props: GuideStepProps) {
         <Stack gap="md">
           <Text size="sm">{t('guides.direct-pico-guitar.steps.strum.intro')}</Text>
 
-          <Image src="/guides/guitar/wii-strum.jpg" radius="md" alt="Wii Strum PCB" />
+          <Image
+            src="/guides/guitar/wii-strum.jpg"
+            radius="md"
+            alt={t(`${IMAGE_ALT}.wiiStrumPcb`)}
+          />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.direct-pico-guitar.steps.strum.strumPcbCaption')}
           </Text>
@@ -105,7 +110,11 @@ export function StrumStep(props: GuideStepProps) {
             <Stack gap="xs">
               <Text size="sm">{t('guides.direct-pico-guitar.steps.strum.cutTraceDesc1')}</Text>
               <Text size="sm">{t('guides.direct-pico-guitar.steps.strum.cutTraceDesc2')}</Text>
-              <Image src="/guides/guitar/trace cuts.jpg" radius="sm" alt="Trace cuts on PCB" />
+              <Image
+                src="/guides/guitar/trace cuts.jpg"
+                radius="sm"
+                alt={t(`${IMAGE_ALT}.traceCuts`)}
+              />
               <Text size="xs" c="dimmed" ta="center">
                 {t('guides.direct-pico-guitar.steps.strum.cutTraceCaption')}
               </Text>

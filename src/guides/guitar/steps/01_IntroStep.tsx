@@ -18,6 +18,7 @@ import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { GuideList } from '@/guides/components/GuideList';
 import { StepWorkbench } from '@/guides/components/StepWorkbench';
 import { GuideStepProps } from '@/guides/types';
+import { IMAGE_ALT } from '../../wiringText';
 import {
   applyRecommendedPinout,
   getGuitarFamily,
@@ -72,7 +73,7 @@ export function IntroStep(props: GuideStepProps) {
 
       <Text size="sm">{t('guides.direct-pico-guitar.steps.intro.welcome')}</Text>
 
-      <Image src="/guides/guitar/direct.jpg" radius="md" alt="Finished guitar rewire" />
+      <Image src="/guides/guitar/direct.jpg" radius="md" alt={t(`${IMAGE_ALT}.guitarRewire`)} />
       <Text size="xs" c="dimmed" ta="center">
         {t('guides.direct-pico-guitar.steps.intro.directRewireCaption')}
       </Text>
@@ -146,7 +147,7 @@ export function IntroStep(props: GuideStepProps) {
         </Table.Thead>
         <Table.Tbody>
           {currentPinout.map((item) => (
-            <Table.Tr key={item.label}>
+            <Table.Tr key={item.labelKey}>
               <Table.Td>
                 <Group gap={6}>
                   <Badge
@@ -157,7 +158,7 @@ export function IntroStep(props: GuideStepProps) {
                     style={{ width: 10, height: 10 }}
                   />
                   <Text size="xs" fw={500}>
-                    {item.label}
+                    {t(`guides.direct-pico-guitar.steps.intro.pinoutLabels.${item.labelKey}`)}
                   </Text>
                 </Group>
               </Table.Td>

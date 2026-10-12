@@ -5,6 +5,7 @@ import {
   hasMidiPadMappings,
 } from '../bhdrums/bhDrumSetup';
 import { findDeviceStatus } from '../guideConfig';
+import { gpWithPin, labelWithPin } from '../wiringText';
 
 // The cable from the drum pads carries the kit's SPI bus. The Pico is the SPI master on SPI0:
 // SCK GP2 (pin 4), MOSI / TX GP3 (pin 5), MISO / RX GP4 (pin 6), with chip select as a plain GPIO.
@@ -14,18 +15,19 @@ export const WT_CS_PIN = 5;
 export interface WtConnectorPin {
   // The pad's label on the original brain's silkscreen
   label: string;
-  pico: string;
+  // Rendered at display time so the "Pin" wording follows the current language
+  pico: () => string;
   type: string;
 }
 
 // In the order the original brain's connector lists them
 export const WT_CONNECTOR: WtConnectorPin[] = [
-  { label: 'CS', pico: `GP${WT_CS_PIN} (Pin 7)`, type: 'typeCs' },
-  { label: '+3V3', pico: '3V3(OUT) (Pin 36)', type: 'typePower' },
-  { label: 'MOSI', pico: `GP${WT_SPI.mosi} (Pin 5)`, type: 'typeMosi' },
-  { label: '0V', pico: 'GND (Pin 38)', type: 'typeGround' },
-  { label: 'MISO', pico: `GP${WT_SPI.miso} (Pin 6)`, type: 'typeMiso' },
-  { label: 'CLK', pico: `GP${WT_SPI.sck} (Pin 4)`, type: 'typeClock' },
+  { label: 'CS', pico: () => gpWithPin(WT_CS_PIN, 7), type: 'typeCs' },
+  { label: '+3V3', pico: () => labelWithPin('3V3(OUT)', 36), type: 'typePower' },
+  { label: 'MOSI', pico: () => gpWithPin(WT_SPI.mosi, 5), type: 'typeMosi' },
+  { label: '0V', pico: () => labelWithPin('GND', 38), type: 'typeGround' },
+  { label: 'MISO', pico: () => gpWithPin(WT_SPI.miso, 6), type: 'typeMiso' },
+  { label: 'CLK', pico: () => gpWithPin(WT_SPI.sck, 4), type: 'typeClock' },
 ];
 
 export function findWtDrum(state: ConfigState) {

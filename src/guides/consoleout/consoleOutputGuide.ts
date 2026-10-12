@@ -12,7 +12,6 @@ export const CONSOLE_OUTPUT_GUIDE: GuideDefinition = {
   description:
     'Wire a Wii extension plug or a PS2 controller plug to your Raspberry Pi Pico so it acts as a Wii extension or a PS2 controller on the real console, optionally with a USB host port so a USB controller can be played on the old console.',
   category: 'adapters',
-  difficulty: 'intermediate',
   estimatedTime: '30 - 45 mins',
   badge: 'Wii / PS2',
   supplies: [

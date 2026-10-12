@@ -8,7 +8,6 @@ export const DRUM_KIT_GUIDE: GuideDefinition = {
   description:
     'Build a custom velocity-sensitive electronic drum kit or rewire an existing Rock Band or Guitar Hero kit to a Raspberry Pi Pico.',
   category: 'drums',
-  difficulty: 'advanced',
   estimatedTime: '1 - 2 hours',
   badge: 'Velocity Sensing',
   supplies: [

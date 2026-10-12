@@ -7,6 +7,7 @@ import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
 import { findDeviceStatus } from '../guideConfig';
 import { GuideStepProps } from '../types';
+import { gpWithPin, IMAGE_ALT, pinWithLabel } from '../wiringText';
 import { ensureUsbHost, profileHasUsbSlot, usbHostPins } from './usbHostUtils';
 
 // Step 1: Supplies & Intro
@@ -17,7 +18,7 @@ export function UsbHostIntroStep(props: GuideStepProps) {
     <Stack gap="md">
       <Text size="sm">{t('guides.usb-host.steps.usb-intro.intro')}</Text>
 
-      <Image src="/guides/usb/usb.svg" radius="md" alt="USB Host cable wiring" />
+      <Image src="/guides/usb/usb.svg" radius="md" alt={t(`${IMAGE_ALT}.usbHostCable`)} />
       <Text size="xs" c="dimmed" ta="center">
         {t('guides.usb-host.steps.usb-intro.cableCaption')}
       </Text>
@@ -57,7 +58,7 @@ export function UsbHostIntroStep(props: GuideStepProps) {
                   </Badge>
                 </Table.Td>
                 <Table.Td>VBUS (5V)</Table.Td>
-                <Table.Td>Pin 40 (VBUS)</Table.Td>
+                <Table.Td>{pinWithLabel(40, 'VBUS')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
@@ -66,7 +67,7 @@ export function UsbHostIntroStep(props: GuideStepProps) {
                   </Badge>
                 </Table.Td>
                 <Table.Td>GND</Table.Td>
-                <Table.Td>Pin 38 (GND)</Table.Td>
+                <Table.Td>{pinWithLabel(38, 'GND')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
@@ -75,7 +76,7 @@ export function UsbHostIntroStep(props: GuideStepProps) {
                   </Badge>
                 </Table.Td>
                 <Table.Td>{t('guides.usb-host.steps.usb-intro.signalDPlus')}</Table.Td>
-                <Table.Td>GP2 (Pin 4)</Table.Td>
+                <Table.Td>{gpWithPin(2, 4)}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
@@ -84,7 +85,7 @@ export function UsbHostIntroStep(props: GuideStepProps) {
                   </Badge>
                 </Table.Td>
                 <Table.Td>{t('guides.usb-host.steps.usb-intro.signalDMinus')}</Table.Td>
-                <Table.Td>GP3 (Pin 5)</Table.Td>
+                <Table.Td>{gpWithPin(3, 5)}</Table.Td>
               </Table.Tr>
             </Table.Tbody>
           </Table>

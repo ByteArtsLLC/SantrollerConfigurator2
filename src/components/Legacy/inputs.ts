@@ -1,6 +1,7 @@
 import { proto } from '@/components/SettingsContext/config';
 import { ConvertedInput, INT16_OFFSET, LegacyImportContext, setI2c } from './context';
 import { legacy } from './legacy';
+import { legacyWarning } from './warnings';
 
 export type LegacyInputKind = NonNullable<legacy.SerializedInput['subtype']>;
 export type InputConverter = (
@@ -18,9 +19,7 @@ const PIN_MODES: Partial<Record<legacy.DevicePinMode, proto.PinMode>> = {
 
 // The secondary Pico ("peripheral") that inputs marked as peripheral are read from
 export function peripheralDevice(ctx: LegacyImportContext) {
-  ctx.warn(
-    'Inputs on the secondary Pico were imported, but it needs to be flashed with the new peripheral firmware.'
-  );
+  ctx.warn('legacyImport.peripheralFirmware');
   return ctx.addDevice('peripheral', 'main', (device) =>
     setI2c(device.i2c, ctx.old.peripheralSda, ctx.old.peripheralScl)
   );
@@ -145,9 +144,7 @@ function macro(ctx: LegacyImportContext, { serializedMacroInput: m }: legacy.ISe
     return undefined;
   }
   if (children.some((c) => c!.mapping?.trigger != null || c!.analog)) {
-    ctx.warn(
-      'A macro (two inputs at once) used an analog input, which the new shortcut input only reads digitally.'
-    );
+    ctx.warn('legacyImport.macroAnalog');
   }
   return {
     input: { shortcut: { inputs: children.map((c) => c!.input) } },
@@ -167,9 +164,9 @@ function multiplexer(
   const slow =
     type === T.MultiplexerType_EightChannelSlow || type === T.MultiplexerType_SixteenChannelSlow;
   if (m!.peripheral) {
-    ctx.warn(
-      'A multiplexer on the secondary Pico was imported onto the main Pico, so check its pins.'
-    );
+    ctx.warn('legacyImport.peripheralMoved', {
+      device: legacyWarning('legacyImport.peripheralDevices.multiplexer'),
+    });
   }
   const deviceid = ctx.addDevice(
     'multiplexer',
@@ -220,7 +217,9 @@ export function mpr121Device(ctx: LegacyImportContext) {
 
 function mpr121(ctx: LegacyImportContext, { serializedMpr121Input: m }: legacy.ISerializedInput) {
   if (m!.peripheral) {
-    ctx.warn('An MPR121 on the secondary Pico was imported onto the main Pico, so check its pins.');
+    ctx.warn('legacyImport.peripheralMoved', {
+      device: legacyWarning('legacyImport.peripheralDevices.mpr121'),
+    });
   }
   const pin = m!.input ?? 0;
   // The old configurator used the first pins for touch and the rest as digital inputs
@@ -241,9 +240,9 @@ function mpr121(ctx: LegacyImportContext, { serializedMpr121Input: m }: legacy.I
 
 function encoder(ctx: LegacyImportContext, { serializedEncoderInput: e }: legacy.ISerializedInput) {
   if (e!.peripheral) {
-    ctx.warn(
-      'An encoder on the secondary Pico was imported onto the main Pico, so check its pins.'
-    );
+    ctx.warn('legacyImport.peripheralMoved', {
+      device: legacyWarning('legacyImport.peripheralDevices.encoder'),
+    });
   }
   const deviceid = ctx.addDevice('encoder', `${e!.pin}`, (dev) => {
     dev.dataPin = e!.pin ?? -1;
@@ -322,9 +321,7 @@ export function convertInput(
   }
   const converter = CORE_INPUTS[kind] ?? familyInputs[kind];
   if (!converter) {
-    ctx.warn(
-      `Inputs of type ${kind.replace(/^serialized/, '')} can't be imported yet, so they were skipped.`
-    );
+    ctx.warn('legacyImport.inputTypeUnsupported', { type: kind.replace(/^serialized/, '') });
     return undefined;
   }
   return converter(ctx, input);

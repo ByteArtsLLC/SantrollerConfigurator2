@@ -6,6 +6,7 @@ import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { InputTestRow } from '@/guides/components/InputTestRow';
 import { StepWorkbench } from '@/guides/components/StepWorkbench';
 import { GuideStepProps } from '@/guides/types';
+import { IMAGE_ALT } from '../../wiringText';
 import { getGuitarFamily, GUITAR_TARGETS } from '../guitarMappingUtils';
 
 export function WhammyStep(props: GuideStepProps) {
@@ -36,7 +37,7 @@ export function WhammyStep(props: GuideStepProps) {
           <Image
             src="/guides/guitar/2wirewhammy.jpg"
             radius="sm"
-            alt="2-wire whammy modification"
+            alt={t(`${IMAGE_ALT}.whammy2Wire`)}
           />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.direct-pico-guitar.steps.whammy.warning2WireCaption')}

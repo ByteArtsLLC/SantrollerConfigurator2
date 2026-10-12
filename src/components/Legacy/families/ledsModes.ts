@@ -154,7 +154,7 @@ interface LedTargets {
 // The LEDs on the secondary Pico can't be driven by the new firmware
 function warnPeripheralLeds(ctx: LegacyImportContext, indices: Uint8Array | null | undefined) {
   if (indices?.length && (ctx.old.ledTypePeripheral ?? LT.LedType_None) !== LT.LedType_None) {
-    ctx.warn("LEDs on the secondary Pico were skipped, they aren't supported yet.");
+    ctx.warn('legacyImport.peripheralLedsSkipped');
   }
 }
 
@@ -222,9 +222,7 @@ function inputRange(
 ): [number, number] | undefined {
   if (converted.mapping?.trigger != null || (converted.analog && !AXIS_KINDS.has(kind))) {
     // LEDs read the raw input, so they can't switch at the threshold an analog button used
-    ctx.warn(
-      'LEDs on analog inputs used as buttons were skipped, as the new LEDs would fade instead of switching on and off.'
-    );
+    ctx.warn('legacyImport.analogLedsSkipped');
     return undefined;
   }
   if (!converted.analog || converted.digitalToAnalog) {
@@ -269,7 +267,7 @@ function convertBindingLeds(
   }
   warnPeripheralLeds(ctx, fields.ledIndexPeripheral);
   if (fields.outputEnabled && fields.outputPeripheral) {
-    ctx.warn("Outputs on the secondary Pico were skipped, they aren't supported yet.");
+    ctx.warn('legacyImport.peripheralOutputsSkipped');
   }
   if (!drivesLeds(ctx, hw, fields)) {
     return;
@@ -372,11 +370,9 @@ const CONSOLE_MODES: Partial<Record<legacy.EmulationModeType, proto.ConsoleMode>
 
 function warnUnsupportedMode(ctx: LegacyImportContext, type: legacy.EmulationModeType) {
   if (type === EM.EmulationModeType_Ps2OnPs3) {
-    ctx.warn("PS2 on PS3 mode isn't supported anymore, so bindings and LEDs for it were skipped.");
+    ctx.warn('legacyImport.ps2OnPs3Unsupported');
   } else {
-    ctx.warn(
-      "Fortnite Festival modes aren't supported anymore, so bindings and LEDs for them were skipped."
-    );
+    ctx.warn('legacyImport.fortniteModesUnsupported');
   }
 }
 
@@ -490,11 +486,9 @@ function convertCommandLed(
   const pin = led.pin ?? -1;
   if (led.outputEnabled && pin >= 0) {
     if (led.peripheral) {
-      ctx.warn("Outputs on the secondary Pico were skipped, they aren't supported yet.");
+      ctx.warn('legacyImport.peripheralOutputsSkipped');
     } else if (led.inverted) {
-      ctx.warn(
-        "Inverted outputs for LED bindings were skipped, as they can't be inverted anymore."
-      );
+      ctx.warn('legacyImport.invertedOutputsSkipped');
     } else {
       // Star power and euphoria dimmed their output with PWM
       const analog =
@@ -591,7 +585,7 @@ export function convertLedsModesSettings(ctx: LegacyImportContext): LedsModesSet
   // LEDs
   const hw = ledHardware(ctx);
   if ((old.ledTypePeripheral ?? LT.LedType_None) !== LT.LedType_None) {
-    ctx.warn("LEDs on the secondary Pico were skipped, they aren't supported yet.");
+    ctx.warn('legacyImport.peripheralLedsSkipped');
   }
   const claimed = new Set<number>();
   for (const binding of old.bindings) {
@@ -636,9 +630,7 @@ export function convertLedsModesSettings(ctx: LegacyImportContext): LedsModesSet
   ];
 
   if ((old.pollRate ?? 0) > 0 && !old.queueBasedInputs) {
-    ctx.warn(
-      "The poll rate limit wasn't imported, the new firmware always polls as fast as it can."
-    );
+    ctx.warn('legacyImport.pollRate');
   }
 
   // Sleep and LED timeouts
@@ -649,7 +641,7 @@ export function convertLedsModesSettings(ctx: LegacyImportContext): LedsModesSet
       inactivity.wakePin = old.sleepPin;
       inactivity.wakeActiveHigh = false;
     } else {
-      ctx.warn('Sleep was skipped as it had no wake up pin, set it up again with one.');
+      ctx.warn('legacyImport.sleepNoWakePin');
     }
   }
   if ((old.ledTimer ?? 0) > 0) {

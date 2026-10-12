@@ -2,6 +2,7 @@ import { createDeviceConfig, DeviceKind } from '@/components/Devices/deviceRegis
 import { proto } from '@/components/SettingsContext/config';
 import { I2CGroups, SPIGroups, UARTGroups } from '@/devices/pico/pins';
 import { legacy } from './legacy';
+import { LegacyWarning, LegacyWarningParam } from './warnings';
 
 export const INT16_OFFSET = 32768;
 
@@ -94,7 +95,7 @@ export class LegacyImportContext {
   readonly assignments: proto.IProfileAssignmentInfo[] = [];
   readonly mappings: proto.IMapping[] = [];
   readonly leds: proto.ILed[] = [];
-  readonly warnings: string[] = [];
+  readonly warnings: LegacyWarning[] = [];
   combined?: CombinedSource;
   // The device each binding inside a combined output read from, recorded as they are converted
   readonly combinedSources = new WeakMap<legacy.ISerializedOutput, CombinedSource>();
@@ -123,9 +124,12 @@ export class LegacyImportContext {
     readonly subType: proto.SubType
   ) {}
 
-  warn(message: string) {
-    if (!this.warnings.includes(message)) {
-      this.warnings.push(message);
+  // Adds a warning (a translation key and its params) unless the same one was already added
+  warn(key: string, params?: Record<string, LegacyWarningParam>) {
+    const warning: LegacyWarning = params ? { key, params } : { key };
+    const json = JSON.stringify(warning);
+    if (!this.warnings.some((w) => JSON.stringify(w) === json)) {
+      this.warnings.push(warning);
     }
   }
 

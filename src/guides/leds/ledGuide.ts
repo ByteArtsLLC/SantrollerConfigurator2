@@ -8,7 +8,6 @@ export const RGB_LED_GUIDE: GuideDefinition = {
   description:
     'Add addressable RGB LEDs to your guitar or drum kit that light up on button presses and sync with Star Power in games like YARG.',
   category: 'mods',
-  difficulty: 'intermediate',
   estimatedTime: '30 - 45 mins',
   badge: 'RGB Lighting',
   supplies: [

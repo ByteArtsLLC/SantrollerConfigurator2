@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Alert, Button, FileButton, Group, List, Progress, Space } from '@mantine/core';
 import { Layout } from '@/components/Layout/Layout';
+import { translateLegacyWarning } from '@/components/Legacy/warnings';
 import { BluetoothConfigDevice } from '@/components/SettingsContext/BluetoothConfigDevice';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 
@@ -95,9 +96,11 @@ export function ConnectPage() {
               onClose={clearLegacyImportWarnings}
             >
               <List size="sm">
-                {legacyImportWarnings.map((warning) => (
-                  <List.Item key={warning}>{warning}</List.Item>
-                ))}
+                {legacyImportWarnings
+                  .map((warning) => translateLegacyWarning(t, warning))
+                  .map((warning) => (
+                    <List.Item key={warning}>{warning}</List.Item>
+                  ))}
               </List>
             </Alert>
           </>

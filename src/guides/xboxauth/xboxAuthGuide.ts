@@ -8,7 +8,6 @@ export const XBOX_AUTH_GUIDE: GuideDefinition = {
   description:
     "Xbox One and Xbox Series consoles only accept genuine controllers. Let Santroller pass the console's auth requests to an official controller on the USB Host port, or to an auth chip taken from an Xbox One controller and wired over I2C.",
   category: 'adapters',
-  difficulty: 'intermediate',
   estimatedTime: '15 - 45 mins',
   badge: 'Console Auth',
   supplies: [

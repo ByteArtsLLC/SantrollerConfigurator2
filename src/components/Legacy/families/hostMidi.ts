@@ -4,6 +4,7 @@ import { ConvertedInput, enabledChildren, LegacyImportContext, setUart } from '.
 import { registerInputConverters } from '../inputs';
 import { legacy } from '../legacy';
 import { addButton, convertOutput, registerOutputConverters } from '../outputs';
+import { legacyWarning, LegacyWarning } from '../warnings';
 import { legacyDrumMidiSlots, legacyDrumNotes } from './instrumentPeripherals';
 
 const ST = proto.SubType;
@@ -266,8 +267,8 @@ function guitarAxis(
 export function hostOutput(
   type: legacy.UsbHostInputType,
   host: proto.SubType
-): HostOutput | string {
-  const skipped = "A USB host or Bluetooth binding that the new firmware can't read was skipped.";
+): HostOutput | LegacyWarning {
+  const skipped = legacyWarning('legacyImport.hostBindingSkipped');
   const button = (output: proto.IOutput): HostOutput => ({ output, analog: false, isUint: true });
   if (type in GAMEPAD_BUTTONS) {
     return button({ gamepadButton: GAMEPAD_BUTTONS[type] });
@@ -336,9 +337,9 @@ export function hostOutput(
     case UT.UsbHostInputType_YellowCymbal:
     case UT.UsbHostInputType_BlueCymbal:
     case UT.UsbHostInputType_GreenCymbal:
-      return 'Drum pad bindings from a USB host or Bluetooth drum kit were skipped, set them up again.';
+      return legacyWarning('legacyImport.hostDrumPadsSkipped');
     case UT.UsbHostInputType_Slider:
-      return 'A USB host GH5 slider binding was skipped, the new firmware reads the slider as the tap frets.';
+      return legacyWarning('legacyImport.hostSliderSkipped');
     default:
       return skipped;
   }
@@ -357,10 +358,9 @@ function usbHostDevice(ctx: LegacyImportContext) {
 function usbSlot(ctx: LegacyImportContext, kind: 'controller' | 'keyboard' | 'mouse') {
   usbHostDevice(ctx);
   if (kind === 'controller') {
-    const name = proto.SubType[hostType(ctx)].replace(/([a-z])([A-Z])/g, '$1 $2');
-    ctx.warn(
-      `USB host bindings were imported for a ${name} controller, add another USB host slot for other controllers.`
-    );
+    ctx.warn('legacyImport.usbHostControllerType', {
+      controller: legacyWarning(`subType.${proto.SubType[hostType(ctx)]}`),
+    });
   }
   return ctx.addSlot('usbHost', kind, {
     usbType: kind === 'controller' ? hostType(ctx) : ST.KeyboardMouse,
@@ -369,7 +369,7 @@ function usbSlot(ctx: LegacyImportContext, kind: 'controller' | 'keyboard' | 'mo
 
 function btSlot(ctx: LegacyImportContext) {
   ctx.addDevice('bt', 'main');
-  ctx.warn("The Bluetooth controller couldn't be imported, pair it again.");
+  ctx.warn('legacyImport.bluetoothPairAgain');
   return ctx.addSlot('bt', 'main', { bluetoothType: hostType(ctx) });
 }
 
@@ -398,7 +398,7 @@ function hostInput(
     type === UT.UsbHostInputType_MouseAxis
   ) {
     if (bluetooth) {
-      ctx.warn('Bluetooth keyboard and mouse bindings were skipped.');
+      ctx.warn('legacyImport.bluetoothKeyboardMouseSkipped');
       return undefined;
     }
     // Keyboards and mice on the USB host are read like controllers, with the key or mouse
@@ -406,7 +406,7 @@ function hostInput(
     if (type === UT.UsbHostInputType_KeyboardInput) {
       const button = keyboardOutput(h.key ?? 44);
       if (!button) {
-        ctx.warn("A USB host keyboard binding for a key the new firmware can't read was skipped.");
+        ctx.warn('legacyImport.usbHostKeySkipped');
         return undefined;
       }
       return {
@@ -428,8 +428,8 @@ function hostInput(
     return { input: { usbAxis: { deviceid, axis: { mouseAxis } } }, analog: true, isUint: false };
   }
   const target = hostOutput(type, hostType(ctx));
-  if (typeof target === 'string') {
-    ctx.warn(target);
+  if ('key' in target) {
+    ctx.warn(target.key, target.params);
     return undefined;
   }
   const deviceid = bluetooth ? btSlot(ctx) : usbSlot(ctx, 'controller');
@@ -446,7 +446,7 @@ function hostInput(
   if (target.rescaled) {
     // The old firmware gave the raw fret numbers and velocities, so the old calibration doesn't
     // fit the new full range values. Marking it digital makes the axis use the full range.
-    ctx.warn('USB host pro guitar fret bindings were imported with the default calibration.');
+    ctx.warn('legacyImport.proGuitarFretsCalibration');
     return { input, analog: false, isUint: true };
   }
   return { input, analog: target.analog, isUint: target.isUint };
@@ -475,9 +475,7 @@ function genericMidiSlot(ctx: LegacyImportContext, drumSlots: number[]) {
     ctx.addDevice('midiSerial', 'main', (dev) => setUart(dev.uart, -1, old.midiSerialPin ?? 1));
   }
   const channel = midiChannel(ctx);
-  ctx.warn(
-    `MIDI bindings now only listen to MIDI channel ${channel}, change the MIDI slot's channel if your MIDI device uses another one.`
-  );
+  ctx.warn('legacyImport.midiChannel', { channel });
   return ctx.addSlot('midi', 'main', { midiChannel: channel });
 }
 
@@ -528,7 +526,7 @@ function midiInput(
     // The old firmware squeezed the pitch wheel into a signed 16 bit value, so it wrapped around
     // and rested at the very bottom. Its calibration can't carry over, so this is treated like a
     // digital input, which gets the usual full range calibration.
-    ctx.warn('Pitch bend bindings were given the default calibration, so check them.');
+    ctx.warn('legacyImport.pitchBendCalibration');
     return { input, analog: false, isUint: true };
   }
   if (type !== legacy.MidiType.MidiType_Note) {
@@ -562,16 +560,14 @@ export function convertHostMidiSettings(ctx: LegacyImportContext) {
     old.mouseMovementType === legacy.MouseMovementType.MouseMovementType_Absolute &&
     bindings.includes('serializedMouseAxis')
   ) {
-    ctx.warn(
-      'Mouse movement was set to absolute, the new firmware only moves the mouse relatively.'
-    );
+    ctx.warn('legacyImport.absoluteMouse');
   }
   if (
     (old.rolloverMode ?? legacy.RolloverMode.RolloverMode_Nkro) ===
       legacy.RolloverMode.RolloverMode_Nkro &&
     bindings.filter((b) => b === 'serializedKeyboardButton').length > 10
   ) {
-    ctx.warn('The new firmware sends at most 10 keyboard keys at once.');
+    ctx.warn('legacyImport.keyboardRollover');
   }
 }
 
@@ -609,7 +605,7 @@ registerOutputConverters({
   serializedKeyboardButton: (ctx, { serializedKeyboardButton: o }) => {
     const output = keyboardOutput(o!.type ?? 0);
     if (!output) {
-      ctx.warn("A keyboard binding for a key the new firmware can't send was skipped.");
+      ctx.warn('legacyImport.keyboardKeySkipped');
       return;
     }
     addButton(ctx, o!.input, output, o!.debounce, { enabled: o!.enabled });

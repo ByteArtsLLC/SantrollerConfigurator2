@@ -26,6 +26,7 @@ import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
 import { assignDeviceToProfile, findDeviceStatus } from '../guideConfig';
 import { GuideStepProps } from '../types';
+import { gpWithPin, IMAGE_ALT, pinWithLabel, signalWithName } from '../wiringText';
 import { ensureDeviceToEmulate, LiveAxis, LiveButtons, LiveInput } from './adapterLiveStatus';
 
 const GUITAR_TYPES = [proto.SubType.GuitarHeroGuitar, proto.SubType.RockBandGuitar];
@@ -58,7 +59,7 @@ export function WiiIntroStep(props: GuideStepProps) {
     <Stack gap="md">
       <Text size="sm">{t('guides.wii-adapter.steps.wii-intro.intro')}</Text>
 
-      <Image src="/guides/wii/adaptor.jpg" radius="md" alt="Wii Guitar Adapter" />
+      <Image src="/guides/wii/adaptor.jpg" radius="md" alt={t(`${IMAGE_ALT}.wiiAdapter`)} />
       <Text size="xs" c="dimmed" ta="center">
         {t('guides.wii-adapter.steps.wii-intro.adapterCaption')}
       </Text>
@@ -104,7 +105,7 @@ export function WiiIntroStep(props: GuideStepProps) {
                     3.3V (VCC)
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 36 (3V3 OUT)</Table.Td>
+                <Table.Td>{pinWithLabel(36, '3V3 OUT')}</Table.Td>
                 <Table.Td>{t('guides.wii-adapter.steps.wii-intro.fnPower')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
@@ -113,25 +114,25 @@ export function WiiIntroStep(props: GuideStepProps) {
                     GND
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 38 (GND)</Table.Td>
+                <Table.Td>{pinWithLabel(38, 'GND')}</Table.Td>
                 <Table.Td>{t('guides.wii-adapter.steps.wii-intro.fnGround')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
                   <Badge color="blue" size="xs">
-                    SDA (Data)
+                    {signalWithName('SDA', 'data')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>GP18 (Pin 24)</Table.Td>
+                <Table.Td>{gpWithPin(18, 24)}</Table.Td>
                 <Table.Td>{t('guides.wii-adapter.steps.wii-intro.fnData')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
                   <Badge color="yellow" size="xs">
-                    SCL (Clock)
+                    {signalWithName('SCL', 'clock')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>GP19 (Pin 25)</Table.Td>
+                <Table.Td>{gpWithPin(19, 25)}</Table.Td>
                 <Table.Td>{t('guides.wii-adapter.steps.wii-intro.fnClock')}</Table.Td>
               </Table.Tr>
             </Table.Tbody>
@@ -174,13 +175,21 @@ export function WiiWiringStep(props: GuideStepProps) {
 
       <Group grow align="start">
         <Stack gap={4}>
-          <Image src="/guides/wii/wii-ext.jpg" radius="md" alt="Wii extension socket pin numbers" />
+          <Image
+            src="/guides/wii/wii-ext.jpg"
+            radius="md"
+            alt={t(`${IMAGE_ALT}.wiiExtSocketPins`)}
+          />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.wii-adapter.steps.wii-wiring.socketCaption')}
           </Text>
         </Stack>
         <Stack gap={4}>
-          <Image src="/guides/wii/wii-ext-pinout.png" radius="md" alt="Wii extension plug pinout" />
+          <Image
+            src="/guides/wii/wii-ext-pinout.png"
+            radius="md"
+            alt={t(`${IMAGE_ALT}.wiiExtPlugPinout`)}
+          />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.wii-adapter.steps.wii-wiring.plugCaption')}
           </Text>

@@ -1454,7 +1454,6 @@ export function getPs2Defaults(
   const isNegCon = cntType === proto.PS2ControllerType.PS2ControllerTypeNegCon;
   const isJogCon = cntType === proto.PS2ControllerType.PS2ControllerTypeJogCon;
   const isGunCon = cntType === proto.PS2ControllerType.PS2ControllerTypeGunCon;
-  const isDualshock2 = cntType === proto.PS2ControllerType.PS2ControllerTypeDualshock2;
   const isDigital = cntType === proto.PS2ControllerType.PS2ControllerTypeDigital;
   const isPopn = cntType === proto.PS2ControllerType.PS2ControllerTypePopNMusic;
   const isGuitarFreaks = cntType === proto.PS2ControllerType.PS2ControllerTypeGuitarFreaks;
@@ -2102,85 +2101,6 @@ export function getPs2Defaults(
     }),
   ];
 
-  if (isDualshock2) {
-    const pressureAxes: proto.IMapping[] = [
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2Cross,
-        deviceId,
-        { gamepadButton: proto.GamepadButtonType.Gamepad_A },
-        0
-      ),
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2Circle,
-        deviceId,
-        { gamepadButton: proto.GamepadButtonType.Gamepad_B },
-        0
-      ),
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2Square,
-        deviceId,
-        { gamepadButton: proto.GamepadButtonType.Gamepad_X },
-        0
-      ),
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2Triangle,
-        deviceId,
-        { gamepadButton: proto.GamepadButtonType.Gamepad_Y },
-        0
-      ),
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2UpButton,
-        deviceId,
-        { gamepadButton: proto.GamepadButtonType.Gamepad_DpadUp },
-        0
-      ),
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2DownButton,
-        deviceId,
-        { gamepadButton: proto.GamepadButtonType.Gamepad_DpadDown },
-        0
-      ),
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2LeftButton,
-        deviceId,
-        { gamepadButton: proto.GamepadButtonType.Gamepad_DpadLeft },
-        0
-      ),
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2RightButton,
-        deviceId,
-        { gamepadButton: proto.GamepadButtonType.Gamepad_DpadRight },
-        0
-      ),
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2L1,
-        deviceId,
-        { gamepadButton: proto.GamepadButtonType.Gamepad_LeftShoulder },
-        0
-      ),
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2R1,
-        deviceId,
-        { gamepadButton: proto.GamepadButtonType.Gamepad_RightShoulder },
-        0
-      ),
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2L2,
-        deviceId,
-        { gamepadAxis: proto.GamepadAxisType.Gamepad_LeftTrigger },
-        0
-      ),
-      ps2Axis(
-        proto.PS2AxisType.PS2AxisDualshock2R2,
-        deviceId,
-        { gamepadAxis: proto.GamepadAxisType.Gamepad_RightTrigger },
-        0
-      ),
-    ];
-    return [...sticks, ...standardButtons, ...pressureAxes];
-  }
-
-  // Standard PS2 DualShock
   return [...sticks, ...standardButtons];
 }
 

@@ -32,7 +32,7 @@ function ConnectorTable({ withType }: { withType?: boolean }) {
         {WT_CONNECTOR.map((pin) => (
           <Table.Tr key={pin.label}>
             <Table.Td>{pin.label}</Table.Td>
-            <Table.Td>{pin.pico}</Table.Td>
+            <Table.Td>{pin.pico()}</Table.Td>
             {withType && <Table.Td>{t(`${P}.wt-wiring.${pin.type}`)}</Table.Td>}
           </Table.Tr>
         ))}

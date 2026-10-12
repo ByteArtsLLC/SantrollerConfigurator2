@@ -14,7 +14,6 @@ export const WIRELESS_GUIDE: GuideDefinition = {
   description:
     'Run your controller from a single-cell LiPo battery and pair it with a PC or phone over Bluetooth, with battery level reporting and sleep when idle. USB keeps working too.',
   category: 'mods',
-  difficulty: 'intermediate',
   estimatedTime: '45 - 60 mins',
   badge: 'Bluetooth',
   supplies: [

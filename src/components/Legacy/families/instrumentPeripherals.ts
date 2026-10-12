@@ -19,6 +19,7 @@ import {
   registerOutputConverters,
   registerTapBarConverter,
 } from '../outputs';
+import { legacyWarning } from '../warnings';
 
 const ST = proto.SubType;
 const GH5 = legacy.Gh5NeckInputType;
@@ -31,10 +32,12 @@ const LIB = legacy.InstrumentButtonType;
 function warnPeripheral(
   ctx: LegacyImportContext,
   peripheral: boolean | null | undefined,
-  name: string
+  device: string
 ) {
   if (peripheral) {
-    ctx.warn(`${name} on the secondary Pico was imported onto the main Pico, so check its pins.`);
+    ctx.warn('legacyImport.peripheralMoved', {
+      device: legacyWarning(`legacyImport.peripheralDevices.${device}`),
+    });
   }
 }
 
@@ -44,7 +47,7 @@ function gh5Device(
   scl?: number | null,
   peripheral?: boolean | null
 ) {
-  warnPeripheral(ctx, peripheral, 'A GH5 neck');
+  warnPeripheral(ctx, peripheral, 'gh5Neck');
   return ctx.addDevice('gh5Neck', `${sda},${scl}`, (dev) => setI2c(dev.i2c, sda, scl));
 }
 
@@ -55,7 +58,7 @@ function cloneDevice(
   scl?: number | null,
   peripheral?: boolean | null
 ) {
-  warnPeripheral(ctx, peripheral, 'A GH5 clone neck');
+  warnPeripheral(ctx, peripheral, 'gh5CloneNeck');
   return ctx.addDevice('crazyGuitarNeck', `${sda},${scl}`, (dev) => setI2c(dev.i2c, sda, scl));
 }
 
@@ -65,7 +68,7 @@ function crkdDevice(
   rx?: number | null,
   peripheral?: boolean | null
 ) {
-  warnPeripheral(ctx, peripheral, 'A CRKD neck');
+  warnPeripheral(ctx, peripheral, 'crkdNeck');
   return ctx.addDevice('crkdNeck', `${tx},${rx}`, (dev) => {
     setUart(dev.uart, tx, rx);
     dev.uart!.baudrate = 460800;
@@ -80,9 +83,9 @@ function djDevice(
   scl?: number | null,
   peripheral?: boolean | null
 ) {
-  warnPeripheral(ctx, peripheral, 'A DJ Hero turntable');
+  warnPeripheral(ctx, peripheral, 'djTurntable');
   if (ctx.old.djSmooth) {
-    ctx.warn("Turntable smoothing was skipped, the new firmware doesn't smooth the platters.");
+    ctx.warn('legacyImport.turntableSmoothing');
   }
   return ctx.addDevice('djhTurntable', `${sda},${scl},${left ? 'left' : 'right'}`, (dev) => {
     setI2c(dev.i2c, sda, scl);
@@ -101,7 +104,7 @@ interface DjSource extends CombinedSource {
 
 function combinedDevice(ctx: LegacyImportContext, kind: string) {
   if (ctx.combined?.kind !== kind) {
-    ctx.warn('A combined input outside of its device was skipped.');
+    ctx.warn('legacyImport.combinedOutsideDevice');
     return undefined;
   }
   return ctx.combined;
@@ -114,7 +117,7 @@ function combinedDevice(ctx: LegacyImportContext, kind: string) {
 const button = (input: proto.IInput): ConvertedInput => ({ input, analog: false, isUint: true });
 
 function warnTapBar(ctx: LegacyImportContext) {
-  ctx.warn('A tap bar binding was skipped, the tap bar can now only be bound as tap frets.');
+  ctx.warn('legacyImport.tapBarSkipped');
 }
 
 // The old neck inputs are numbered like the new ones, but start from 0
@@ -203,7 +206,7 @@ function djInput(
 }
 
 function warnWorldTourNeck(ctx: LegacyImportContext) {
-  ctx.warn("The World Tour tap bar was skipped, the new firmware doesn't support it.");
+  ctx.warn('legacyImport.worldTourSkipped');
 }
 
 registerInputConverters({
@@ -369,7 +372,7 @@ export function convertTapBarBinding(
   inputs.forEach((input, i) => {
     const out = sliderOutput(ctx, i);
     if (!out) {
-      ctx.warn('A tap bar slider binding was skipped, the emulated controller has no slider.');
+      ctx.warn('legacyImport.sliderNoSlider');
       return;
     }
     const converted = input && convertInput(ctx, input);

@@ -32,6 +32,15 @@ import { findDeviceStatus } from '../guideConfig';
 import { GuideStepProps } from '../types';
 import { ensureUsbHost, profileHasUsbSlot, usbHostPins } from '../usb/usbHostUtils';
 import {
+  picoGpPinExample,
+  picoPinWithLabel,
+  picoUsbHostPin,
+  pinNum,
+  wireColour,
+  wireColours,
+  WIRING,
+} from '../wiringText';
+import {
   findXbox360RfDevice,
   getXbox360RfModel,
   setXbox360RfModel,
@@ -81,7 +90,7 @@ export function Xbox360RfIntroStep(props: GuideStepProps) {
           <Image
             src="/guides/xbox360rf/fat-pinout.png"
             radius="md"
-            alt="Xbox 360 Fat RF Module Connector Pinout"
+            alt={t('guides.common.imageAlt.rfFatPinout')}
           />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.xbox360-rf.steps.rf-intro.fatPreviewCaption')}
@@ -92,7 +101,7 @@ export function Xbox360RfIntroStep(props: GuideStepProps) {
           <Image
             src="/guides/xbox360rf/slim-scheme.png"
             radius="md"
-            alt="Xbox 360 Slim RF Module Wiring Scheme"
+            alt={t('guides.common.imageAlt.rfSlimScheme')}
           />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.xbox360-rf.steps.rf-intro.slimPreviewCaption')}
@@ -156,7 +165,7 @@ export function Xbox360RfIntroStep(props: GuideStepProps) {
                     3.3V VCC
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pico Pin 36 (3V3 OUT)</Table.Td>
+                <Table.Td>{picoPinWithLabel(36, '3V3 OUT')}</Table.Td>
                 <Table.Td>{t('guides.xbox360-rf.steps.rf-intro.descPower')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
@@ -165,7 +174,7 @@ export function Xbox360RfIntroStep(props: GuideStepProps) {
                     GND
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pico Pin 38 (GND)</Table.Td>
+                <Table.Td>{picoPinWithLabel(38, 'GND')}</Table.Td>
                 <Table.Td>{t('guides.xbox360-rf.steps.rf-intro.descGnd')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
@@ -180,28 +189,28 @@ export function Xbox360RfIntroStep(props: GuideStepProps) {
               <Table.Tr>
                 <Table.Td>
                   <Badge color="blue" size="xs">
-                    Serial Data
+                    {t(`${WIRING}.serialData`)}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pico GP Pin (e.g. GP4)</Table.Td>
+                <Table.Td>{picoGpPinExample('GP4')}</Table.Td>
                 <Table.Td>{t('guides.xbox360-rf.steps.rf-intro.descSerialData')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
                   <Badge color="cyan" size="xs">
-                    Serial Clock
+                    {t(`${WIRING}.serialClock`)}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pico GP Pin (e.g. GP5)</Table.Td>
+                <Table.Td>{picoGpPinExample('GP5')}</Table.Td>
                 <Table.Td>{t('guides.xbox360-rf.steps.rf-intro.descSerialClock')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
                   <Badge color="yellow" size="xs">
-                    Sync Button (Opt)
+                    {t('guides.xbox360-rf.pinout.syncButtonOpt')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pico GP Pin (e.g. GP6)</Table.Td>
+                <Table.Td>{picoGpPinExample('GP6')}</Table.Td>
                 <Table.Td>{t('guides.xbox360-rf.steps.rf-intro.descSync')}</Table.Td>
               </Table.Tr>
             </Table.Tbody>
@@ -273,7 +282,7 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
           <Image
             src="/guides/xbox360rf/fat-pinout.png"
             radius="md"
-            alt="Xbox 360 Fat RF Module Connector Pinout"
+            alt={t('guides.common.imageAlt.rfFatPinout')}
           />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.xbox360-rf.steps.rf-fat.connectorCaption')}
@@ -285,7 +294,7 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
           <Image
             src="/guides/xbox360rf/fat-test-points.jpg"
             radius="md"
-            alt="Xbox 360 Fat RF Module Rev H Test Points"
+            alt={t('guides.common.imageAlt.rfFatTestPoints')}
           />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.xbox360-rf.steps.rf-fat.testPointsCaption')}
@@ -305,7 +314,7 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
           <Image
             src="/guides/xbox360rf/slim-scheme.png"
             radius="md"
-            alt="Xbox 360 Slim RF Module Wiring Scheme"
+            alt={t('guides.common.imageAlt.rfSlimScheme')}
           />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.xbox360-rf.steps.rf-slim.schemeCaption')}
@@ -349,7 +358,9 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
                 : t('guides.xbox360-rf.steps.rf-slim.pinoutTableTitle')}
             </Text>
             <Badge color={isFat ? 'green' : 'teal'} size="sm" variant="light">
-              {isFat ? 'Fat / RF01' : 'Slim / Trinity'}
+              {isFat
+                ? t('guides.xbox360-rf.pinout.modelFatShort')
+                : t('guides.xbox360-rf.pinout.modelSlimShort')}
             </Badge>
           </Group>
           <Text size="xs" c="dimmed">
@@ -370,77 +381,77 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
               </Table.Thead>
               <Table.Tbody>
                 <Table.Tr>
-                  <Table.Td>Top Pin 1</Table.Td>
+                  <Table.Td>{t(`${WIRING}.topPin`, { n: 1 })}</Table.Td>
                   <Table.Td>TP18</Table.Td>
                   <Table.Td>
                     <Badge color="red" size="xs">
                       +3.3V VCC
                     </Badge>
                   </Table.Td>
-                  <Table.Td>Pico Pin 36 (3V3)</Table.Td>
+                  <Table.Td>{picoPinWithLabel(36, '3V3')}</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Top Pin 2</Table.Td>
+                  <Table.Td>{t(`${WIRING}.topPin`, { n: 2 })}</Table.Td>
                   <Table.Td>TP13</Table.Td>
                   <Table.Td>
                     <Badge color="yellow" size="xs">
                       USB D-
                     </Badge>
                   </Table.Td>
-                  <Table.Td>Pico GP3 (USB host D-)</Table.Td>
+                  <Table.Td>{picoUsbHostPin('GP3', 'D-')}</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Top Pin 3</Table.Td>
+                  <Table.Td>{t(`${WIRING}.topPin`, { n: 3 })}</Table.Td>
                   <Table.Td>TP14</Table.Td>
                   <Table.Td>
                     <Badge color="green" size="xs">
                       USB D+
                     </Badge>
                   </Table.Td>
-                  <Table.Td>Pico GP2 (USB host D+)</Table.Td>
+                  <Table.Td>{picoUsbHostPin('GP2', 'D+')}</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Top Pin 4</Table.Td>
+                  <Table.Td>{t(`${WIRING}.topPin`, { n: 4 })}</Table.Td>
                   <Table.Td>TP9 / TP10</Table.Td>
                   <Table.Td>
                     <Badge color="gray" size="xs">
                       GND
                     </Badge>
                   </Table.Td>
-                  <Table.Td>Pico Pin 38 (GND)</Table.Td>
+                  <Table.Td>{picoPinWithLabel(38, 'GND')}</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Bottom Pin 1</Table.Td>
-                  <Table.Td>Button Contact</Table.Td>
+                  <Table.Td>{t(`${WIRING}.bottomPin`, { n: 1 })}</Table.Td>
+                  <Table.Td>{t('guides.xbox360-rf.pinout.buttonContact')}</Table.Td>
                   <Table.Td>
                     <Badge color="yellow" size="xs">
-                      Sync / Power
+                      {t('guides.xbox360-rf.pinout.syncPower')}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>Pico GP Pin (Optional)</Table.Td>
+                  <Table.Td>{t(`${WIRING}.picoGpPinOptional`)}</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Bottom Pin 2</Table.Td>
+                  <Table.Td>{t(`${WIRING}.bottomPin`, { n: 2 })}</Table.Td>
                   <Table.Td>TP16</Table.Td>
                   <Table.Td>
                     <Badge color="blue" size="xs">
-                      Serial Data
+                      {t(`${WIRING}.serialData`)}
                     </Badge>
                   </Table.Td>
                   <Table.Td>Pico GP4</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Bottom Pin 3</Table.Td>
+                  <Table.Td>{t(`${WIRING}.bottomPin`, { n: 3 })}</Table.Td>
                   <Table.Td>TP15</Table.Td>
                   <Table.Td>
                     <Badge color="cyan" size="xs">
-                      Serial Clock
+                      {t(`${WIRING}.serialClock`)}
                     </Badge>
                   </Table.Td>
                   <Table.Td>Pico GP5</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Bottom Pin 4</Table.Td>
+                  <Table.Td>{t(`${WIRING}.bottomPin`, { n: 4 })}</Table.Td>
                   <Table.Td>TP9 / TP10</Table.Td>
                   <Table.Td>
                     <Badge color="gray" size="xs">
@@ -463,74 +474,74 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
               </Table.Thead>
               <Table.Tbody>
                 <Table.Tr>
-                  <Table.Td>Pin 2</Table.Td>
+                  <Table.Td>{pinNum(2)}</Table.Td>
                   <Table.Td>
                     <Badge color="pink" size="xs">
-                      Pink
+                      {wireColour('pink')}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>Serial Data</Table.Td>
+                  <Table.Td>{t(`${WIRING}.serialData`)}</Table.Td>
                   <Table.Td>Pico GP4</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Pin 3</Table.Td>
+                  <Table.Td>{pinNum(3)}</Table.Td>
                   <Table.Td>
                     <Badge color="blue" size="xs">
-                      Cyan / Blue
+                      {wireColours('cyan', 'blue')}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>Serial Clock</Table.Td>
+                  <Table.Td>{t(`${WIRING}.serialClock`)}</Table.Td>
                   <Table.Td>Pico GP5</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Pin 5</Table.Td>
+                  <Table.Td>{pinNum(5)}</Table.Td>
                   <Table.Td>
                     <Badge color="gray" size="xs">
-                      Grey / White
+                      {wireColours('grey', 'white')}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>USB Data- (D-)</Table.Td>
-                  <Table.Td>Pico GP3 (USB host D-)</Table.Td>
+                  <Table.Td>{t(`${WIRING}.usbDataMinus`)}</Table.Td>
+                  <Table.Td>{picoUsbHostPin('GP3', 'D-')}</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Pin 6</Table.Td>
+                  <Table.Td>{pinNum(6)}</Table.Td>
                   <Table.Td>
                     <Badge color="green" size="xs">
-                      Green
+                      {wireColour('green')}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>USB Data+ (D+)</Table.Td>
-                  <Table.Td>Pico GP2 (USB host D+)</Table.Td>
+                  <Table.Td>{t(`${WIRING}.usbDataPlus`)}</Table.Td>
+                  <Table.Td>{picoUsbHostPin('GP2', 'D+')}</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Pin 12</Table.Td>
+                  <Table.Td>{pinNum(12)}</Table.Td>
                   <Table.Td>
                     <Badge color="orange" size="xs">
-                      Orange
+                      {wireColour('orange')}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>+3.3V Power</Table.Td>
-                  <Table.Td>Pico Pin 36 (3V3 OUT)</Table.Td>
+                  <Table.Td>{t(`${WIRING}.power3v3`)}</Table.Td>
+                  <Table.Td>{picoPinWithLabel(36, '3V3 OUT')}</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Pin 13</Table.Td>
+                  <Table.Td>{pinNum(13)}</Table.Td>
                   <Table.Td>
                     <Badge color="yellow" size="xs">
-                      Yellow
+                      {wireColour('yellow')}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>Sync / Power Button</Table.Td>
-                  <Table.Td>Pico GP Pin (e.g. GP6)</Table.Td>
+                  <Table.Td>{t('guides.xbox360-rf.pinout.syncPowerButton')}</Table.Td>
+                  <Table.Td>{picoGpPinExample('GP6')}</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Mounting Pad</Table.Td>
+                  <Table.Td>{t('guides.xbox360-rf.pinout.mountingPad')}</Table.Td>
                   <Table.Td>
                     <Badge color="dark" size="xs">
-                      Black
+                      {wireColour('black')}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>Ground (GND)</Table.Td>
-                  <Table.Td>Pico Pin 38 (GND)</Table.Td>
+                  <Table.Td>{t(`${WIRING}.groundGnd`)}</Table.Td>
+                  <Table.Td>{picoPinWithLabel(38, 'GND')}</Table.Td>
                 </Table.Tr>
               </Table.Tbody>
             </Table>
@@ -684,7 +695,9 @@ export function Xbox360RfReviewStep(props: GuideStepProps) {
               {t('guides.xbox360-rf.steps.rf-test.deviceControlTitle')}
             </Text>
             <Badge color={isFat ? 'green' : 'teal'} size="xs" variant="light">
-              {isFat ? 'Fat / RF01' : 'Slim / Trinity'}
+              {isFat
+                ? t('guides.xbox360-rf.pinout.modelFatShort')
+                : t('guides.xbox360-rf.pinout.modelSlimShort')}
             </Badge>
           </Group>
 
@@ -702,7 +715,10 @@ export function Xbox360RfReviewStep(props: GuideStepProps) {
                     : t('guides.xbox360-rf.steps.rf-test.moduleConfiguredFat')}
                 </Badge>
                 <Text size="xs" c="dimmed">
-                  Data: GP{rfData?.dataPin ?? -1} | Clock: GP{rfData?.clockPin ?? -1}
+                  {t('guides.xbox360-rf.pinout.dataClockPins', {
+                    data: rfData?.dataPin ?? -1,
+                    clock: rfData?.clockPin ?? -1,
+                  })}
                 </Text>
               </Group>
 

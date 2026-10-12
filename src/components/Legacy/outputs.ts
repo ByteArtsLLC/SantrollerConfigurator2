@@ -288,7 +288,7 @@ export function guitarButtonOutput(
   }
   const fret = fretIndex(type);
   if (!fret) {
-    ctx.warn('GH5 slider bindings were skipped, set the slider up again with the GH5 neck.');
+    ctx.warn('legacyImport.gh5SliderSkipped');
     return undefined;
   }
   const colour = COLOURS[fret.index];
@@ -355,10 +355,10 @@ function guitarAxisOutput(
       if (ctx.subType === ST.RockBandGuitar) {
         return { rbAxis: proto.RockBandGuitarAxisType.RockBandGuitar_Pickup };
       }
-      ctx.warn('A pickup selector binding was skipped, only Rock Band guitars have one.');
+      ctx.warn('legacyImport.pickupSkipped');
       return undefined;
     default:
-      ctx.warn('GH5 slider bindings were skipped, set the slider up again with the GH5 neck.');
+      ctx.warn('legacyImport.gh5SliderSkipped');
       return undefined;
   }
 }
@@ -575,11 +575,11 @@ const CORE_OUTPUTS: Partial<Record<LegacyOutputKind, OutputConverter>> = {
     }
     const target = drumOutput(ctx, o!.type ?? DRUMS.DrumAxisType_Green);
     if (!target) {
-      ctx.warn("A drum binding that the emulated drum kit doesn't have was skipped.");
+      ctx.warn('legacyImport.drumBindingSkipped');
       return;
     }
     if (o!.sensitivityInput) {
-      ctx.warn('Drum sensitivity inputs were skipped.');
+      ctx.warn('legacyImport.drumSensitivitySkipped');
     }
     const converted = convertInput(ctx, o!.input);
     if (!converted) {
@@ -618,7 +618,7 @@ const CORE_OUTPUTS: Partial<Record<LegacyOutputKind, OutputConverter>> = {
   serializedDjButton: (ctx, { serializedDjButton: o }) => {
     const output = DJ_BUTTONS[o!.type ?? 0];
     if (output == null) {
-      ctx.warn('A turntable binding was skipped.');
+      ctx.warn('legacyImport.turntableBindingSkipped');
       return;
     }
     addButton(ctx, o!.input, { djhButton: output }, o!.debounce, { enabled: o!.enabled });
@@ -630,7 +630,7 @@ const CORE_OUTPUTS: Partial<Record<LegacyOutputKind, OutputConverter>> = {
       type === legacy.DjAxisType.DjAxisType_LeftTableVelocity ||
       type === legacy.DjAxisType.DjAxisType_RightTableVelocity;
     if (velocity && (o!.deadzoneOrMultiplier ?? 0) > 1) {
-      ctx.warn('Turntable velocity multipliers were skipped.');
+      ctx.warn('legacyImport.turntableMultiplierSkipped');
     }
     addAxis(
       ctx,
@@ -723,7 +723,7 @@ const CORE_OUTPUTS: Partial<Record<LegacyOutputKind, OutputConverter>> = {
       enabled: o!.enabled,
     }),
 
-  serializedWakeup360: (ctx) => ctx.warn('The Xbox 360 wakeup binding was skipped.'),
+  serializedWakeup360: (ctx) => ctx.warn('legacyImport.xbox360WakeupSkipped'),
 };
 
 function pianoKey(
@@ -794,9 +794,7 @@ export function convertOutput(
   }
   const converter = familyOutputs[kind] ?? CORE_OUTPUTS[kind];
   if (!converter) {
-    ctx.warn(
-      `Bindings of type ${kind.replace(/^serialized/, '')} can't be imported yet, so they were skipped.`
-    );
+    ctx.warn('legacyImport.bindingTypeUnsupported', { type: kind.replace(/^serialized/, '') });
     return;
   }
   converter(ctx, output);

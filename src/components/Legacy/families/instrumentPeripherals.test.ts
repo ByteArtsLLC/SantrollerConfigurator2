@@ -160,8 +160,8 @@ describe('GH5 neck', () => {
     expect(config.profiles[0].mappings[0].input?.gh5Neck?.button).toBe(
       proto.Gh5NeckButtonType.Gh5Red
     );
-    expect(warnings.some((w) => w.includes('tap bar'))).toBe(true);
-    expect(warnings.some((w) => w.includes('secondary Pico'))).toBe(true);
+    expect(warnings.some((w) => w.key === 'legacyImport.tapBarSkipped')).toBe(true);
+    expect(warnings.some((w) => w.key === 'legacyImport.peripheralMoved')).toBe(true);
   });
 
   it('converts standalone slider bindings once the core hands them over', () => {
@@ -321,9 +321,7 @@ describe('World Tour tap bar', () => {
       ],
     });
     expect(config.profiles[0].mappings).toEqual([]);
-    expect(warnings).toEqual([
-      "The World Tour tap bar was skipped, the new firmware doesn't support it.",
-    ]);
+    expect(warnings).toEqual([{ key: 'legacyImport.worldTourSkipped' }]);
   });
 });
 
@@ -374,9 +372,7 @@ describe('DJ Hero turntables', () => {
         },
       ],
     });
-    expect(warnings).toEqual([
-      "Turntable smoothing was skipped, the new firmware doesn't smooth the platters.",
-    ]);
+    expect(warnings).toEqual([{ key: 'legacyImport.turntableSmoothing' }]);
     const [left, right] = config.devices;
     expect(left.djhTurntable).toMatchObject({
       left: true,

@@ -26,6 +26,7 @@ import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
 import { GuideStepProps } from '../types';
+import { IMAGE_ALT } from '../wiringText';
 import {
   configureDrumMux,
   countMappedPads,
@@ -140,13 +141,13 @@ export function DrumIntroStep(props: GuideStepProps) {
 
       <Group grow align="start">
         <Stack gap={4}>
-          <Image src="/guides/drums/cd4051.png" radius="md" alt="4051 multiplexer pinout" />
+          <Image src="/guides/drums/cd4051.png" radius="md" alt={t(`${IMAGE_ALT}.mux4051`)} />
           <Text size="xs" c="dimmed" ta="center">
             {t(`${P}.drum-intro.mux4051Caption`)}
           </Text>
         </Stack>
         <Stack gap={4}>
-          <Image src="/guides/drums/cd4067.png" radius="md" alt="4067 multiplexer pinout" />
+          <Image src="/guides/drums/cd4067.png" radius="md" alt={t(`${IMAGE_ALT}.mux4067`)} />
           <Text size="xs" c="dimmed" ta="center">
             {t(`${P}.drum-intro.mux4067Caption`)}
           </Text>

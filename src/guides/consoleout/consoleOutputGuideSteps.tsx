@@ -29,6 +29,7 @@ import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
 import { findDeviceStatus } from '../guideConfig';
 import { GuideStepProps } from '../types';
+import { IMAGE_ALT, pinNum } from '../wiringText';
 import {
   consoleListHasUsbSlot,
   consoleOutputConflicts,
@@ -209,7 +210,7 @@ function PlugImage({ target }: { target: ConsoleTarget }) {
         radius="md"
         maw={target === 'wii' ? 360 : undefined}
         mx="auto"
-        alt={target === 'wii' ? 'Wii extension plug pinout' : 'PS2 controller plug pinout'}
+        alt={t(`${IMAGE_ALT}.${target === 'wii' ? 'wiiExtPlugPinout' : 'ps2PlugPinout'}`)}
       />
       <Text size="xs" c="dimmed" ta="center">
         {t(
@@ -379,31 +380,31 @@ export function ConsoleOutputWiringStep(props: GuideStepProps) {
       : [
           {
             signal: t(`${K}.console-wiring.sigData`),
-            plug: 'Pin 1',
+            plug: pinNum(1),
             pico: labels.data,
             color: 'orange',
           },
           {
             signal: t(`${K}.console-wiring.sigCommand`),
-            plug: 'Pin 2',
+            plug: pinNum(2),
             pico: labels.command,
             color: 'orange',
           },
           {
             signal: t(`${K}.console-wiring.sigAttention`),
-            plug: 'Pin 6',
+            plug: pinNum(6),
             pico: labels.attention,
             color: 'yellow',
           },
           {
             signal: t(`${K}.console-wiring.sigClock`),
-            plug: 'Pin 7',
+            plug: pinNum(7),
             pico: labels.clock,
             color: 'blue',
           },
           {
             signal: t(`${K}.console-wiring.sigAcknowledge`),
-            plug: 'Pin 9',
+            plug: pinNum(9),
             pico: labels.acknowledge,
             color: 'green',
           },
@@ -482,7 +483,7 @@ export function ConsoleOutputWiringStep(props: GuideStepProps) {
             items={t(`${K}.console-wiring.usbSteps`, { returnObjects: true, ...usbLabels })}
           />
           <Stack gap={4}>
-            <Image src="/guides/usb/usb.svg" radius="md" alt="USB socket wiring" />
+            <Image src="/guides/usb/usb.svg" radius="md" alt={t(`${IMAGE_ALT}.usbSocket`)} />
             <Text size="xs" c="dimmed" ta="center">
               {t(`${K}.console-wiring.usbCaption`)}
             </Text>

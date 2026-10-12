@@ -25,6 +25,7 @@ import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { InputTestRow } from '@/guides/components/InputTestRow';
 import { StepWorkbench } from '@/guides/components/StepWorkbench';
 import { GuideStepProps } from '@/guides/types';
+import { IMAGE_ALT } from '../../wiringText';
 import {
   configureDirectGpioFrets,
   configureGh5Neck,
@@ -360,7 +361,11 @@ export function FretsStep(props: GuideStepProps) {
             </Card>
           )}
 
-          <Image src="/guides/guitar/xplorer.png" radius="md" alt="Fret PCB traces" />
+          <Image
+            src="/guides/guitar/xplorer.png"
+            radius="md"
+            alt={t(`${IMAGE_ALT}.fretPcbTraces`)}
+          />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.direct-pico-guitar.steps.frets.pcbCaption')}
           </Text>
@@ -771,7 +776,11 @@ export function FretsStep(props: GuideStepProps) {
             <Text size="xs" c="dimmed">
               {t('guides.direct-pico-guitar.steps.frets.mpr121StepTraces')}
             </Text>
-            <Image src="/guides/guitar/wt_traces.png" radius="md" alt="WT Slider PCB Traces" />
+            <Image
+              src="/guides/guitar/wt_traces.png"
+              radius="md"
+              alt={t(`${IMAGE_ALT}.wtSliderTraces`)}
+            />
             <Text size="xs" c="dimmed" ta="center">
               {t('guides.direct-pico-guitar.steps.frets.mpr121TracesCaption')}
             </Text>
@@ -784,7 +793,11 @@ export function FretsStep(props: GuideStepProps) {
             <Text size="xs" c="dimmed">
               {t('guides.direct-pico-guitar.steps.frets.mpr121StepVias')}
             </Text>
-            <Image src="/guides/guitar/wt_vias.png" radius="md" alt="WT Slider Vias" />
+            <Image
+              src="/guides/guitar/wt_vias.png"
+              radius="md"
+              alt={t(`${IMAGE_ALT}.wtSliderVias`)}
+            />
             <Text size="xs" c="dimmed" ta="center">
               {t('guides.direct-pico-guitar.steps.frets.mpr121ViasCaption')}
             </Text>

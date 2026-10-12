@@ -14,6 +14,7 @@ import { LiveAxis, LiveButtons, LiveInput } from '../adapters/adapterLiveStatus'
 import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
 import { GuideStepProps } from '../types';
+import { gpWithPin, labelWithPin } from '../wiringText';
 import {
   addPlatter,
   applyBasePinout,
@@ -129,25 +130,25 @@ export function TurntableIntroStep(props: GuideStepProps) {
             <Table.Tbody>
               <Table.Tr>
                 <Table.Td>{t(`${P}.tt-intro.featurePlatterSda`)}</Table.Td>
-                <Table.Td>GP{PLATTER_SDA} (Pin 24)</Table.Td>
+                <Table.Td>{gpWithPin(PLATTER_SDA, 24)}</Table.Td>
                 <Table.Td>{t(`${P}.tt-intro.typeI2cData`)}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>{t(`${P}.tt-intro.featurePlatterScl`)}</Table.Td>
-                <Table.Td>GP{PLATTER_SCL} (Pin 25)</Table.Td>
+                <Table.Td>{gpWithPin(PLATTER_SCL, 25)}</Table.Td>
                 <Table.Td>{t(`${P}.tt-intro.typeI2cClock`)}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>{t(`${P}.tt-intro.featurePlatterPower`)}</Table.Td>
-                <Table.Td>3V3(OUT) (Pin 36), GND (Pin 38)</Table.Td>
+                <Table.Td>
+                  {labelWithPin('3V3(OUT)', 36)}, {labelWithPin('GND', 38)}
+                </Table.Td>
                 <Table.Td>{t(`${P}.tt-intro.typePower`)}</Table.Td>
               </Table.Tr>
               {BASE_PINOUT.map((base) => (
                 <Table.Tr key={base.key}>
                   <Table.Td>{t(`${P}.tt-intro.base.${base.key}`)}</Table.Td>
-                  <Table.Td>
-                    GP{base.pin} (Pin {base.physicalPin})
-                  </Table.Td>
+                  <Table.Td>{gpWithPin(base.pin, base.physicalPin)}</Table.Td>
                   <Table.Td>
                     {base.analog
                       ? t(`${P}.tt-intro.typeAnalog`, { adc: base.pin - 26 })

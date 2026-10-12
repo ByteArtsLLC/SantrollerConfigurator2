@@ -102,8 +102,8 @@ describe('USB host', () => {
       proto.GuitarHeroGuitarAxisType.GuitarHeroGuitar_Tilt
     );
     expect(tilt).toMatchObject({ min: 22768, max: 42768 });
-    expect(warnings.some((w) => w.includes('Guitar Hero Guitar controller'))).toBe(true);
-    expect(warnings.some((w) => w.includes("can't read"))).toBe(true);
+    expect(warnings.some((w) => JSON.stringify(w).includes('subType.GuitarHeroGuitar'))).toBe(true);
+    expect(warnings.some((w) => w.key === 'legacyImport.hostBindingSkipped')).toBe(true);
   });
 
   it('skips children turned off in the combined output', () => {
@@ -176,7 +176,7 @@ describe('USB host', () => {
     ]) {
       for (const type of Object.values(UT).filter((v): v is number => typeof v === 'number')) {
         const result = hostOutput(type, host);
-        expect(typeof result === 'string' || Object.keys(result.output).length === 1).toBe(true);
+        expect('key' in result || Object.keys(result.output).length === 1).toBe(true);
       }
     }
     expect(hostOutput(UT.UsbHostInputType_SoloBlue, proto.SubType.RockBandGuitar)).toMatchObject({
@@ -188,9 +188,9 @@ describe('USB host', () => {
         isUint: false,
       }
     );
-    expect(typeof hostOutput(UT.UsbHostInputType_RedVelocity, proto.SubType.RockBandDrums)).toBe(
-      'string'
-    );
+    expect(hostOutput(UT.UsbHostInputType_RedVelocity, proto.SubType.RockBandDrums)).toEqual({
+      key: 'legacyImport.hostDrumPadsSkipped',
+    });
   });
 
   it('imports pro guitar frets with the full range', () => {
@@ -304,8 +304,8 @@ describe('Bluetooth', () => {
     expect(pickup.input?.btAxis?.axis?.rbAxis).toBe(
       proto.RockBandGuitarAxisType.RockBandGuitar_Pickup
     );
-    expect(warnings).toContain("The Bluetooth controller couldn't be imported, pair it again.");
-    expect(warnings).toContain('Bluetooth keyboard and mouse bindings were skipped.');
+    expect(warnings).toContainEqual({ key: 'legacyImport.bluetoothPairAgain' });
+    expect(warnings).toContainEqual({ key: 'legacyImport.bluetoothKeyboardMouseSkipped' });
   });
 });
 
@@ -346,7 +346,7 @@ describe('keyboard outputs', () => {
       ],
     });
     expect(config.profiles[0].mappings.map((m) => m.mapping?.consumerKey)).toEqual([0xe9]);
-    expect(warnings.some((w) => w.includes("can't send"))).toBe(true);
+    expect(warnings.some((w) => w.key === 'legacyImport.keyboardKeySkipped')).toBe(true);
   });
 });
 
@@ -383,7 +383,7 @@ describe('MIDI', () => {
       midiNote: { note: 38, channel: 10 },
     });
     expect(red).toMatchObject({ min: 0, max: 65535, debounce: 30, peakBased: true });
-    expect(warnings.some((w) => w.includes('MIDI channel 10'))).toBe(true);
+    expect(warnings).toContainEqual({ key: 'legacyImport.midiChannel', params: { channel: 10 } });
   });
 
   it('converts pro keys, the pedal and the touch strip', () => {
@@ -425,9 +425,7 @@ describe('MIDI', () => {
     expect(touch.input?.midi?.midiPitchBend).toEqual({ channel: 1 });
     // the old pitch wheel calibration wrapped around, so it gets the default one
     expect(touch).toMatchObject({ min: 0, max: 65535, center: 32767 });
-    expect(warnings).toContain(
-      'Pitch bend bindings were given the default calibration, so check them.'
-    );
+    expect(warnings).toContainEqual({ key: 'legacyImport.pitchBendCalibration' });
   });
 
   it('binds old MIDI inputs to the Band Hero drums and serial MIDI', () => {
@@ -489,7 +487,7 @@ describe('MIDI', () => {
     expect(config.profiles[0].mappings.map((m) => m.input?.midi?.midiNote?.note)).toEqual([
       41, 45, 49,
     ]);
-    expect(warnings.some((w) => w.includes('MIDI channel'))).toBe(false);
+    expect(warnings.some((w) => w.key === 'legacyImport.midiChannel')).toBe(false);
   });
 });
 

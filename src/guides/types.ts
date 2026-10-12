@@ -28,7 +28,6 @@ export interface GuideStep {
 }
 
 export type GuideCategory = 'guitar' | 'drums' | 'adapters' | 'turntable' | 'mods';
-export type GuideDifficulty = 'beginner' | 'intermediate' | 'advanced';
 
 export interface GuideDefinition {
   id: string;
@@ -36,7 +35,6 @@ export interface GuideDefinition {
   subtitle: string;
   description: string;
   category: GuideCategory;
-  difficulty: GuideDifficulty;
   estimatedTime: string;
   badge?: string;
   featured?: boolean;

@@ -1,4 +1,5 @@
 /// <reference types="w3c-web-hid" />
+import i18next from 'i18next';
 import { immerable } from 'immer';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
@@ -25,6 +26,7 @@ import {
 import { remapEditedSlotIds } from '@/components/Inputs/slotRemap';
 import { createLabelConfig, getNextLabelId } from '@/components/Labels/labelRegistry';
 import { importLegacyConfigs } from '@/components/Legacy/importLegacyConfig';
+import { legacyErrorReason, legacyWarning, LegacyWarning } from '@/components/Legacy/warnings';
 import { CRC32 } from '@/CRC32.js';
 import { BluetoothConfigDevice } from './BluetoothConfigDevice';
 import { proto } from './config.js';
@@ -444,7 +446,8 @@ export interface ConfigState {
   // The controller takes firmware uploads streamed as output reports (see firmwareUpdate)
   streamedFirmwareUpload: boolean;
   // What couldn't be carried over when a Santroller 1 config was imported
-  legacyImportWarnings: string[];
+  // (translation keys and params, translated when shown)
+  legacyImportWarnings: LegacyWarning[];
   scanningBluetooth: boolean;
 }
 export interface Actions {
@@ -782,7 +785,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
       const logo = new Uint8Array(await image.arrayBuffer());
       set((state) => {
         if (!state.toolInfo) {
-          state.toolInfo = { name: 'Seller Tool', logo: new Uint8Array() };
+          state.toolInfo = {
+            name: i18next.t('commercial.defaultToolName'),
+            logo: new Uint8Array(),
+          };
         }
         state.toolInfo = { ...state.toolInfo, logo };
       });
@@ -1523,7 +1529,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
                 faceButtonMappingMode: proto.FaceButtonMappingMode.LegendBased,
                 deviceToEmulate: proto.SubType.Gamepad,
                 deviceSlotIdVersion: 2,
-                name: 'Device',
+                name: i18next.t('profileDefaults.name'),
                 uid: Math.max(0, ...(state.config.profiles?.map((x) => x.opts.uid) || [])) + 1,
               },
               assignments: [defaultAssignment],
@@ -1558,7 +1564,9 @@ export const useConfigStore = create<ConfigState & Actions>()(
           Math.max(0, ...(state.config.profiles?.map((x) => x.opts?.uid ?? 0) || [])) + 1;
         cloned.opts = {
           ...cloned.opts,
-          name: `${sourceProfile.opts?.name ?? 'Device'} (Copy)`,
+          name: i18next.t('profileDefaults.copyName', {
+            name: sourceProfile.opts?.name ?? i18next.t('profileDefaults.name'),
+          }),
           uid: newUid,
         };
         state.config = {
@@ -1775,7 +1783,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
         console.log(e);
         set((state) => {
           state.legacyImportWarnings = [
-            `${files.length > 1 ? 'These files' : 'This file'} couldn't be read as a Santroller 1 config: ${e}`,
+            legacyWarning('legacyImport.readFailed', {
+              count: files.length,
+              error: legacyErrorReason(e),
+            }),
           ];
         });
         return;

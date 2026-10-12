@@ -138,7 +138,7 @@ describe('LED hardware', () => {
       bindings: [button(gpio(5), { ledIndexPeripheral: bytes(1) })],
     });
     expect(leds).toHaveLength(0);
-    expect(ctx.warnings.some((w) => w.includes('secondary Pico'))).toBe(true);
+    expect(ctx.warnings.some((w) => w.key === 'legacyImport.peripheralLedsSkipped')).toBe(true);
   });
 });
 
@@ -221,7 +221,7 @@ describe('binding LEDs', () => {
       ],
     });
     expect(leds).toHaveLength(0);
-    expect(ctx.warnings.some((w) => w.includes('analog inputs used as buttons'))).toBe(true);
+    expect(ctx.warnings.some((w) => w.key === 'legacyImport.analogLedsSkipped')).toBe(true);
   });
 
   it('lets later bindings light a shared LED over the first one', () => {
@@ -278,7 +278,7 @@ describe('binding LEDs', () => {
     expect(leds[0].mapping.inputMapping).toMatchObject({ min: 65535, max: 0 });
     expect(leds[1].device.gpio).toEqual({ pin: 13, analog: true });
     expect(leds[1].mapping.inputMapping).toMatchObject({ min: 0, max: 65535 });
-    expect(ctx.warnings.some((w) => w.includes('Outputs on the secondary Pico'))).toBe(true);
+    expect(ctx.warnings.some((w) => w.key === 'legacyImport.peripheralOutputsSkipped')).toBe(true);
   });
 
   it('lights LEDs from combined outputs without duplicating their mappings', () => {
@@ -406,7 +406,7 @@ describe('LED bindings', () => {
       { pin: 4, analog: true },
       { pin: 5, analog: false },
     ]);
-    expect(ctx.warnings.some((w) => w.includes('Inverted outputs'))).toBe(true);
+    expect(ctx.warnings.some((w) => w.key === 'legacyImport.invertedOutputsSkipped')).toBe(true);
   });
 
   it('skips Fortnite Festival mode LEDs', () => {
@@ -421,7 +421,7 @@ describe('LED bindings', () => {
       ],
     });
     expect(leds).toHaveLength(0);
-    expect(ctx.warnings.some((w) => w.includes('Fortnite Festival'))).toBe(true);
+    expect(ctx.warnings.some((w) => w.key === 'legacyImport.fortniteModesUnsupported')).toBe(true);
   });
 });
 
@@ -500,8 +500,8 @@ describe('console mode bindings', () => {
       },
       { assignments: [{ consoleType: { xinputOnWindows: true, ps4OrPs5Mode: false } }] },
     ]);
-    expect(ctx.warnings.some((w) => w.includes('Fortnite Festival'))).toBe(true);
-    expect(ctx.warnings.some((w) => w.includes('EmulationMode'))).toBe(false);
+    expect(ctx.warnings.some((w) => w.key === 'legacyImport.fortniteModesUnsupported')).toBe(true);
+    expect(ctx.warnings.some((w) => JSON.stringify(w).includes('EmulationMode'))).toBe(false);
   });
 
   it('copies the slot assignments into every list', () => {
@@ -563,7 +563,7 @@ describe('config settings', () => {
   it('skips sleep without a wake pin and leaves inactivity unset', () => {
     const { ctx, settings } = run({ sleepEnabled: true });
     expect(settings.inactivity).toBeUndefined();
-    expect(ctx.warnings.some((w) => w.includes('wake up pin'))).toBe(true);
+    expect(ctx.warnings.some((w) => w.key === 'legacyImport.sleepNoWakePin')).toBe(true);
   });
 
   it('enables PS4 instruments only with a USB host controller', () => {
@@ -588,7 +588,9 @@ describe('config settings', () => {
   });
 
   it('warns that the poll rate limit is gone', () => {
-    expect(run({ pollRate: 4 }).ctx.warnings.some((w) => w.includes('poll rate'))).toBe(true);
+    expect(run({ pollRate: 4 }).ctx.warnings.some((w) => w.key === 'legacyImport.pollRate')).toBe(
+      true
+    );
     expect(run({ pollRate: 4, queueBasedInputs: true }).ctx.warnings).toEqual([]);
   });
 });

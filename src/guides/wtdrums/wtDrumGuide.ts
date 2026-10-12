@@ -8,7 +8,6 @@ export const WT_DRUM_GUIDE: GuideDefinition = {
   description:
     "Replace the brain of a Guitar Hero World Tour drum kit with a Raspberry Pi Pico, reading the pads over the kit's own SPI cable.",
   category: 'drums',
-  difficulty: 'intermediate',
   estimatedTime: '20 - 30 mins',
   badge: 'MIDI over SPI',
   supplies: [

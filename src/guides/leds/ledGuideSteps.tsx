@@ -27,6 +27,7 @@ import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
 import { GuideStepProps } from '../types';
+import { gpWithPin, IMAGE_ALT, pinWithLabel, WIRING } from '../wiringText';
 import {
   addLedDevice,
   APA102_MOSI_PIN,
@@ -42,7 +43,7 @@ import {
 
 // Pico physical pin numbers for the GPIOs this guide uses
 const PHYSICAL_PIN: Record<number, number> = { 16: 21, 18: 24, 19: 25 };
-const pinLabel = (gp: number) => `GP${gp} (Pin ${PHYSICAL_PIN[gp]})`;
+const pinLabel = (gp: number) => gpWithPin(gp, PHYSICAL_PIN[gp]);
 
 function useLedChipType() {
   const device = useConfigStore(findLedDevice);
@@ -115,13 +116,21 @@ export function LedIntroStep(props: GuideStepProps) {
       <Text size="sm">{t('guides.rgb-leds.steps.led-intro.inlineText')}</Text>
       <Group grow align="start">
         <Stack gap={4}>
-          <Image src="/guides/leds/inline-led.jpg" radius="md" alt="Inline fret LEDs" />
+          <Image
+            src="/guides/leds/inline-led.jpg"
+            radius="md"
+            alt={t(`${IMAGE_ALT}.inlineFretLeds`)}
+          />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.rgb-leds.steps.led-intro.inlineCaption')}
           </Text>
         </Stack>
         <Stack gap={4}>
-          <Image src="/guides/leds/led.png" radius="md" alt="Inline fret LED schematic" />
+          <Image
+            src="/guides/leds/led.png"
+            radius="md"
+            alt={t(`${IMAGE_ALT}.inlineFretLedSchematic`)}
+          />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.rgb-leds.steps.led-intro.schematicCaption')}
           </Text>
@@ -158,7 +167,7 @@ export function LedIntroStep(props: GuideStepProps) {
                     5V (VCC)
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 40 (VBUS)</Table.Td>
+                <Table.Td>{pinWithLabel(40, 'VBUS')}</Table.Td>
                 <Table.Td>{t('guides.rgb-leds.steps.led-intro.descPower')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
@@ -167,13 +176,13 @@ export function LedIntroStep(props: GuideStepProps) {
                     GND
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 38 (GND)</Table.Td>
+                <Table.Td>{pinWithLabel(38, 'GND')}</Table.Td>
                 <Table.Td>{t('guides.rgb-leds.steps.led-intro.descGround')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
                   <Badge color="blue" size="xs">
-                    {isApa102 ? 'Data In (DI)' : 'Data In (DIN)'}
+                    {t(`${WIRING}.dataIn`, { id: isApa102 ? 'DI' : 'DIN' })}
                   </Badge>
                 </Table.Td>
                 <Table.Td>{pinLabel(isApa102 ? APA102_MOSI_PIN : WS2812_DATA_PIN)}</Table.Td>
@@ -187,7 +196,7 @@ export function LedIntroStep(props: GuideStepProps) {
                 <Table.Tr>
                   <Table.Td>
                     <Badge color="yellow" size="xs">
-                      Clock In (CI)
+                      {t(`${WIRING}.clockIn`, { id: 'CI' })}
                     </Badge>
                   </Table.Td>
                   <Table.Td>{pinLabel(APA102_SCK_PIN)}</Table.Td>

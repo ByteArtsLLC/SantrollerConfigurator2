@@ -13,7 +13,6 @@ export const MIDI_DIN_GUIDE: GuideDefinition = {
   description:
     'Build a small opto-isolated MIDI input so an e-drum kit, keyboard or other device with a 5-pin MIDI OUT port can drive the Pico, which then acts as a Guitar Hero or Rock Band drum kit.',
   category: 'drums',
-  difficulty: 'intermediate',
   estimatedTime: '30 - 45 mins',
   badge: 'MIDI over UART',
   supplies: [

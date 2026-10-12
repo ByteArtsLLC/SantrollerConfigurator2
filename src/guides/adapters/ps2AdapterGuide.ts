@@ -8,7 +8,6 @@ export const PS2_ADAPTER_GUIDE: GuideDefinition = {
   description:
     'Convert any original Sony PlayStation 1 or 2 gamepad, arcade stick, or Guitar Hero guitar to USB using a Raspberry Pi Pico.',
   category: 'adapters',
-  difficulty: 'intermediate',
   estimatedTime: '30 - 45 mins',
   badge: 'SPI Bus',
   supplies: [

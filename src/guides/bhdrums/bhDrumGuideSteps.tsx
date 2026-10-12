@@ -32,6 +32,7 @@ import { GuideList } from '../components/GuideList';
 import { InputTestRow } from '../components/InputTestRow';
 import { StepWorkbench } from '../components/StepWorkbench';
 import { GuideStepProps } from '../types';
+import { gpWithPin, labelWithPin } from '../wiringText';
 import {
   addBhDrumDriver,
   BH_BUTTONS,
@@ -199,26 +200,24 @@ export function BhDrumIntroStep(props: GuideStepProps) {
           <Table.Tbody>
             <Table.Tr>
               <Table.Td>DATA</Table.Td>
-              <Table.Td>GP{BH_I2C.sda} (Pin 24)</Table.Td>
+              <Table.Td>{gpWithPin(BH_I2C.sda, 24)}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>CLK</Table.Td>
-              <Table.Td>GP{BH_I2C.scl} (Pin 25)</Table.Td>
+              <Table.Td>{gpWithPin(BH_I2C.scl, 25)}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>+V</Table.Td>
-              <Table.Td>3V3(OUT) (Pin 36)</Table.Td>
+              <Table.Td>{labelWithPin('3V3(OUT)', 36)}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>0V, BUTTON COM, BUT COM</Table.Td>
-              <Table.Td>GND (Pin 38)</Table.Td>
+              <Table.Td>{labelWithPin('GND', 38)}</Table.Td>
             </Table.Tr>
             {BH_BUTTONS.map((button) => (
               <Table.Tr key={button.key}>
                 <Table.Td>{button.pad}</Table.Td>
-                <Table.Td>
-                  GP{button.pin} (Pin {button.physicalPin})
-                </Table.Td>
+                <Table.Td>{gpWithPin(button.pin, button.physicalPin)}</Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>
@@ -269,22 +268,22 @@ function DriverSetup() {
           <Table.Tbody>
             <Table.Tr>
               <Table.Td>+V</Table.Td>
-              <Table.Td>3V3(OUT) (Pin 36)</Table.Td>
+              <Table.Td>{labelWithPin('3V3(OUT)', 36)}</Table.Td>
               <Table.Td>{t(`${P}.bh-wiring.typePower`)}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>CLK</Table.Td>
-              <Table.Td>GP{BH_I2C.scl} (Pin 25)</Table.Td>
+              <Table.Td>{gpWithPin(BH_I2C.scl, 25)}</Table.Td>
               <Table.Td>{t(`${P}.bh-wiring.typeI2cClock`)}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>DATA</Table.Td>
-              <Table.Td>GP{BH_I2C.sda} (Pin 24)</Table.Td>
+              <Table.Td>{gpWithPin(BH_I2C.sda, 24)}</Table.Td>
               <Table.Td>{t(`${P}.bh-wiring.typeI2cData`)}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>0V</Table.Td>
-              <Table.Td>GND (Pin 38)</Table.Td>
+              <Table.Td>{labelWithPin('GND', 38)}</Table.Td>
               <Table.Td>{t(`${P}.bh-wiring.typeGround`)}</Table.Td>
             </Table.Tr>
           </Table.Tbody>

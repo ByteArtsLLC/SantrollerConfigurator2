@@ -13,6 +13,7 @@ import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
 import { assignDeviceToProfile, findDeviceStatus } from '../guideConfig';
 import { GuideStepProps } from '../types';
+import { gpWithPin, IMAGE_ALT, pinWithColour, pinWithLabel, withPullup } from '../wiringText';
 import { ensureDeviceToEmulate, LiveAxis, LiveButtons, LiveInput } from './adapterLiveStatus';
 
 const GUITAR_TYPES = [proto.SubType.GuitarHeroGuitar, proto.SubType.RockBandGuitar];
@@ -49,7 +50,7 @@ export function PS2IntroStep(props: GuideStepProps) {
       <Text size="sm">{t('guides.ps2-adapter.steps.ps2-intro.intro')}</Text>
 
       <Stack gap={4}>
-        <Image src="/guides/ps2/ps2-pinout.png" radius="md" alt="PS2 controller plug pinout" />
+        <Image src="/guides/ps2/ps2-pinout.png" radius="md" alt={t(`${IMAGE_ALT}.ps2PlugPinout`)} />
         <Text size="xs" c="dimmed" ta="center">
           {t('guides.ps2-adapter.steps.ps2-intro.plugCaption')}
         </Text>
@@ -97,8 +98,8 @@ export function PS2IntroStep(props: GuideStepProps) {
                     {t('guides.ps2-adapter.steps.ps2-intro.sigSck')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 7 (Blue)</Table.Td>
-                <Table.Td>GP6 (Pin 9)</Table.Td>
+                <Table.Td>{pinWithColour(7, 'blue')}</Table.Td>
+                <Table.Td>{gpWithPin(6, 9)}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
@@ -106,8 +107,8 @@ export function PS2IntroStep(props: GuideStepProps) {
                     {t('guides.ps2-adapter.steps.ps2-intro.sigMosi')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 2 (Orange)</Table.Td>
-                <Table.Td>GP3 (Pin 5)</Table.Td>
+                <Table.Td>{pinWithColour(2, 'orange')}</Table.Td>
+                <Table.Td>{gpWithPin(3, 5)}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
@@ -115,8 +116,8 @@ export function PS2IntroStep(props: GuideStepProps) {
                     {t('guides.ps2-adapter.steps.ps2-intro.sigMiso')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 1 (Brown)</Table.Td>
-                <Table.Td>GP4 (Pin 6) + 1kΩ to 3V3</Table.Td>
+                <Table.Td>{pinWithColour(1, 'brown')}</Table.Td>
+                <Table.Td>{withPullup(gpWithPin(4, 6))}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
@@ -124,8 +125,8 @@ export function PS2IntroStep(props: GuideStepProps) {
                     {t('guides.ps2-adapter.steps.ps2-intro.sigAck')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 9 (Green)</Table.Td>
-                <Table.Td>GP7 (Pin 10) + 1kΩ to 3V3</Table.Td>
+                <Table.Td>{pinWithColour(9, 'green')}</Table.Td>
+                <Table.Td>{withPullup(gpWithPin(7, 10))}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
@@ -133,8 +134,8 @@ export function PS2IntroStep(props: GuideStepProps) {
                     {t('guides.ps2-adapter.steps.ps2-intro.sigAtt')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 6 (Yellow)</Table.Td>
-                <Table.Td>GP10 (Pin 14)</Table.Td>
+                <Table.Td>{pinWithColour(6, 'yellow')}</Table.Td>
+                <Table.Td>{gpWithPin(10, 14)}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
@@ -142,8 +143,8 @@ export function PS2IntroStep(props: GuideStepProps) {
                     {t('guides.ps2-adapter.steps.ps2-intro.sigPower')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 5 (Red)</Table.Td>
-                <Table.Td>Pin 36 (3V3 OUT)</Table.Td>
+                <Table.Td>{pinWithColour(5, 'red')}</Table.Td>
+                <Table.Td>{pinWithLabel(36, '3V3 OUT')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
@@ -151,8 +152,8 @@ export function PS2IntroStep(props: GuideStepProps) {
                     {t('guides.ps2-adapter.steps.ps2-intro.sigGnd')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 4 (Black)</Table.Td>
-                <Table.Td>Pin 38 (GND)</Table.Td>
+                <Table.Td>{pinWithColour(4, 'black')}</Table.Td>
+                <Table.Td>{pinWithLabel(38, 'GND')}</Table.Td>
               </Table.Tr>
             </Table.Tbody>
           </Table>

@@ -3,6 +3,7 @@ import { ConvertedInput, enabledChildren, LegacyImportContext, setI2c, setSpi } 
 import { registerInputConverters } from '../inputs';
 import { legacy } from '../legacy';
 import { addButton, convertOutput, guitarButtonOutput, registerOutputConverters } from '../outputs';
+import { legacyWarning } from '../warnings';
 
 const ST = proto.SubType;
 const LIB = legacy.InstrumentButtonType;
@@ -18,15 +19,17 @@ const TAPS = [0, 1, 2, 3, 4];
 function warnPeripheral(
   ctx: LegacyImportContext,
   peripheral: boolean | null | undefined,
-  name: string
+  device: string
 ) {
   if (peripheral) {
-    ctx.warn(`${name} on the secondary Pico was imported onto the main Pico, so check its pins.`);
+    ctx.warn('legacyImport.peripheralMoved', {
+      device: legacyWarning(`legacyImport.peripheralDevices.${device}`),
+    });
   }
 }
 
 function warnTapBar(ctx: LegacyImportContext) {
-  ctx.warn('A tap bar binding was skipped, the tap bar can now only be bound as tap frets.');
+  ctx.warn('legacyImport.tapBarSkipped');
 }
 
 const isFiveFret = (ctx: LegacyImportContext) =>
@@ -78,9 +81,7 @@ function wiiInput(
 ): ConvertedInput | undefined {
   const name = wiiTypeName(type ?? 0);
   if (name.startsWith('NunchukAcceleration')) {
-    ctx.warn(
-      'Nunchuk acceleration bindings were skipped, the new firmware reads them on a different scale.'
-    );
+    ctx.warn('legacyImport.nunchukAcceleration');
     return undefined;
   }
   if (name === 'GuitarTapBar' || name === 'GuitarTapAll') {
@@ -89,9 +90,9 @@ function wiiInput(
   }
   const extension = wiiState(ctx).extension;
   if (extensionOf(name) !== extension) {
-    ctx.warn(
-      `Wii bindings for other extensions than the ${WII_EXTENSION_NAMES[extension]} were skipped, as a profile only uses one type of extension now. Add a profile for each other extension you use.`
-    );
+    ctx.warn('legacyImport.wiiOtherExtensions', {
+      extension: legacyWarning(`legacyImport.wiiExtensions.${extension}`),
+    });
     return undefined;
   }
   const axis = proto.WiiAxisType[`WiiAxis${name}` as keyof typeof proto.WiiAxisType];
@@ -102,7 +103,7 @@ function wiiInput(
   if (button != null) {
     return { input: { wiiButton: { deviceid, button } }, analog: false, isUint: true };
   }
-  ctx.warn("A Wii binding the new firmware doesn't have was skipped.");
+  ctx.warn('legacyImport.wiiBindingUnsupported');
   return undefined;
 }
 
@@ -117,17 +118,6 @@ const WII_EXTENSIONS = [
   'TaTaCon',
 ] as const;
 type WiiExtension = (typeof WII_EXTENSIONS)[number];
-
-const WII_EXTENSION_NAMES: Record<WiiExtension, string> = {
-  Classic: 'Classic Controller',
-  Nunchuk: 'Nunchuk',
-  Guitar: 'guitar',
-  Drum: 'drum kit',
-  Dj: 'DJ Hero turntable',
-  UDraw: 'uDraw tablet',
-  Drawsome: 'Drawsome tablet',
-  TaTaCon: 'Taiko drum',
-};
 
 // The extension an input name (without the WiiInputType_ / WiiAxis / WiiButton prefix) is on
 function extensionOf(name: string): WiiExtension | undefined {
@@ -227,19 +217,17 @@ function wiiSlot(
   scl?: number | null,
   peripheral?: boolean | null
 ) {
-  warnPeripheral(ctx, peripheral, 'A Wii extension');
+  warnPeripheral(ctx, peripheral, 'wiiExtension');
   const state = wiiState(ctx);
   const key = `${sda},${scl}`;
   ctx.addDevice('wii', key, (dev) => setI2c(dev.i2c, sda, scl));
   state.devices.add(key);
   if (state.devices.size > 1) {
-    ctx.warn(
-      'Only one Wii extension is used per profile now, so add a profile for each other one.'
-    );
+    ctx.warn('legacyImport.wiiOneExtension');
   }
-  ctx.warn(
-    `The Wii bindings were imported for a ${WII_EXTENSION_NAMES[state.extension]}, so the profile now only works with that type of Wii extension.`
-  );
+  ctx.warn('legacyImport.wiiExtensionType', {
+    extension: legacyWarning(`legacyImport.wiiExtensions.${state.extension}`),
+  });
   const [type, ...alternatives] = WII_EXTENSION_TYPES[state.extension];
   return ctx.addSlot(
     'wii',
@@ -290,16 +278,17 @@ const PS2_GUITAR: Record<string, string> = {
   Select: 'GuitarSelect',
 };
 
+// The translation key of each controller type's name
 const PS2_TYPE_NAMES: Partial<Record<proto.PS2ControllerType, string>> = {
-  [PT.PS2ControllerTypeDualshock2]: 'DualShock 2',
-  [PT.PS2ControllerTypeDualshock]: 'DualShock',
-  [PT.PS2ControllerTypeFlightStick]: 'flight stick',
-  [PT.PS2ControllerTypeDigital]: 'digital controller',
-  [PT.PS2ControllerTypeGuitar]: 'Guitar Hero guitar',
-  [PT.PS2ControllerTypeNegCon]: 'NeGcon',
-  [PT.PS2ControllerTypeJogCon]: 'JogCon',
-  [PT.PS2ControllerTypeGunCon]: 'GunCon',
-  [PT.PS2ControllerTypeMouse]: 'PS2 mouse',
+  [PT.PS2ControllerTypeDualshock2]: 'legacyImport.ps2Types.Dualshock2',
+  [PT.PS2ControllerTypeDualshock]: 'legacyImport.ps2Types.Dualshock',
+  [PT.PS2ControllerTypeFlightStick]: 'legacyImport.ps2Types.FlightStick',
+  [PT.PS2ControllerTypeDigital]: 'legacyImport.ps2Types.Digital',
+  [PT.PS2ControllerTypeGuitar]: 'legacyImport.ps2Types.Guitar',
+  [PT.PS2ControllerTypeNegCon]: 'legacyImport.ps2Types.NegCon',
+  [PT.PS2ControllerTypeJogCon]: 'legacyImport.ps2Types.JogCon',
+  [PT.PS2ControllerTypeGunCon]: 'legacyImport.ps2Types.GunCon',
+  [PT.PS2ControllerTypeMouse]: 'legacyImport.ps2Types.Mouse',
 };
 const PS2_TYPES = Object.keys(PS2_TYPE_NAMES).map(Number) as proto.PS2ControllerType[];
 
@@ -418,7 +407,7 @@ function ps2Slot(
   },
   peripheral?: boolean | null
 ) {
-  warnPeripheral(ctx, peripheral, 'A PS2 controller');
+  warnPeripheral(ctx, peripheral, 'ps2Controller');
   const state = ps2State(ctx);
   const key = [pins.mosi, pins.miso, pins.sck, pins.att, pins.ack].join(',');
   ctx.addDevice('psx', key, (dev) => {
@@ -428,13 +417,11 @@ function ps2Slot(
   });
   state.devices.add(key);
   if (state.devices.size > 1) {
-    ctx.warn(
-      'Only one PS2 controller is used per profile now, so add a profile for each other one.'
-    );
+    ctx.warn('legacyImport.ps2OneController');
   }
-  ctx.warn(
-    `The PS2 bindings were imported for a ${PS2_TYPE_NAMES[state.type]}, so the profile now only works with that type of PS2 controller.`
-  );
+  ctx.warn('legacyImport.ps2ControllerType', {
+    controller: legacyWarning(PS2_TYPE_NAMES[state.type]!),
+  });
   return ctx.addSlot('psx', 'main', { ps2Cnt: state.type });
 }
 
@@ -451,9 +438,9 @@ function ps2Input(
   const state = ps2State(ctx);
   const target = ps2Target(t, state.type);
   if (!target) {
-    ctx.warn(
-      `PS2 bindings that a ${PS2_TYPE_NAMES[state.type]} doesn't have were skipped. Add a profile for each other type of PS2 controller you use.`
-    );
+    ctx.warn('legacyImport.ps2BindingsMissing', {
+      controller: legacyWarning(PS2_TYPE_NAMES[state.type]!),
+    });
     return undefined;
   }
   return target.axis != null
@@ -467,7 +454,7 @@ function ps2Input(
 
 function combinedDevice(ctx: LegacyImportContext, kind: string) {
   if (ctx.combined?.kind !== kind) {
-    ctx.warn('A combined input outside of its device was skipped.');
+    ctx.warn('legacyImport.combinedOutsideDevice');
     return undefined;
   }
   return ctx.combined.deviceid;
@@ -575,7 +562,7 @@ const WII_STICKS: [legacy.WiiInputType, legacy.WiiInputType][] = [
 function helperInput(ctx: LegacyImportContext, wii: boolean | null | undefined) {
   const kind = wii ? 'wii' : 'psx';
   if (ctx.combined?.kind !== kind) {
-    ctx.warn(`A ${wii ? 'Wii' : 'PS2'} shortcut binding outside of its device was skipped.`);
+    ctx.warn(wii ? 'legacyImport.wiiShortcutOutside' : 'legacyImport.ps2ShortcutOutside');
     return undefined;
   }
   return (type: number): legacy.ISerializedInput =>
@@ -668,9 +655,7 @@ export function convertWiiPs2Settings(ctx: LegacyImportContext): proto.IProfileA
       setI2c(dev.i2c, old.wiiOutputSda, old.wiiOutputScl)
     );
     if (old.hasWiiOutputEn) {
-      ctx.warn(
-        'The Wii output enable pin was skipped, the new firmware detects the Wii Remote itself.'
-      );
+      ctx.warn('legacyImport.wiiOutputEnable');
     }
     assignments.push({ wiiEmulation: {} });
   }

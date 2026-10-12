@@ -29,6 +29,7 @@ import { StepWorkbench } from '../components/StepWorkbench';
 import { findDeviceStatus } from '../guideConfig';
 import { GuideStepProps } from '../types';
 import { ensureUsbHost, profileHasUsbSlot, usbHostPins } from '../usb/usbHostUtils';
+import { gpWithPin, IMAGE_ALT, labelWithPin, pinWithLabel } from '../wiringText';
 import {
   addAuthChip,
   authChipPinsSet,
@@ -177,11 +178,11 @@ function UsbHostSetup() {
           <Table.Tbody>
             <Table.Tr>
               <Table.Td>VBUS (5V)</Table.Td>
-              <Table.Td>Pin 40 (VBUS)</Table.Td>
+              <Table.Td>{pinWithLabel(40, 'VBUS')}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>GND</Table.Td>
-              <Table.Td>Pin 38 (GND)</Table.Td>
+              <Table.Td>{pinWithLabel(38, 'GND')}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>D+</Table.Td>
@@ -239,23 +240,19 @@ function AuthChipSetup() {
           <Table.Tbody>
             <Table.Tr>
               <Table.Td>SDA</Table.Td>
-              <Table.Td>
-                GP{XBOX_AUTH_I2C.sda} (Pin {XBOX_AUTH_I2C_PHYSICAL.sda})
-              </Table.Td>
+              <Table.Td>{gpWithPin(XBOX_AUTH_I2C.sda, XBOX_AUTH_I2C_PHYSICAL.sda)}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>SCL</Table.Td>
-              <Table.Td>
-                GP{XBOX_AUTH_I2C.scl} (Pin {XBOX_AUTH_I2C_PHYSICAL.scl})
-              </Table.Td>
+              <Table.Td>{gpWithPin(XBOX_AUTH_I2C.scl, XBOX_AUTH_I2C_PHYSICAL.scl)}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>3.3V</Table.Td>
-              <Table.Td>3V3(OUT) (Pin 36)</Table.Td>
+              <Table.Td>{labelWithPin('3V3(OUT)', 36)}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>GND</Table.Td>
-              <Table.Td>GND (Pin 38)</Table.Td>
+              <Table.Td>{labelWithPin('GND', 38)}</Table.Td>
             </Table.Tr>
             <Table.Tr>
               <Table.Td>{t(`${P}.auth-wiring.resetLabel`)}</Table.Td>
@@ -308,7 +305,7 @@ export function XboxAuthWiringStep(props: GuideStepProps) {
       {method === 'usb' ? (
         <>
           <Text size="sm">{t(`${P}.auth-wiring.usbIntro`)}</Text>
-          <Image src="/guides/usb/usb.svg" radius="md" alt="USB Host cable wiring" />
+          <Image src="/guides/usb/usb.svg" radius="md" alt={t(`${IMAGE_ALT}.usbHostCable`)} />
           <Text size="xs" c="dimmed" ta="center">
             {t(`${P}.auth-wiring.usbCaption`)}
           </Text>
@@ -337,7 +334,7 @@ export function XboxAuthWiringStep(props: GuideStepProps) {
             radius="md"
             maw={356}
             mx="auto"
-            alt="Xbox One auth chip pinout"
+            alt={t(`${IMAGE_ALT}.xboxOneAuthChip`)}
           />
           <Text size="xs" c="dimmed" ta="center">
             {t(`${P}.auth-wiring.chipPinoutCaption`)}

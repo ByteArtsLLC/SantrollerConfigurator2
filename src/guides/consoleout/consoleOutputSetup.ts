@@ -4,6 +4,7 @@ import { proto } from '@/components/SettingsContext/config';
 import { ConfigState, useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { findDeviceStatus } from '../guideConfig';
 import { ensureUsbHost, usbHostPins } from '../usb/usbHostUtils';
+import { gpWithPin } from '../wiringText';
 
 export type ConsoleTarget = 'wii' | 'ps2';
 
@@ -56,7 +57,7 @@ export const picoPinLabel = (gp: number | null | undefined) =>
   gp == null || gp < 0
     ? '-'
     : PICO_PHYSICAL_PIN[gp] != null
-      ? `GP${gp} (Pin ${PICO_PHYSICAL_PIN[gp]})`
+      ? gpWithPin(gp, PICO_PHYSICAL_PIN[gp])
       : `GP${gp}`;
 
 const DEVICE_KIND = { wii: 'wiiEmulation', ps2: 'psxEmulation' } as const;

@@ -1111,6 +1111,7 @@ function APA102Device({ id }: { id: string }) {
   );
 }
 function STP16CPCDevice({ id }: { id: string }) {
+  const { t } = useTranslation();
   const status = useConfigStore((state) => state.deviceStatus[id]);
   const updateDevice = useConfigStore((state) => state.updateDevice);
   const deleteDevice = useConfigStore((state) => state.deleteDevice);
@@ -1152,7 +1153,7 @@ function STP16CPCDevice({ id }: { id: string }) {
         }
       />
       <NumberInput
-        label="stp16cpc.count"
+        label={t('stp16cpc.count')}
         value={stp16cpc.count}
         onChange={(val) =>
           updateDevice(
@@ -1508,7 +1509,7 @@ function MultiplexerDevice({ id }: { id: string }) {
   );
 }
 const cycleData = Object.keys(proto.CycleType).map((t) => ({
-  label: `cycle.labels.${t.toLowerCase()}`,
+  label: `cycle.label.${t.toLowerCase()}`,
   value: t,
 }));
 function CycleDevice({ id }: { id: string }) {
@@ -2270,7 +2271,7 @@ function SwitchNetworkDevice({ id }: { id: string }) {
               }}
             />
             <PinBox
-              label={t('switchNetwork.otherPin')}
+              label={t('switchNetwork.other_pin')}
               pin={button.otherPin}
               valid={Object.fromEntries(
                 Object.entries(AllPinsNamed).filter(
@@ -2609,7 +2610,9 @@ function BluetoothDevice({ id }: { id: string }) {
                   </Table.Td>
                   <Table.Td>
                     <Badge size="xs" color={state.ble ? 'blue' : 'gray'}>
-                      {state.ble ? 'BLE' : 'Classic'}
+                      {state.ble
+                        ? t('devices.bluetooth_mode_ble')
+                        : t('devices.bluetooth_mode_classic')}
                     </Badge>
                   </Table.Td>
                   <Table.Td>

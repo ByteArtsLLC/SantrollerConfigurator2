@@ -8,7 +8,6 @@ export const WII_ADAPTER_GUITAR_GUIDE: GuideDefinition = {
   description:
     'Build an adapter using a Raspberry Pi Pico to use any Wii Guitar Hero or Rock Band guitar on PC or console with zero soldering to the guitar itself.',
   category: 'adapters',
-  difficulty: 'beginner',
   estimatedTime: '20 - 30 mins',
   featured: true,
   badge: 'Beginner Friendly',
