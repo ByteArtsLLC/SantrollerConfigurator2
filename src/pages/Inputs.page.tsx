@@ -3928,7 +3928,7 @@ function SantrollerMapping({
                             <>
                               <Space h="sm" />
                               <Text size="sm" fw={700}>
-                                {t('axis.section.start')}
+                                {t('axis.section.min')}
                               </Text>
                               <Group>
                                 <Slider
@@ -3952,7 +3952,7 @@ function SantrollerMapping({
                                 />
                               </Group>
                               <Text size="sm" fw={700}>
-                                {t('axis.section.end')}
+                                {t('axis.section.max')}
                               </Text>
                               <Group>
                                 <Slider

@@ -117,7 +117,8 @@
     "addProfile": "Add profile",
     "commercial": "Commercial Tooling",
     "supportedHardware": "Supported Hardware",
-    "compatibility": "Console Compatibility"
+    "compatibility": "Console Compatibility",
+    "differences": "Firmware Differences"
   },
   "colorScheme": {
     "light": "Light",
@@ -297,8 +298,8 @@
       "positive": "Positive half",
       "negative": "Negative half",
       "custom": "Custom",
-      "start": "Axis value at rest",
-      "end": "Axis value when fully pressed"
+      "min": "Min",
+      "max": "Max"
     },
     "pressed": "Pressed Value",
     "released": "Released Value",

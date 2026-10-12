@@ -5,6 +5,7 @@ import { CompatibilityPage } from './pages/Compatibility.page';
 import { ConnectPage } from './pages/Connect.page';
 import { DebugPage } from './pages/Debug.page';
 import { DevicesPage } from './pages/Devices.page';
+import { FirmwareDifferencesPage } from './pages/FirmwareDifferences.page';
 import { GuidePage } from './pages/Guide.page';
 import { GuideCatalogPage } from './pages/GuideCatalog.page';
 import { InputsPage } from './pages/Inputs.page';
@@ -45,6 +46,14 @@ const router = createBrowserRouter([
   {
     path: '/emulation-modes',
     element: <CompatibilityPage />,
+  },
+  {
+    path: '/differences',
+    element: <FirmwareDifferencesPage />,
+  },
+  {
+    path: '/firmware-differences',
+    element: <FirmwareDifferencesPage />,
   },
   {
     path: '/devices',

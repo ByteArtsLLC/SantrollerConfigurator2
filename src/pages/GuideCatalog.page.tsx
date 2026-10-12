@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { IconArrowRight, IconCpu, IconDeviceGamepad2, IconSearch } from '@tabler/icons-react';
+import { IconArrowRight, IconCpu, IconDeviceGamepad2, IconSearch, IconArrowsExchange } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import {
@@ -57,6 +57,16 @@ export function GuideCatalogPage() {
             </div>
 
             <Group gap="xs">
+              <Button
+                variant="light"
+                size="xs"
+                color="teal"
+                component={Link}
+                to="/differences"
+                leftSection={<IconArrowsExchange size={14} />}
+              >
+                {t('nav.differences', 'Firmware Differences')}
+              </Button>
               <Button
                 variant="light"
                 size="xs"

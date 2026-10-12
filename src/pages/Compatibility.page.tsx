@@ -14,6 +14,7 @@ import {
   IconPlug,
   IconShieldLock,
   IconTerminal2,
+  IconArrowsExchange,
 } from '@tabler/icons-react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -199,16 +200,28 @@ export function CompatibilityPage() {
               </Text>
             </div>
 
-            <Button
-              variant="light"
-              size="xs"
-              color="blue"
-              component={Link}
-              to="/supported-hardware"
-              leftSection={<IconPlug size={14} />}
-            >
-              {t('nav.supportedHardware')}
-            </Button>
+            <Group gap="xs">
+              <Button
+                variant="light"
+                size="xs"
+                color="teal"
+                component={Link}
+                to="/differences"
+                leftSection={<IconArrowsExchange size={14} />}
+              >
+                {t('nav.differences', 'Firmware Differences')}
+              </Button>
+              <Button
+                variant="light"
+                size="xs"
+                color="blue"
+                component={Link}
+                to="/supported-hardware"
+                leftSection={<IconPlug size={14} />}
+              >
+                {t('nav.supportedHardware')}
+              </Button>
+            </Group>
           </Group>
         </Stack>
 

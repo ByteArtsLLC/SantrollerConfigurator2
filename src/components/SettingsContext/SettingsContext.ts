@@ -28,6 +28,7 @@ import { importLegacyConfigs } from '@/components/Legacy/importLegacyConfig';
 import { CRC32 } from '@/CRC32.js';
 import { BluetoothConfigDevice } from './BluetoothConfigDevice';
 import { proto } from './config.js';
+import { KeepaliveTimer, startKeepaliveTimer, stopKeepaliveTimer } from './keepaliveTimer';
 import { truncateProfileName } from './profileName';
 
 // sourceId is unique per interface (including virtual wireless controller slots), older
@@ -39,6 +40,9 @@ export function usbDeviceKey(event: proto.IUsbDeviceHotplugEvent): number {
 export * from './config.js';
 const HID_RESPONSE_TIMEOUT_MS = 3_000;
 const KEEPALIVE_INTERVAL_MS = 10;
+// The debug page only shows recent output, and the tool can be left open for hours
+const MAX_CONSOLE_CHARS = 100_000;
+const MAX_MIDI_DEBUG_EVENTS = 1_000;
 const FIRMWARE_BLOCK_SIZE = 4096;
 const FIRMWARE_UPLOAD_CHUNK_SIZE = 63;
 const LEGACY_FIRMWARE_BLOCK_SIZE = 256;
@@ -417,7 +421,7 @@ export interface ConfigState {
   detecting: boolean;
   lastUpdate: number;
   writeTimeout?: NodeJS.Timeout;
-  keepaliveTimeout?: NodeJS.Timeout;
+  keepaliveTimeout?: KeepaliveTimer;
   currentProfile: number;
   currentProfileInstance: number;
   lastProfile: number;
@@ -1081,11 +1085,18 @@ export const useConfigStore = create<ConfigState & Actions>()(
       set((state) => {
         state.sendingKeepAlive = true;
       });
+      const keepalive = dev.sendFeatureReport(
+        proto.ReportId.ReportIdKeepalive,
+        new Uint8Array([0])
+      );
       try {
-        await withHidTimeout(
-          dev.sendFeatureReport(proto.ReportId.ReportIdKeepalive, new Uint8Array([0])),
-          'keepalive acknowledgement'
-        );
+        await withHidTimeout(keepalive, 'keepalive acknowledgement');
+        // The controller can stop answering for a while (e.g. the PC slept) and then come back
+        if (get().hung) {
+          set((state) => {
+            state.hung = false;
+          });
+        }
       } catch (e) {
         const updating = get().updating;
         if (!updating) {
@@ -1094,13 +1105,11 @@ export const useConfigStore = create<ConfigState & Actions>()(
         if (e instanceof HidResponseTimeoutError && !updating) {
           set((state) => {
             state.hung = true;
-            if (state.keepaliveTimeout) {
-              clearInterval(state.keepaliveTimeout);
-              state.keepaliveTimeout = undefined;
-            }
           });
         }
       }
+      // A keepalive that timed out is still in flight, so let it finish (within reason) before sending another
+      await Promise.race([keepalive.catch(() => {}), delay(HID_RESPONSE_TIMEOUT_MS)]);
       set((state) => {
         state.sendingKeepAlive = false;
       });
@@ -1280,6 +1289,9 @@ export const useConfigStore = create<ConfigState & Actions>()(
           set((state) => {
             if (deviceEvent.midiDebug) {
               state.midiData.push([...deviceEvent.midiDebug.data!]);
+              if (state.midiData.length > MAX_MIDI_DEBUG_EVENTS) {
+                state.midiData.splice(0, state.midiData.length - MAX_MIDI_DEBUG_EVENTS);
+              }
             }
           });
         }
@@ -1304,7 +1316,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         if (deviceEvent.console) {
           set((state) => {
             if (deviceEvent.console) {
-              state.console += deviceEvent.console.data;
+              state.console = (state.console + deviceEvent.console.data).slice(-MAX_CONSOLE_CHARS);
             }
           });
         }
@@ -1588,7 +1600,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       dev?.removeEventListener('inputreport', state.onReport);
       if (dev?.opened) {
         if (state.keepaliveTimeout) {
-          clearInterval(state.keepaliveTimeout);
+          stopKeepaliveTimer(state.keepaliveTimeout);
         }
         try {
           const infoBuffer2 = proto.Command.encode(
@@ -1644,7 +1656,8 @@ export const useConfigStore = create<ConfigState & Actions>()(
         true
       );
       device.addEventListener('inputreport', get().onReport);
-      const timeout = setInterval(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
+      stopKeepaliveTimer(get().keepaliveTimeout);
+      const timeout = startKeepaliveTimer(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
       await device.sendFeatureReport(proto.ReportId.ReportIdKeepalive, new Uint8Array([0]));
       let activeProfiles: number[] = [];
       try {
@@ -1722,7 +1735,8 @@ export const useConfigStore = create<ConfigState & Actions>()(
         const data = JSON.parse((await file?.text()) ?? '');
         const config = proto.Config.fromObject(data.config);
         const aux = proto.AuxConfigBlock.fromObject(data.aux);
-        const timeout = setInterval(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
+        stopKeepaliveTimer(get().keepaliveTimeout);
+        const timeout = startKeepaliveTimer(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
         set(
           (old) => ({
             ...old,
@@ -1764,8 +1778,8 @@ export const useConfigStore = create<ConfigState & Actions>()(
         });
         return;
       }
-      clearInterval(get().keepaliveTimeout);
-      const timeout = setInterval(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
+      stopKeepaliveTimer(get().keepaliveTimeout);
+      const timeout = startKeepaliveTimer(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
       set(
         (old) => ({
           ...old,
@@ -1820,33 +1834,45 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.detecting = false;
         state.polling = false;
       });
-      const infoBuffer = proto.ConfigInfo.encode(
-        proto.ConfigInfo.create({
-          dataSize: buffer.length,
-          dataCrc: crc,
-          auxSize: auxLen,
-          mainSize: mainLen,
-          magic,
-        })
-      )
-        .ldelim()
-        .finish();
-      const outBuffer = new ArrayBuffer(63);
-      new Uint8Array(outBuffer).set(infoBuffer);
-      await state.hidDevice?.sendFeatureReport(proto.ReportId.ReportIdConfigInfo, outBuffer);
-      if (buffer.length === 0) {
+      try {
+        const infoBuffer = proto.ConfigInfo.encode(
+          proto.ConfigInfo.create({
+            dataSize: buffer.length,
+            dataCrc: crc,
+            auxSize: auxLen,
+            mainSize: mainLen,
+            magic,
+          })
+        )
+          .ldelim()
+          .finish();
+        const outBuffer = new ArrayBuffer(63);
+        new Uint8Array(outBuffer).set(infoBuffer);
+        await state.hidDevice?.sendFeatureReport(proto.ReportId.ReportIdConfigInfo, outBuffer);
+        if (buffer.length === 0) {
+          set((state) => {
+            state.writing = false;
+          });
+          return;
+        }
+        let start = 0;
+        const len = 63;
+        while (start < buffer.length) {
+          const slice = new ArrayBuffer(63);
+          new Uint8Array(slice).set(buffer.slice(start, start + len));
+          start += len;
+          await state.hidDevice?.sendFeatureReport(proto.ReportId.ReportIdConfig, slice);
+        }
+      } catch (e) {
+        // Left set, writing would stop the keepalives and every later save for good
+        console.error('Failed to write config', e);
         set((state) => {
           state.writing = false;
+          state.polling = true;
+          // so the next save sends it again instead of thinking the device already has it
+          state.crc = 0;
         });
         return;
-      }
-      let start = 0;
-      const len = 63;
-      while (start < buffer.length) {
-        const slice = new ArrayBuffer(63);
-        new Uint8Array(slice).set(buffer.slice(start, start + len));
-        start += len;
-        await state.hidDevice?.sendFeatureReport(proto.ReportId.ReportIdConfig, slice);
       }
       set((state) => {
         state.writing = false;
@@ -2081,7 +2107,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.waitingForReload = true;
         state.updateError = undefined;
         if (state.keepaliveTimeout) {
-          clearInterval(state.keepaliveTimeout);
+          stopKeepaliveTimer(state.keepaliveTimeout);
           state.keepaliveTimeout = undefined;
         }
       });
@@ -2267,7 +2293,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         const current = get();
         const timeout =
           current.hidDevice?.opened && !current.keepaliveTimeout
-            ? setInterval(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS)
+            ? startKeepaliveTimer(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS)
             : current.keepaliveTimeout;
         set((state) => {
           state.updatePercentage = 0;
@@ -2324,7 +2350,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.updating = true;
         state.waitingForReload = false;
         if (state.keepaliveTimeout) {
-          clearInterval(state.keepaliveTimeout);
+          stopKeepaliveTimer(state.keepaliveTimeout);
           state.keepaliveTimeout = undefined;
         }
       });
@@ -2442,7 +2468,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         const current = get();
         const timeout =
           current.hidDevice?.opened && !current.keepaliveTimeout
-            ? setInterval(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS)
+            ? startKeepaliveTimer(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS)
             : current.keepaliveTimeout;
         set((state) => {
           state.updatePercentage = 0;
@@ -2528,7 +2554,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
           }
           const config = proto.Config.decode(data, info.mainSize);
           const aux = proto.AuxConfigBlock.decode(data.slice(info.mainSize), info.auxSize);
-          const timeout = setInterval(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
+          const timeout = startKeepaliveTimer(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
           set(
             (old) => ({
               ...old,

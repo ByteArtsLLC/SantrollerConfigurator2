@@ -17,6 +17,7 @@ import {
   IconSun,
   IconTag,
   IconTrash,
+  IconGitCompare,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -286,6 +287,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
             }}
             label={t('nav.compatibility', 'Console Compatibility')}
             leftSection={<IconDeviceGamepad2 size={16} stroke={1.5} />}
+          />
+          <NavLink
+            component={RouterNavLink}
+            to="/differences"
+            onClick={() => {
+              pollInputs(false);
+              nav('/differences');
+            }}
+            label={t('nav.differences', 'Firmware Differences')}
+            leftSection={<IconGitCompare size={16} stroke={1.5} />}
           />
           {!connected && (
             <NavLink
