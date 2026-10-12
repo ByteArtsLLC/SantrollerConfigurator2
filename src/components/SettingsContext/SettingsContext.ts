@@ -482,7 +482,7 @@ export interface Actions {
   reconnect: (device: HIDDevice) => void;
   bootloader: () => void;
   deleteAllDevices: () => void;
-  addDevice: (type: string, parentId?: string) => void;
+  addDevice: (type: string, parentId?: string, fill?: (device: proto.IDevice) => void) => string;
   onReport: (evt: HIDInputReportEvent) => void;
   setActiveProfile: (id: string | null, instance?: number) => void;
   sendKeepAlive: () => void;
@@ -1244,11 +1244,6 @@ export const useConfigStore = create<ConfigState & Actions>()(
             delete state.deviceStatus[k];
           }
         }
-        state.mappingStatus = state.mappingStatus.map((x) =>
-          Object.fromEntries(
-            Object.entries(x).filter(([_, x]) => !inputUsesDevice(x.mapping.input, idNum))
-          )
-        );
         state.config.profiles = state.config.profiles!.map((p) => ({
           ...p,
           mappings: p.mappings?.filter((x) => !inputUsesDevice(x.input, idNum)),
@@ -1264,20 +1259,27 @@ export const useConfigStore = create<ConfigState & Actions>()(
             (x) => !x.mapping.inputMapping || !inputUsesDevice(x.mapping.inputMapping.input, idNum)
           ),
         }));
+        // Status is keyed by mapping index, so rebuild it to line up with the shortened mappings
+        state.mappingStatus = state.config.profiles.map((p) =>
+          Object.fromEntries((p.mappings ?? []).map((x, i) => [i, new MappingStatus(i, x)]))
+        );
       });
       get().saveConfig();
     },
-    addDevice: (type: string, parentId?: string) => {
+    addDevice: (type: string, parentId?: string, fill?: (device: proto.IDevice) => void) => {
+      let id = '0';
       set((state) => {
-        let id = '0';
         if (Object.keys(state.deviceStatus).length) {
           id = (
             Math.max(...Object.values(state.deviceStatus).map((x) => x.device.deviceid)) + 1
           ).toString();
         }
-        state.deviceStatus[id] = createDefault(type, id, parentId);
+        const status = createDefault(type, id, parentId);
+        fill?.(status.device);
+        state.deviceStatus[id] = status;
       });
       get().saveConfig();
+      return id;
     },
     onReport: (evt: HIDInputReportEvent) => {
       if (evt.reportId !== proto.ReportId.ReportIdConfig) {

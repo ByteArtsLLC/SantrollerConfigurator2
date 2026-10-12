@@ -5,7 +5,9 @@ import { Badge, Button, Card, Image, Paper, Stack, Table, Text, Title } from '@m
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
+import { findDeviceStatus } from '../guideConfig';
 import { GuideStepProps } from '../types';
+import { ensureUsbHost, profileHasUsbSlot, usbHostPins } from './usbHostUtils';
 
 // Step 1: Supplies & Intro
 export function UsbHostIntroStep(props: GuideStepProps) {
@@ -51,7 +53,6 @@ export function UsbHostIntroStep(props: GuideStepProps) {
               <Table.Tr>
                 <Table.Td>
                   <Badge color="red" size="xs">
-                    Red
                     {t('guides.usb-host.steps.usb-intro.colorRed')}
                   </Badge>
                 </Table.Td>
@@ -61,7 +62,6 @@ export function UsbHostIntroStep(props: GuideStepProps) {
               <Table.Tr>
                 <Table.Td>
                   <Badge color="gray" size="xs">
-                    Black
                     {t('guides.usb-host.steps.usb-intro.colorBlack')}
                   </Badge>
                 </Table.Td>
@@ -71,22 +71,18 @@ export function UsbHostIntroStep(props: GuideStepProps) {
               <Table.Tr>
                 <Table.Td>
                   <Badge color="green" size="xs">
-                    Green
                     {t('guides.usb-host.steps.usb-intro.colorGreen')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>D+ (Data Plus)</Table.Td>
                 <Table.Td>{t('guides.usb-host.steps.usb-intro.signalDPlus')}</Table.Td>
                 <Table.Td>GP2 (Pin 4)</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>
                   <Badge color="yellow" size="xs">
-                    White
                     {t('guides.usb-host.steps.usb-intro.colorWhite')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>D- (Data Minus)</Table.Td>
                 <Table.Td>{t('guides.usb-host.steps.usb-intro.signalDMinus')}</Table.Td>
                 <Table.Td>GP3 (Pin 5)</Table.Td>
               </Table.Tr>
@@ -116,17 +112,10 @@ export function UsbHostIntroStep(props: GuideStepProps) {
 // Step 2: Wiring & Configuration
 export function UsbHostWiringStep(props: GuideStepProps) {
   const { t } = useTranslation();
-  const addDevice = useConfigStore((state) => state.addDevice);
-  const devices = useConfigStore((state) => state.config.devices);
   const connected = useConfigStore((state) => state.connected);
-
-  const hasUsbHost = devices?.some((d) => d.usbHost !== undefined && d.usbHost !== null);
-
-  const handleConfigureUsbHost = () => {
-    if (!hasUsbHost) {
-      addDevice('usbHost');
-    }
-  };
+  const usbHost = useConfigStore((state) => findDeviceStatus(state, 'usbHost'))?.device.usbHost;
+  const hasUsbSlot = useConfigStore(profileHasUsbSlot);
+  const pins = usbHostPins(usbHost);
 
   const guideContent = (
     <Stack gap="md">
@@ -149,16 +138,16 @@ export function UsbHostWiringStep(props: GuideStepProps) {
             {t('guides.usb-host.steps.usb-wiring.driverConfigDesc')}
           </Text>
 
-          {hasUsbHost ? (
+          {usbHost && hasUsbSlot ? (
             <Badge color="teal" size="md" variant="filled" leftSection={<IconCheck size={14} />}>
-              {t('guides.usb-host.steps.usb-wiring.driverConfiguredBadge')}
+              {t('guides.usb-host.steps.usb-wiring.driverConfiguredBadge', pins)}
             </Badge>
           ) : (
             <Button
               size="sm"
               color="teal"
               leftSection={<IconUsb size={16} />}
-              onClick={handleConfigureUsbHost}
+              onClick={() => ensureUsbHost()}
               disabled={!connected}
             >
               {t('guides.usb-host.steps.usb-wiring.enableDriverBtn')}
@@ -190,6 +179,8 @@ export function UsbHostReviewStep(props: GuideStepProps) {
   const { t } = useTranslation();
   const commitConfig = useConfigStore((state) => state.commitConfig);
   const connected = useConfigStore((state) => state.connected);
+  const usbHostStatus = useConfigStore((state) => findDeviceStatus(state, 'usbHost'));
+  const detectedCount = Object.keys(usbHostStatus?.usbDevices ?? {}).length;
 
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
@@ -236,16 +227,30 @@ export function UsbHostReviewStep(props: GuideStepProps) {
           <Text size="xs" fw={600} c="dimmed">
             {t('guides.usb-host.steps.usb-test.telemetryTitle')}
           </Text>
-          <Badge
-            size="lg"
-            color="teal"
-            variant="light"
-            leftSection={<IconPlugConnected size={16} />}
-          >
-            {t('guides.usb-host.steps.usb-test.portReadyBadge')}
-          </Badge>
+          {!usbHostStatus ? (
+            <Badge size="lg" color="gray" variant="light" leftSection={<IconUsb size={16} />}>
+              {t('guides.usb-host.steps.usb-test.notConfiguredBadge')}
+            </Badge>
+          ) : connected && detectedCount > 0 ? (
+            <Badge
+              size="lg"
+              color="teal"
+              variant="light"
+              leftSection={<IconPlugConnected size={16} />}
+            >
+              {t('guides.usb-host.steps.usb-test.detectedBadge', { count: detectedCount })}
+            </Badge>
+          ) : (
+            <Badge size="lg" color="yellow" variant="light" leftSection={<IconUsb size={16} />}>
+              {t('guides.usb-host.steps.usb-test.waitingBadge')}
+            </Badge>
+          )}
           <Text size="xs" c="dimmed">
-            {t('guides.usb-host.steps.usb-test.verifyPrompt')}
+            {!usbHostStatus
+              ? t('guides.usb-host.steps.usb-test.notConfiguredPrompt')
+              : connected
+                ? t('guides.usb-host.steps.usb-test.verifyPrompt')
+                : t('guides.usb-host.steps.usb-test.connectPrompt')}
           </Text>
         </Stack>
       </Paper>
@@ -262,7 +267,6 @@ export function UsbHostReviewStep(props: GuideStepProps) {
       workbenchContent={workbenchContent}
       isFirstStep={props.isFirstStep}
       isLastStep={props.isLastStep}
-      nextLabel={t('guides.usb-host.steps.usb-test.finish')}
       onNext={props.onNext}
       onPrevious={props.onPrevious}
     />

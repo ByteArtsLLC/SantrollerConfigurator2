@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { IconArrowLeft } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Box, Button, Container, Group, Stack, Text, Title } from '@mantine/core';
 import { Layout } from '@/components/Layout/Layout';
 import { GuideStepNav } from '@/guides/components/GuideStepNav';
@@ -10,6 +10,7 @@ import { getLocalizedGuide, useGuideById } from '@/guides/registry';
 
 export function GuidePage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { guideId } = useParams<{ guideId?: string }>();
   const guide = useGuideById(guideId) ?? getLocalizedGuide(DIRECT_PICO_GUITAR_GUIDE, t);
 
@@ -57,6 +58,13 @@ export function GuidePage() {
     }
   };
 
+  // Finishing starts the guide over next time and heads back to the catalog
+  const handleFinish = () => {
+    handleStepChange(0);
+    navigate('/guides');
+  };
+
+  const isLastStep = activeStep === guide.steps.length - 1;
   const currentStep = guide.steps[activeStep] ?? guide.steps[0];
   const StepComponent = currentStep.render;
 
@@ -108,8 +116,8 @@ export function GuidePage() {
         <Box mt="md">
           <StepComponent
             isFirstStep={activeStep === 0}
-            isLastStep={activeStep === guide.steps.length - 1}
-            onNext={() => handleStepChange(activeStep + 1)}
+            isLastStep={isLastStep}
+            onNext={isLastStep ? handleFinish : () => handleStepChange(activeStep + 1)}
             onPrevious={() => handleStepChange(activeStep - 1)}
           />
         </Box>

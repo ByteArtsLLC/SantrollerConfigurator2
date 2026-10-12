@@ -1,20 +1,45 @@
 import React from 'react';
-import { IconInfoCircle } from '@tabler/icons-react';
+import { IconCheck, IconInfoCircle, IconPlugConnected } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { Alert, List, Stack, Tabs, Text } from '@mantine/core';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Group,
+  List,
+  Progress,
+  Stack,
+  Tabs,
+  Text,
+} from '@mantine/core';
+import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { InputTestRow } from '@/guides/components/InputTestRow';
 import { StepWorkbench } from '@/guides/components/StepWorkbench';
 import { GuideStepProps } from '@/guides/types';
-import { GUITAR_TARGETS } from '../guitarMappingUtils';
+import {
+  configureAccelerometerTilt,
+  getTargetAnalogValue,
+  GUITAR_TARGETS,
+  isAccelerometerTiltConfigured,
+} from '../guitarMappingUtils';
 
 export function TiltStep(props: GuideStepProps) {
   const { t } = useTranslation();
+  const connected = useConfigStore((state) => state.connected);
+  const isAccelActive = useConfigStore(isAccelerometerTiltConfigured);
+  const tiltValue = useConfigStore((s) =>
+    isAccelActive ? getTargetAnalogValue(s, GUITAR_TARGETS.TILT) : 0
+  );
+  const [tab, setTab] = React.useState<string | null>(() =>
+    isAccelerometerTiltConfigured(useConfigStore.getState()) ? 'i2c' : 'digital'
+  );
 
   const guideContent = (
     <Stack gap="md">
       <Text size="sm">{t('guides.direct-pico-guitar.steps.tilt.intro')}</Text>
 
-      <Tabs defaultValue="digital">
+      <Tabs value={tab} onChange={setTab}>
         <Tabs.List>
           <Tabs.Tab value="digital">
             {t('guides.direct-pico-guitar.steps.tilt.tabDigital')}
@@ -49,14 +74,17 @@ export function TiltStep(props: GuideStepProps) {
               <List.Item>{t('guides.direct-pico-guitar.steps.tilt.i2cSda')}</List.Item>
               <List.Item>{t('guides.direct-pico-guitar.steps.tilt.i2cScl')}</List.Item>
             </List>
+            <Text size="xs" c="dimmed">
+              {t('guides.direct-pico-guitar.steps.tilt.i2cShared')}
+            </Text>
           </Stack>
         </Tabs.Panel>
       </Tabs>
     </Stack>
   );
 
-  const workbenchContent = (
-    <Stack gap="sm">
+  const digitalBench = (
+    <>
       <Text size="xs" c="dimmed">
         {t('guides.direct-pico-guitar.steps.tilt.benchHint')}
       </Text>
@@ -76,8 +104,63 @@ export function TiltStep(props: GuideStepProps) {
       >
         <Text size="xs">{t('guides.direct-pico-guitar.steps.tilt.invertDesc')}</Text>
       </Alert>
-    </Stack>
+    </>
   );
+
+  const accelBench = (
+    <>
+      <Card withBorder radius="md" p="sm">
+        <Stack gap="xs">
+          <Text fw={700} size="sm">
+            {t('guides.direct-pico-guitar.steps.tilt.accelDriverTitle')}
+          </Text>
+          <Text size="xs" c="dimmed">
+            {t('guides.direct-pico-guitar.steps.tilt.accelDriverDesc')}
+          </Text>
+          {isAccelActive ? (
+            <Badge color="teal" size="md" variant="filled" leftSection={<IconCheck size={14} />}>
+              {t('guides.direct-pico-guitar.steps.tilt.accelDriverActive')}
+            </Badge>
+          ) : (
+            <Button
+              size="sm"
+              color="teal"
+              leftSection={<IconPlugConnected size={16} />}
+              onClick={configureAccelerometerTilt}
+              disabled={!connected}
+            >
+              {t('guides.direct-pico-guitar.steps.tilt.accelDriverBtn')}
+            </Button>
+          )}
+        </Stack>
+      </Card>
+
+      {isAccelActive && (
+        <Stack gap={2}>
+          <Group justify="space-between">
+            <Text size="xs" c="dimmed">
+              {t('guides.direct-pico-guitar.steps.tilt.accelBenchHint')}
+            </Text>
+            <Text size="xs" style={{ fontFamily: 'monospace' }}>
+              {tiltValue} / 65535
+            </Text>
+          </Group>
+          <Progress value={(tiltValue / 65535) * 100} color="teal" size="xs" radius="sm" />
+        </Stack>
+      )}
+
+      <Alert
+        color="blue"
+        icon={<IconInfoCircle size={14} />}
+        title={t('guides.direct-pico-guitar.steps.tilt.accelAxisTitle')}
+        mt="xs"
+      >
+        <Text size="xs">{t('guides.direct-pico-guitar.steps.tilt.accelAxisDesc')}</Text>
+      </Alert>
+    </>
+  );
+
+  const workbenchContent = <Stack gap="sm">{tab === 'i2c' ? accelBench : digitalBench}</Stack>;
 
   return (
     <StepWorkbench

@@ -1,10 +1,10 @@
 import React from 'react';
 import { IconFocusCentered } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { create } from 'zustand';
 import { Badge, Button, Group, Paper, Progress, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { proto } from '@/components/SettingsContext/config';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
-import { AllPins, AnalogPins } from '@/devices/pico/pins';
 import {
   findMappingIndex,
   getTargetAnalogValue,
@@ -13,6 +13,14 @@ import {
   PinMappingTarget,
   setTargetPin,
 } from '../guitar/guitarMappingUtils';
+
+// GPIOs broken out on the Pico header: GP23-25 are internal and GP29 senses VSYS
+const HEADER_PINS = [...Array.from({ length: 23 }, (_, i) => i), 26, 27, 28];
+const HEADER_ANALOG_PINS = [26, 27, 28];
+
+// The firmware only runs one pin detection at a time, so only the row that started the most
+// recent probe may take the detected pin
+const useActiveProbe = create<{ id: string | null }>(() => ({ id: null }));
 
 export interface InputTestRowProps {
   label: string;
@@ -41,22 +49,37 @@ export function InputTestRow({
   );
   const currentPin = useConfigStore((state) => getTargetPin(state, target));
 
-  const [isProbingThis, setIsProbingThis] = React.useState(false);
+  const probeId = React.useId();
+  const isActiveProbe = useActiveProbe((s) => s.id === probeId);
+  const isProbingThis = isActiveProbe && detecting;
 
-  // If we were probing this input and a pin was detected, set it!
+  // Once detection ends, take the pin if one was found, and disarm either way (a config save
+  // also cuts detection short)
   React.useEffect(() => {
-    if (isProbingThis && !detecting && detected !== undefined && detected >= 0) {
-      setTargetPin(target, detected, isAnalog);
-      setIsProbingThis(false);
+    if (!isActiveProbe || detecting) {
+      return;
     }
-  }, [isProbingThis, detecting, detected, target, isAnalog]);
+    useActiveProbe.setState({ id: null });
+    if (detected !== undefined && detected >= 0) {
+      setTargetPin(target, detected, isAnalog);
+    }
+  }, [isActiveProbe, detecting, detected, target, isAnalog]);
+
+  React.useEffect(
+    () => () => {
+      if (useActiveProbe.getState().id === probeId) {
+        useActiveProbe.setState({ id: null });
+      }
+    },
+    [probeId]
+  );
 
   const handleStartProbe = () => {
     const store = useConfigStore.getState();
     const profile = store.config.profiles?.[store.currentProfile];
     const mappingIdx = findMappingIndex(profile, target);
 
-    setIsProbingThis(true);
+    // Start detection first so this row never sees itself armed with detection still off
     detectPins(
       undefined,
       mappingIdx >= 0 ? mappingIdx : undefined,
@@ -64,9 +87,12 @@ export function InputTestRow({
       undefined,
       isAnalog ? proto.PinDetectType.DetectAnalog : proto.PinDetectType.DetectDigital
     );
+    if (useConfigStore.getState().detecting) {
+      useActiveProbe.setState({ id: probeId });
+    }
   };
 
-  const pinOptions = (isAnalog ? AnalogPins : AllPins).map((p) => ({
+  const pinOptions = (isAnalog ? HEADER_ANALOG_PINS : HEADER_PINS).map((p) => ({
     value: String(p),
     label: `GP${p}${isAnalog ? ` (ADC${p - 26})` : ''}`,
   }));
@@ -149,15 +175,15 @@ export function InputTestRow({
             <Tooltip label={t('guides.probeTooltip')}>
               <Button
                 size="xs"
-                variant={isProbingThis && detecting ? 'filled' : 'default'}
-                color={isProbingThis && detecting ? 'red' : undefined}
+                variant={isProbingThis ? 'filled' : 'default'}
+                color={isProbingThis ? 'red' : undefined}
                 disabled={!connected}
-                loading={isProbingThis && detecting}
+                loading={isProbingThis}
                 onClick={handleStartProbe}
                 leftSection={<IconFocusCentered size={13} />}
                 px={8}
               >
-                {isProbingThis && detecting ? t('guides.pressNow') : t('guides.probe')}
+                {isProbingThis ? t('guides.pressNow') : t('guides.probe')}
               </Button>
             </Tooltip>
           </Group>

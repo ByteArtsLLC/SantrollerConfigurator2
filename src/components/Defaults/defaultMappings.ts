@@ -159,6 +159,19 @@ function ps2Button(
     },
   };
 }
+// A digital button driving an axis (eg a tilt switch) has no range to calibrate, so it sends a
+// fixed value while pressed
+function ps2ButtonAxis(
+  button: proto.PS2ButtonType,
+  deviceid: number,
+  output: proto.IOutput
+): proto.IMapping {
+  return {
+    ...ps2Button(button, deviceid, output),
+    pressed: 65535,
+    center: 0,
+  };
+}
 function ps2TriggerButton(
   button: proto.PS2ButtonType,
   deviceid: number,
@@ -1754,7 +1767,7 @@ export function getPs2Defaults(
         ps2Button(proto.PS2ButtonType.PS2ButtonGuitarStart, deviceId, {
           gamepadButton: proto.GamepadButtonType.Gamepad_Start,
         }),
-        ps2Button(proto.PS2ButtonType.PS2ButtonGuitarTilt, deviceId, {
+        ps2ButtonAxis(proto.PS2ButtonType.PS2ButtonGuitarTilt, deviceId, {
           rbAxis: proto.RockBandGuitarAxisType.RockBandGuitar_Tilt,
         }),
         ps2Button(proto.PS2ButtonType.PS2ButtonGuitarTapGreen, deviceId, {
@@ -1820,7 +1833,7 @@ export function getPs2Defaults(
       ps2Button(proto.PS2ButtonType.PS2ButtonGuitarStart, deviceId, {
         gamepadButton: proto.GamepadButtonType.Gamepad_Start,
       }),
-      ps2Button(proto.PS2ButtonType.PS2ButtonGuitarTilt, deviceId, {
+      ps2ButtonAxis(proto.PS2ButtonType.PS2ButtonGuitarTilt, deviceId, {
         ghAxis: proto.GuitarHeroGuitarAxisType.GuitarHeroGuitar_Tilt,
       }),
       ps2Button(proto.PS2ButtonType.PS2ButtonGuitarTapGreen, deviceId, {

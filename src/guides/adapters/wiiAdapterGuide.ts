@@ -13,10 +13,9 @@ export const WII_ADAPTER_GUITAR_GUIDE: GuideDefinition = {
   featured: true,
   badge: 'Beginner Friendly',
   supplies: [
-    'Raspberry Pi Pico 1 or 2',
-    'Wii Extension Socket / Breakout',
-    'Soldering Iron',
-    '4 Wires',
+    'Raspberry Pi Pico 1 or Pico 2',
+    'Wii Extension Breakout Board or cut extension cable',
+    'Soldering Iron & 4 wires',
   ],
   steps: [
     {
@@ -30,7 +29,7 @@ export const WII_ADAPTER_GUITAR_GUIDE: GuideDefinition = {
       id: 'wii-wiring',
       title: 'Wii Pinout & Wiring',
       shortTitle: 'Wiring',
-      description: 'Connect 3.3V, GND, SDA (GP18), and SCL (GP19).',
+      description: 'Wire 3.3V, Ground, SDA, and SCL, and add the Wii guitar to your profile.',
       badge: '4 Wires',
       render: WiiWiringStep,
     },
@@ -38,7 +37,7 @@ export const WII_ADAPTER_GUITAR_GUIDE: GuideDefinition = {
       id: 'wii-test',
       title: 'Live Test & Save',
       shortTitle: 'Test & Save',
-      description: 'Plug in your guitar, verify extension detection, and save to flash.',
+      description: 'Plug in your guitar, test inputs live, and save the adapter configuration.',
       badge: 'Save to Pico',
       render: WiiReviewStep,
     },

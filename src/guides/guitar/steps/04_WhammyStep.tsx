@@ -53,7 +53,7 @@ export function WhammyStep(props: GuideStepProps) {
           <Card withBorder radius="md" p="sm">
             <Stack gap="xs">
               <Text fw={700} size="sm">
-                Pickup Selector Wiring
+                {t('guides.direct-pico-guitar.steps.whammy.pickupWiringTitle')}
               </Text>
               <List spacing="xs" size="sm">
                 <List.Item>{t('guides.direct-pico-guitar.steps.whammy.pickupCenter')}</List.Item>
@@ -114,11 +114,13 @@ export function WhammyStep(props: GuideStepProps) {
     <StepWorkbench
       title={
         family === 'rb'
-          ? '4. Whammy & Pickup Selector'
+          ? t('guides.direct-pico-guitar.steps.whammy.titleRb')
           : t('guides.direct-pico-guitar.steps.whammy.title')
       }
       badge={
-        family === 'rb' ? 'Analog (ADC0 & ADC1)' : t('guides.direct-pico-guitar.steps.whammy.badge')
+        family === 'rb'
+          ? t('guides.direct-pico-guitar.steps.whammy.badgeRb')
+          : t('guides.direct-pico-guitar.steps.whammy.badge')
       }
       badgeColor="grape"
       description={t('guides.direct-pico-guitar.steps.whammy.description')}

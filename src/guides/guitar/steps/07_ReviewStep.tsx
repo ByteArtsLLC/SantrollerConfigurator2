@@ -21,6 +21,7 @@ import {
   getTargetAnalogValue,
   GUITAR_TARGETS,
   isGh5NeckConfigured,
+  isMpr121Configured,
   isTargetPressed,
 } from '../guitarMappingUtils';
 import { SliderBarVisualizer, SoloFretsVisualizer } from './02_FretsStep';
@@ -54,7 +55,8 @@ export function ReviewStep(props: GuideStepProps) {
 
   const isGh5Active = useConfigStore((s) => isGh5NeckConfigured(s));
   const [fretMode] = React.useState(() => localStorage.getItem('santroller_guitar_fret_mode'));
-  const showSlider = isGh5Active || fretMode === 'gh5';
+  const isMpr121Active = useConfigStore((s) => isMpr121Configured(s));
+  const showSlider = isGh5Active || isMpr121Active || fretMode === 'gh5' || fretMode === 'mpr121';
 
   const handleSave = async () => {
     setSaving(true);
@@ -64,7 +66,7 @@ export function ReviewStep(props: GuideStepProps) {
       setSaved(true);
       setTimeout(() => setSaved(false), 4000);
     } catch (e: any) {
-      setError(e?.message ?? 'Failed to save configuration to controller');
+      setError(e?.message ?? t('guides.direct-pico-guitar.steps.review.saveErrorFallback'));
     } finally {
       setSaving(false);
     }
@@ -128,19 +130,19 @@ export function ReviewStep(props: GuideStepProps) {
           </Text>
           <Group justify="space-between" gap="xs">
             <Badge size="lg" color="green" variant={greenPressed ? 'filled' : 'outline'}>
-              GRN
+              {t('guides.direct-pico-guitar.steps.frets.shortGreen')}
             </Badge>
             <Badge size="lg" color="red" variant={redPressed ? 'filled' : 'outline'}>
-              RED
+              {t('guides.direct-pico-guitar.steps.frets.shortRed')}
             </Badge>
             <Badge size="lg" color="yellow" variant={yellowPressed ? 'filled' : 'outline'}>
-              YEL
+              {t('guides.direct-pico-guitar.steps.frets.shortYellow')}
             </Badge>
             <Badge size="lg" color="blue" variant={bluePressed ? 'filled' : 'outline'}>
-              BLU
+              {t('guides.direct-pico-guitar.steps.frets.shortBlue')}
             </Badge>
             <Badge size="lg" color="orange" variant={orangePressed ? 'filled' : 'outline'}>
-              ORG
+              {t('guides.direct-pico-guitar.steps.frets.shortOrange')}
             </Badge>
           </Group>
         </Stack>
@@ -232,7 +234,6 @@ export function ReviewStep(props: GuideStepProps) {
       workbenchContent={workbenchContent}
       isFirstStep={props.isFirstStep}
       isLastStep={props.isLastStep}
-      nextLabel={t('guides.direct-pico-guitar.steps.review.finish')}
       onNext={props.onNext}
       onPrevious={props.onPrevious}
     />

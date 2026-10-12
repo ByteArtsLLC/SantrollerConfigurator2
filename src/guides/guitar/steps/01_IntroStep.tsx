@@ -108,7 +108,9 @@ export function IntroStep(props: GuideStepProps) {
               {t('guides.direct-pico-guitar.steps.intro.standardPinout')}
             </Text>
             <Badge color={family === 'rb' ? 'violet' : 'blue'} variant="light" size="xs">
-              {family === 'rb' ? 'Rock Band' : 'Guitar Hero'}
+              {family === 'rb'
+                ? t('guides.direct-pico-guitar.steps.intro.familyNameRb')
+                : t('guides.direct-pico-guitar.steps.intro.familyNameGh')}
             </Badge>
           </Group>
 
@@ -181,7 +183,11 @@ export function IntroStep(props: GuideStepProps) {
   return (
     <StepWorkbench
       title={t('guides.direct-pico-guitar.steps.intro.title')}
-      badge={family === 'rb' ? 'Rock Band' : t('guides.direct-pico-guitar.steps.intro.badge')}
+      badge={
+        family === 'rb'
+          ? t('guides.direct-pico-guitar.steps.intro.familyNameRb')
+          : t('guides.direct-pico-guitar.steps.intro.badge')
+      }
       badgeColor={family === 'rb' ? 'violet' : 'blue'}
       description={t('guides.direct-pico-guitar.steps.intro.description')}
       guideContent={guideContent}

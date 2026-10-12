@@ -1,21 +1,118 @@
-import React from 'react';
-import { IconBulb, IconDeviceFloppy } from '@tabler/icons-react';
+import React, { useState } from 'react';
+import {
+  IconAlertTriangle,
+  IconBulb,
+  IconBulbOff,
+  IconCheck,
+  IconDeviceFloppy,
+} from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { Badge, Button, Card, Group, Image, Paper, Stack, Table, Text, Title } from '@mantine/core';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Group,
+  Image,
+  NumberInput,
+  Paper,
+  SegmentedControl,
+  Stack,
+  Table,
+  Text,
+  Title,
+} from '@mantine/core';
 import { InactivitySettings } from '@/components/Inputs/InactivitySettings';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
 import { GuideStepProps } from '../types';
+import {
+  addLedDevice,
+  APA102_MOSI_PIN,
+  APA102_SCK_PIN,
+  DEFAULT_LED_COUNT,
+  findLedDevice,
+  getLedChipType,
+  LedChipType,
+  setLedChipType,
+  setLedCount,
+  WS2812_DATA_PIN,
+} from './ledUtils';
+
+// Pico physical pin numbers for the GPIOs this guide uses
+const PHYSICAL_PIN: Record<number, number> = { 16: 21, 18: 24, 19: 25 };
+const pinLabel = (gp: number) => `GP${gp} (Pin ${PHYSICAL_PIN[gp]})`;
+
+function useLedChipType() {
+  const device = useConfigStore(findLedDevice);
+  const [chosen, setChosen] = useState<LedChipType>(() => getLedChipType());
+  // An existing LED device fixes the type; otherwise the picked type is remembered
+  const chipType: LedChipType = device ? (device.apa102 ? 'apa102' : 'ws2812') : chosen;
+  const setChipType = (type: LedChipType) => {
+    setChosen(type);
+    setLedChipType(type);
+  };
+  return { device, chipType, setChipType };
+}
+
+function LedChipTypeSelect({
+  chipType,
+  onChange,
+  disabled,
+}: {
+  chipType: LedChipType;
+  onChange: (type: LedChipType) => void;
+  disabled: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Stack gap={4}>
+      <Text size="xs" fw={700} c="dimmed">
+        {t('guides.rgb-leds.steps.led-intro.typeSelectLabel')}
+      </Text>
+      <SegmentedControl
+        size="sm"
+        value={chipType}
+        disabled={disabled}
+        onChange={(v) => onChange(v as LedChipType)}
+        data={[
+          { label: t('guides.rgb-leds.steps.led-intro.typeWs2812'), value: 'ws2812' },
+          { label: t('guides.rgb-leds.steps.led-intro.typeApa102'), value: 'apa102' },
+        ]}
+      />
+    </Stack>
+  );
+}
 
 // Step 1: Supplies & Intro
 export function LedIntroStep(props: GuideStepProps) {
   const { t } = useTranslation();
+  const { device, chipType, setChipType } = useLedChipType();
+  const isApa102 = chipType === 'apa102';
 
   const guideContent = (
     <Stack gap="md">
       <Text size="sm">{t('guides.rgb-leds.steps.led-intro.intro')}</Text>
 
+      <LedChipTypeSelect chipType={chipType} onChange={setChipType} disabled={device != null} />
+
+      <Title order={4}>{t('guides.rgb-leds.steps.led-intro.suppliesTitle')}</Title>
+      <GuideList
+        iconColor="pink"
+        items={t('guides.rgb-leds.steps.led-intro.supplies', { returnObjects: true })}
+      />
+
+      <Alert
+        color="orange"
+        icon={<IconAlertTriangle size={16} />}
+        title={t('guides.rgb-leds.steps.led-intro.levelShiftTitle')}
+      >
+        {t('guides.rgb-leds.steps.led-intro.levelShiftText')}
+      </Alert>
+
+      <Title order={4}>{t('guides.rgb-leds.steps.led-intro.inlineTitle')}</Title>
+      <Text size="sm">{t('guides.rgb-leds.steps.led-intro.inlineText')}</Text>
       <Group grow align="start">
         <Stack gap={4}>
           <Image src="/guides/leds/inline-led.jpg" radius="md" alt="Inline fret LEDs" />
@@ -24,18 +121,12 @@ export function LedIntroStep(props: GuideStepProps) {
           </Text>
         </Stack>
         <Stack gap={4}>
-          <Image src="/guides/leds/led.png" radius="md" alt="LED schematic" />
+          <Image src="/guides/leds/led.png" radius="md" alt="Inline fret LED schematic" />
           <Text size="xs" c="dimmed" ta="center">
             {t('guides.rgb-leds.steps.led-intro.schematicCaption')}
           </Text>
         </Stack>
       </Group>
-
-      <Title order={4}>{t('guides.rgb-leds.steps.led-intro.suppliesTitle')}</Title>
-      <GuideList
-        iconColor="pink"
-        items={t('guides.rgb-leds.steps.led-intro.supplies', { returnObjects: true })}
-      />
     </Stack>
   );
 
@@ -47,7 +138,9 @@ export function LedIntroStep(props: GuideStepProps) {
             {t('guides.rgb-leds.steps.led-intro.pinoutTitle')}
           </Text>
           <Text size="xs" c="dimmed">
-            {t('guides.rgb-leds.steps.led-intro.pinoutDesc')}
+            {isApa102
+              ? t('guides.rgb-leds.steps.led-intro.pinoutDescApa102')
+              : t('guides.rgb-leds.steps.led-intro.pinoutDescWs2812')}
           </Text>
 
           <Table striped highlightOnHover withTableBorder withColumnBorders>
@@ -80,23 +173,35 @@ export function LedIntroStep(props: GuideStepProps) {
               <Table.Tr>
                 <Table.Td>
                   <Badge color="blue" size="xs">
-                    Data In (DI)
+                    {isApa102 ? 'Data In (DI)' : 'Data In (DIN)'}
                   </Badge>
                 </Table.Td>
-                <Table.Td>GP3 (Pin 5)</Table.Td>
-                <Table.Td>{t('guides.rgb-leds.steps.led-intro.descData')}</Table.Td>
-              </Table.Tr>
-              <Table.Tr>
+                <Table.Td>{pinLabel(isApa102 ? APA102_MOSI_PIN : WS2812_DATA_PIN)}</Table.Td>
                 <Table.Td>
-                  <Badge color="yellow" size="xs">
-                    Clock In (CI)
-                  </Badge>
+                  {isApa102
+                    ? t('guides.rgb-leds.steps.led-intro.descDataApa102')
+                    : t('guides.rgb-leds.steps.led-intro.descData')}
                 </Table.Td>
-                <Table.Td>GP6 (Pin 9)</Table.Td>
-                <Table.Td>{t('guides.rgb-leds.steps.led-intro.descClock')}</Table.Td>
               </Table.Tr>
+              {isApa102 && (
+                <Table.Tr>
+                  <Table.Td>
+                    <Badge color="yellow" size="xs">
+                      Clock In (CI)
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>{pinLabel(APA102_SCK_PIN)}</Table.Td>
+                  <Table.Td>{t('guides.rgb-leds.steps.led-intro.descClock')}</Table.Td>
+                </Table.Tr>
+              )}
             </Table.Tbody>
           </Table>
+
+          {isApa102 && (
+            <Text size="xs" c="dimmed">
+              {t('guides.rgb-leds.steps.led-intro.apa102PinNote')}
+            </Text>
+          )}
         </Stack>
       </Card>
     </Stack>
@@ -121,19 +226,88 @@ export function LedIntroStep(props: GuideStepProps) {
 // Step 2: Wiring
 export function LedWiringStep(props: GuideStepProps) {
   const { t } = useTranslation();
+  const connected = useConfigStore((state) => state.connected);
+  const { device, chipType, setChipType } = useLedChipType();
+  const isApa102 = chipType === 'apa102';
+  const [pendingCount, setPendingCount] = useState(DEFAULT_LED_COUNT);
+  const deviceCount = device?.apa102?.count ?? device?.ws2812?.count;
+  const count = deviceCount ?? pendingCount;
+
+  const handleCountChange = (val: string | number) => {
+    const next = Math.max(1, Math.min(255, Number(val) || 1));
+    if (device) {
+      setLedCount(device, next);
+    } else {
+      setPendingCount(next);
+    }
+  };
 
   const guideContent = (
     <Stack gap="md">
+      <LedChipTypeSelect chipType={chipType} onChange={setChipType} disabled={device != null} />
+
       <Title order={4}>{t('guides.rgb-leds.steps.led-wiring.wiringTitle')}</Title>
       <GuideList
         type="ordered"
-        items={t('guides.rgb-leds.steps.led-wiring.wiringSteps', { returnObjects: true })}
+        items={
+          isApa102
+            ? t('guides.rgb-leds.steps.led-wiring.wiringStepsApa102', { returnObjects: true })
+            : t('guides.rgb-leds.steps.led-wiring.wiringSteps', { returnObjects: true })
+        }
       />
+
+      <Alert
+        color="orange"
+        icon={<IconAlertTriangle size={16} />}
+        title={t('guides.rgb-leds.steps.led-intro.levelShiftTitle')}
+      >
+        {t('guides.rgb-leds.steps.led-intro.levelShiftText')}
+      </Alert>
     </Stack>
   );
 
   const workbenchContent = (
-    <Stack gap="sm">
+    <Stack gap="md">
+      <Card withBorder radius="md" p="md" bg="var(--mantine-color-body)">
+        <Stack gap="xs">
+          <Text fw={700} size="sm">
+            {t('guides.rgb-leds.steps.led-wiring.driverConfigTitle')}
+          </Text>
+          <Text size="xs" c="dimmed">
+            {isApa102
+              ? t('guides.rgb-leds.steps.led-wiring.driverConfigDescApa102')
+              : t('guides.rgb-leds.steps.led-wiring.driverConfigDescWs2812')}
+          </Text>
+
+          <NumberInput
+            size="xs"
+            label={t('guides.rgb-leds.steps.led-wiring.ledCountLabel')}
+            min={1}
+            max={255}
+            value={count}
+            onChange={handleCountChange}
+          />
+
+          {device ? (
+            <Badge color="pink" size="md" variant="filled" leftSection={<IconCheck size={14} />}>
+              {t('guides.rgb-leds.steps.led-wiring.driverConfiguredBadge', { count })}
+            </Badge>
+          ) : (
+            <Button
+              size="sm"
+              color="pink"
+              leftSection={<IconBulb size={16} />}
+              onClick={() => addLedDevice(chipType, count)}
+              disabled={!connected}
+            >
+              {isApa102
+                ? t('guides.rgb-leds.steps.led-wiring.addApa102Btn')
+                : t('guides.rgb-leds.steps.led-wiring.addWs2812Btn')}
+            </Button>
+          )}
+        </Stack>
+      </Card>
+
       <Text fw={700} size="sm">
         {t('guides.rgb-leds.steps.led-wiring.previewTitle')}
       </Text>
@@ -186,6 +360,7 @@ export function LedReviewStep(props: GuideStepProps) {
   const { t } = useTranslation();
   const commitConfig = useConfigStore((state) => state.commitConfig);
   const connected = useConfigStore((state) => state.connected);
+  const device = useConfigStore(findLedDevice);
 
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
@@ -205,7 +380,11 @@ export function LedReviewStep(props: GuideStepProps) {
 
   const guideContent = (
     <Stack gap="md">
-      <Text size="sm">{t('guides.rgb-leds.steps.led-test.configuredText')}</Text>
+      <Text size="sm">
+        {device
+          ? t('guides.rgb-leds.steps.led-test.configuredText')
+          : t('guides.rgb-leds.steps.led-test.notConfiguredText')}
+      </Text>
 
       <Title order={4}>{t('guides.rgb-leds.steps.led-test.syncTitle')}</Title>
       <Text size="sm">{t('guides.rgb-leds.steps.led-test.syncText')}</Text>
@@ -233,11 +412,25 @@ export function LedReviewStep(props: GuideStepProps) {
           <Text size="xs" fw={600} c="dimmed">
             {t('guides.rgb-leds.steps.led-test.driverStatusTitle')}
           </Text>
-          <Badge size="lg" color="pink" variant="light" leftSection={<IconBulb size={16} />}>
-            {t('guides.rgb-leds.steps.led-test.driverActiveBadge')}
-          </Badge>
+          {device ? (
+            <Badge size="lg" color="pink" variant="light" leftSection={<IconBulb size={16} />}>
+              {device.apa102
+                ? t('guides.rgb-leds.steps.led-test.driverActiveApa102', {
+                    count: device.apa102.count,
+                  })
+                : t('guides.rgb-leds.steps.led-test.driverActiveWs2812', {
+                    count: device.ws2812?.count,
+                  })}
+            </Badge>
+          ) : (
+            <Badge size="lg" color="gray" variant="light" leftSection={<IconBulbOff size={16} />}>
+              {t('guides.rgb-leds.steps.led-test.driverMissingBadge')}
+            </Badge>
+          )}
           <Text size="xs" c="dimmed">
-            {t('guides.rgb-leds.steps.led-test.verifyPrompt')}
+            {device
+              ? t('guides.rgb-leds.steps.led-test.verifyPrompt')
+              : t('guides.rgb-leds.steps.led-test.notConfiguredPrompt')}
           </Text>
         </Stack>
       </Paper>
@@ -254,7 +447,6 @@ export function LedReviewStep(props: GuideStepProps) {
       workbenchContent={workbenchContent}
       isFirstStep={props.isFirstStep}
       isLastStep={props.isLastStep}
-      nextLabel={t('guides.rgb-leds.steps.led-test.finish')}
       onNext={props.onNext}
       onPrevious={props.onPrevious}
     />

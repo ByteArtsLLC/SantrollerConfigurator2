@@ -1,22 +1,91 @@
 import React from 'react';
-import { IconDeviceFloppy, IconDisc } from '@tabler/icons-react';
-import { useTranslation } from 'react-i18next';
 import {
-  Badge,
-  Button,
-  Card,
-  Group,
-  Paper,
-  Progress,
-  Stack,
-  Table,
-  Text,
-  Title,
-} from '@mantine/core';
+  IconCheck,
+  IconDeviceFloppy,
+  IconDisc,
+  IconInfoCircle,
+  IconPlugConnected,
+} from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
+import { Alert, Badge, Button, Card, Group, Paper, Stack, Table, Text, Title } from '@mantine/core';
+import { proto } from '@/components/SettingsContext/config';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
+import { LiveAxis, LiveButtons, LiveInput } from '../adapters/adapterLiveStatus';
 import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
 import { GuideStepProps } from '../types';
+import {
+  addPlatter,
+  applyBasePinout,
+  BASE_PINOUT,
+  findPlatter,
+  isBasePinoutApplied,
+  PLATTER_SCL,
+  PLATTER_SDA,
+} from './turntableSetup';
+
+const P = 'guides.dj-turntable.steps';
+
+function platterInput(left: boolean, type: proto.DJHeroPlatterInputType) {
+  return (m: proto.IMapping) => {
+    const status = useConfigStore.getState().deviceStatus[m.input?.djhPlatter?.deviceid ?? ''];
+    return (
+      m.input?.djhPlatter?.type === type && (status?.device.djhTurntable?.left ?? true) === left
+    );
+  };
+}
+
+function gpioOutput(output: proto.IOutput) {
+  const [key, value] = Object.entries(output)[0];
+  return (m: proto.IMapping) =>
+    m.input?.gpio != null && m.mapping?.[key as keyof proto.IOutput] === value;
+}
+
+function usePlatterButtons(left: boolean): LiveInput[] {
+  const { t } = useTranslation();
+  const T = proto.DJHeroPlatterInputType;
+  return [
+    {
+      label: t(`${P}.tt-wiring.btnGreen`),
+      color: 'green',
+      match: platterInput(left, T.DJHeroPlatterGreen),
+    },
+    {
+      label: t(`${P}.tt-wiring.btnRed`),
+      color: 'red',
+      match: platterInput(left, T.DJHeroPlatterRed),
+    },
+    {
+      label: t(`${P}.tt-wiring.btnBlue`),
+      color: 'blue',
+      match: platterInput(left, T.DJHeroPlatterBlue),
+    },
+  ];
+}
+
+function PlatterStatus({ left }: { left: boolean }) {
+  const { t } = useTranslation();
+  const connected = useConfigStore((state) => state.connected);
+  const platter = useConfigStore((state) => findPlatter(state, left));
+  const side = left ? t(`${P}.tt-wiring.leftPlatter`) : t(`${P}.tt-wiring.rightPlatter`);
+  const status = !connected
+    ? t(`${P}.tt-test.picoNotConnected`)
+    : !platter
+      ? t(`${P}.tt-test.platterNotAdded`)
+      : platter.connected
+        ? t(`${P}.tt-test.platterConnected`)
+        : t(`${P}.tt-test.platterNotDetected`);
+  return (
+    <Badge
+      size="lg"
+      color={connected && platter?.connected ? 'grape' : 'gray'}
+      variant="light"
+      leftSection={<IconDisc size={16} />}
+    >
+      {side}: {status}
+    </Badge>
+  );
+}
 
 // Step 1: Supplies & Intro
 export function TurntableIntroStep(props: GuideStepProps) {
@@ -24,19 +93,16 @@ export function TurntableIntroStep(props: GuideStepProps) {
 
   const guideContent = (
     <Stack gap="md">
-      <Text size="sm">{t('guides.dj-turntable.steps.tt-intro.intro')}</Text>
+      <Text size="sm">{t(`${P}.tt-intro.intro`)}</Text>
 
-      <Title order={4}>{t('guides.dj-turntable.steps.tt-intro.suppliesTitle')}</Title>
-      <GuideList
-        iconColor="grape"
-        items={t('guides.dj-turntable.steps.tt-intro.supplies', { returnObjects: true })}
-      />
+      <Title order={4}>{t(`${P}.tt-intro.suppliesTitle`)}</Title>
+      <GuideList iconColor="grape" items={t(`${P}.tt-intro.supplies`, { returnObjects: true })} />
 
-      <Title order={4}>{t('guides.dj-turntable.steps.tt-intro.subsystemsTitle')}</Title>
-      <Text size="sm">{t('guides.dj-turntable.steps.tt-intro.subsystemsIntro')}</Text>
+      <Title order={4}>{t(`${P}.tt-intro.subsystemsTitle`)}</Title>
+      <Text size="sm">{t(`${P}.tt-intro.subsystemsIntro`)}</Text>
       <GuideList
         boldAllIfNoColon={false}
-        items={t('guides.dj-turntable.steps.tt-intro.subsystems', { returnObjects: true })}
+        items={t(`${P}.tt-intro.subsystems`, { returnObjects: true })}
       />
     </Stack>
   );
@@ -46,70 +112,49 @@ export function TurntableIntroStep(props: GuideStepProps) {
       <Card withBorder radius="md" p="md" bg="var(--mantine-color-body)">
         <Stack gap="xs">
           <Text fw={700} size="sm">
-            {t('guides.dj-turntable.steps.tt-intro.pinoutTitle')}
+            {t(`${P}.tt-intro.pinoutTitle`)}
           </Text>
           <Text size="xs" c="dimmed">
-            {t('guides.dj-turntable.steps.tt-intro.pinoutDesc')}
+            {t(`${P}.tt-intro.pinoutDesc`)}
           </Text>
 
           <Table striped highlightOnHover withTableBorder withColumnBorders>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>{t('guides.dj-turntable.steps.tt-intro.thFeature')}</Table.Th>
-                <Table.Th>{t('guides.dj-turntable.steps.tt-intro.thPicoPin')}</Table.Th>
-                <Table.Th>{t('guides.dj-turntable.steps.tt-intro.thType')}</Table.Th>
+                <Table.Th>{t(`${P}.tt-intro.thFeature`)}</Table.Th>
+                <Table.Th>{t(`${P}.tt-intro.thPicoPin`)}</Table.Th>
+                <Table.Th>{t(`${P}.tt-intro.thType`)}</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               <Table.Tr>
-                <Table.Td>Platter SDA (D)</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.featurePlatterSda')}</Table.Td>
-                <Table.Td>GP18 (Pin 24)</Table.Td>
-                <Table.Td>I2C Data</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.typeI2cData')}</Table.Td>
+                <Table.Td>{t(`${P}.tt-intro.featurePlatterSda`)}</Table.Td>
+                <Table.Td>GP{PLATTER_SDA} (Pin 24)</Table.Td>
+                <Table.Td>{t(`${P}.tt-intro.typeI2cData`)}</Table.Td>
               </Table.Tr>
               <Table.Tr>
-                <Table.Td>Platter SCL (C)</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.featurePlatterScl')}</Table.Td>
-                <Table.Td>GP19 (Pin 25)</Table.Td>
-                <Table.Td>I2C Clock</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.typeI2cClock')}</Table.Td>
+                <Table.Td>{t(`${P}.tt-intro.featurePlatterScl`)}</Table.Td>
+                <Table.Td>GP{PLATTER_SCL} (Pin 25)</Table.Td>
+                <Table.Td>{t(`${P}.tt-intro.typeI2cClock`)}</Table.Td>
               </Table.Tr>
               <Table.Tr>
-                <Table.Td>Crossfader</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.featureCrossfader')}</Table.Td>
-                <Table.Td>GP26 (Pin 31)</Table.Td>
-                <Table.Td>ADC0 (Analog)</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.typeAdc0')}</Table.Td>
+                <Table.Td>{t(`${P}.tt-intro.featurePlatterPower`)}</Table.Td>
+                <Table.Td>3V3(OUT) (Pin 36), GND (Pin 38)</Table.Td>
+                <Table.Td>{t(`${P}.tt-intro.typePower`)}</Table.Td>
               </Table.Tr>
-              <Table.Tr>
-                <Table.Td>Effects Dial</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.featureEffectsDial')}</Table.Td>
-                <Table.Td>GP27 (Pin 32)</Table.Td>
-                <Table.Td>ADC1 (Analog)</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.typeAdc1')}</Table.Td>
-              </Table.Tr>
-              <Table.Tr>
-                <Table.Td>Platter Green</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.featurePlatterGreen')}</Table.Td>
-                <Table.Td>GP2 (Pin 4)</Table.Td>
-                <Table.Td>Digital</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.typeDigital')}</Table.Td>
-              </Table.Tr>
-              <Table.Tr>
-                <Table.Td>Platter Red</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.featurePlatterRed')}</Table.Td>
-                <Table.Td>GP3 (Pin 5)</Table.Td>
-                <Table.Td>Digital</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.typeDigital')}</Table.Td>
-              </Table.Tr>
-              <Table.Tr>
-                <Table.Td>Platter Blue</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.featurePlatterBlue')}</Table.Td>
-                <Table.Td>GP4 (Pin 6)</Table.Td>
-                <Table.Td>Digital</Table.Td>
-                <Table.Td>{t('guides.dj-turntable.steps.tt-intro.typeDigital')}</Table.Td>
-              </Table.Tr>
+              {BASE_PINOUT.map((base) => (
+                <Table.Tr key={base.key}>
+                  <Table.Td>{t(`${P}.tt-intro.base.${base.key}`)}</Table.Td>
+                  <Table.Td>
+                    GP{base.pin} (Pin {base.physicalPin})
+                  </Table.Td>
+                  <Table.Td>
+                    {base.analog
+                      ? t(`${P}.tt-intro.typeAnalog`, { adc: base.pin - 26 })
+                      : t(`${P}.tt-intro.typeDigital`)}
+                  </Table.Td>
+                </Table.Tr>
+              ))}
             </Table.Tbody>
           </Table>
         </Stack>
@@ -119,10 +164,10 @@ export function TurntableIntroStep(props: GuideStepProps) {
 
   return (
     <StepWorkbench
-      title={t('guides.dj-turntable.steps.tt-intro.title')}
-      badge={t('guides.dj-turntable.steps.tt-intro.badge')}
+      title={t(`${P}.tt-intro.title`)}
+      badge={t(`${P}.tt-intro.badge`)}
       badgeColor="grape"
-      description={t('guides.dj-turntable.steps.tt-intro.description')}
+      description={t(`${P}.tt-intro.description`)}
       guideContent={guideContent}
       workbenchContent={workbenchContent}
       isFirstStep={props.isFirstStep}
@@ -133,65 +178,128 @@ export function TurntableIntroStep(props: GuideStepProps) {
   );
 }
 
+function PlatterSetup({ left }: { left: boolean }) {
+  const { t } = useTranslation();
+  const connected = useConfigStore((state) => state.connected);
+  const platter = useConfigStore((state) => findPlatter(state, left));
+  const i2c = platter?.device.djhTurntable?.i2c;
+  return (
+    <Group justify="space-between" wrap="nowrap">
+      <Text size="sm" fw={600}>
+        {left ? t(`${P}.tt-wiring.leftPlatter`) : t(`${P}.tt-wiring.rightPlatter`)}
+      </Text>
+      {platter ? (
+        <Badge color="teal" variant="filled" leftSection={<IconCheck size={14} />}>
+          {t(`${P}.tt-wiring.platterAdded`, { sda: i2c?.sda, scl: i2c?.scl })}
+        </Badge>
+      ) : (
+        <Button
+          size="xs"
+          color="grape"
+          leftSection={<IconPlugConnected size={14} />}
+          disabled={!connected}
+          onClick={() => addPlatter(left)}
+        >
+          {t(`${P}.tt-wiring.addPlatterBtn`)}
+        </Button>
+      )}
+    </Group>
+  );
+}
+
 // Step 2: Wiring
 export function TurntableWiringStep(props: GuideStepProps) {
   const { t } = useTranslation();
+  const connected = useConfigStore((state) => state.connected);
+  const baseApplied = useConfigStore(isBasePinoutApplied);
+  const leftButtons = usePlatterButtons(true);
+  const rightButtons = usePlatterButtons(false);
+  const crossfader: LiveInput = {
+    label: t(`${P}.tt-wiring.crossfaderHeader`),
+    color: 'grape',
+    match: gpioOutput(BASE_PINOUT[0].output),
+  };
 
   const guideContent = (
     <Stack gap="md">
-      <Title order={4}>{t('guides.dj-turntable.steps.tt-wiring.wiringTitle')}</Title>
-      <GuideList
-        type="ordered"
-        items={t('guides.dj-turntable.steps.tt-wiring.wiringSteps', { returnObjects: true })}
-      />
+      <Title order={4}>{t(`${P}.tt-wiring.wiringTitle`)}</Title>
+      <GuideList type="ordered" items={t(`${P}.tt-wiring.wiringSteps`, { returnObjects: true })} />
+      <Alert
+        color="blue"
+        icon={<IconInfoCircle size={16} />}
+        title={t(`${P}.tt-wiring.orientationTitle`)}
+      >
+        {t(`${P}.tt-wiring.orientationText`)}
+      </Alert>
     </Stack>
   );
 
   const workbenchContent = (
     <Stack gap="sm">
+      <Card withBorder radius="md" p="md" bg="var(--mantine-color-body)">
+        <Stack gap="xs">
+          <Text fw={700} size="sm">
+            {t(`${P}.tt-wiring.setupTitle`)}
+          </Text>
+          <Text size="xs" c="dimmed">
+            {t(`${P}.tt-wiring.setupDesc`)}
+          </Text>
+          <PlatterSetup left />
+          <PlatterSetup left={false} />
+          {baseApplied ? (
+            <Badge color="teal" variant="filled" leftSection={<IconCheck size={14} />}>
+              {t(`${P}.tt-wiring.baseApplied`)}
+            </Badge>
+          ) : (
+            <Button
+              size="xs"
+              color="grape"
+              variant="light"
+              disabled={!connected}
+              onClick={applyBasePinout}
+            >
+              {t(`${P}.tt-wiring.applyBaseBtn`)}
+            </Button>
+          )}
+        </Stack>
+      </Card>
+
       <Text fw={700} size="sm">
-        {t('guides.dj-turntable.steps.tt-wiring.testBenchTitle')}
+        {t(`${P}.tt-wiring.testBenchTitle`)}
       </Text>
 
       <Paper withBorder p="sm" radius="md" bg="var(--mantine-color-body)">
         <Stack gap="xs">
           <Text size="xs" fw={600} c="dimmed">
-            {t('guides.dj-turntable.steps.tt-wiring.platterButtonsHeader')}
+            {t(`${P}.tt-wiring.platterButtonsHeader`)}
           </Text>
-          <Group justify="space-between">
-            <Badge size="lg" color="green" variant="outline">
-              {t('guides.dj-turntable.steps.tt-wiring.btnGreen')}
-            </Badge>
-            <Badge size="lg" color="red" variant="outline">
-              {t('guides.dj-turntable.steps.tt-wiring.btnRed')}
-            </Badge>
-            <Badge size="lg" color="blue" variant="outline">
-              {t('guides.dj-turntable.steps.tt-wiring.btnBlue')}
-            </Badge>
+          <Group gap="xs">
+            <Text size="xs" w={60}>
+              {t(`${P}.tt-wiring.leftPlatter`)}
+            </Text>
+            <LiveButtons inputs={leftButtons} />
+          </Group>
+          <Group gap="xs">
+            <Text size="xs" w={60}>
+              {t(`${P}.tt-wiring.rightPlatter`)}
+            </Text>
+            <LiveButtons inputs={rightButtons} />
           </Group>
         </Stack>
       </Paper>
 
       <Paper withBorder p="sm" radius="md" bg="var(--mantine-color-body)">
-        <Stack gap="xs">
-          <Group justify="space-between">
-            <Text size="xs" fw={600} c="dimmed">
-              {t('guides.dj-turntable.steps.tt-wiring.crossfaderHeader')}
-            </Text>
-            <Text size="xs">GP26 (ADC0)</Text>
-          </Group>
-          <Progress value={50} color="grape" size="md" radius="xl" />
-        </Stack>
+        <LiveAxis input={crossfader} notMappedLabel={t(`${P}.tt-wiring.notMapped`)} />
       </Paper>
     </Stack>
   );
 
   return (
     <StepWorkbench
-      title={t('guides.dj-turntable.steps.tt-wiring.title')}
-      badge={t('guides.dj-turntable.steps.tt-wiring.badge')}
+      title={t(`${P}.tt-wiring.title`)}
+      badge={t(`${P}.tt-wiring.badge`)}
       badgeColor="grape"
-      description={t('guides.dj-turntable.steps.tt-wiring.description')}
+      description={t(`${P}.tt-wiring.description`)}
       guideContent={guideContent}
       workbenchContent={workbenchContent}
       isFirstStep={props.isFirstStep}
@@ -211,6 +319,12 @@ export function TurntableReviewStep(props: GuideStepProps) {
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
 
+  const velocity = (left: boolean): LiveInput => ({
+    label: left ? t(`${P}.tt-test.leftVelocity`) : t(`${P}.tt-test.rightVelocity`),
+    color: 'grape',
+    match: platterInput(left, proto.DJHeroPlatterInputType.DJHeroPlatterVelocity),
+  });
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -226,10 +340,10 @@ export function TurntableReviewStep(props: GuideStepProps) {
 
   const guideContent = (
     <Stack gap="md">
-      <Text size="sm">{t('guides.dj-turntable.steps.tt-test.configuredText')}</Text>
+      <Text size="sm">{t(`${P}.tt-test.configuredText`)}</Text>
 
-      <Title order={4}>{t('guides.dj-turntable.steps.tt-test.scratchTestTitle')}</Title>
-      <Text size="sm">{t('guides.dj-turntable.steps.tt-test.scratchTestText')}</Text>
+      <Title order={4}>{t(`${P}.tt-test.scratchTestTitle`)}</Title>
+      <Text size="sm">{t(`${P}.tt-test.scratchTestText`)}</Text>
 
       <Button
         size="md"
@@ -239,9 +353,7 @@ export function TurntableReviewStep(props: GuideStepProps) {
         leftSection={<IconDeviceFloppy size={18} />}
         onClick={handleSave}
       >
-        {saved
-          ? t('guides.dj-turntable.steps.tt-test.btnSaved')
-          : t('guides.dj-turntable.steps.tt-test.btnSave')}
+        {saved ? t(`${P}.tt-test.btnSaved`) : t(`${P}.tt-test.btnSave`)}
       </Button>
     </Stack>
   );
@@ -251,14 +363,15 @@ export function TurntableReviewStep(props: GuideStepProps) {
       <Paper withBorder p="md" radius="md" bg="var(--mantine-color-body)">
         <Stack gap="xs">
           <Text size="xs" fw={600} c="dimmed">
-            {t('guides.dj-turntable.steps.tt-test.telemetryTitle')}
+            {t(`${P}.tt-test.telemetryTitle`)}
           </Text>
-          <Badge size="lg" color="grape" variant="light" leftSection={<IconDisc size={16} />}>
-            {t('guides.dj-turntable.steps.tt-test.encoderActiveBadge')}
-          </Badge>
+          <PlatterStatus left />
+          <PlatterStatus left={false} />
           <Text size="xs" c="dimmed">
-            {t('guides.dj-turntable.steps.tt-test.verifyPrompt')}
+            {t(`${P}.tt-test.verifyPrompt`)}
           </Text>
+          <LiveAxis input={velocity(true)} notMappedLabel={t(`${P}.tt-wiring.notMapped`)} />
+          <LiveAxis input={velocity(false)} notMappedLabel={t(`${P}.tt-wiring.notMapped`)} />
         </Stack>
       </Paper>
     </Stack>
@@ -266,15 +379,14 @@ export function TurntableReviewStep(props: GuideStepProps) {
 
   return (
     <StepWorkbench
-      title={t('guides.dj-turntable.steps.tt-test.title')}
-      badge={t('guides.dj-turntable.steps.tt-test.badge')}
+      title={t(`${P}.tt-test.title`)}
+      badge={t(`${P}.tt-test.badge`)}
       badgeColor="green"
-      description={t('guides.dj-turntable.steps.tt-test.description')}
+      description={t(`${P}.tt-test.description`)}
       guideContent={guideContent}
       workbenchContent={workbenchContent}
       isFirstStep={props.isFirstStep}
       isLastStep={props.isLastStep}
-      nextLabel={t('guides.dj-turntable.steps.tt-test.finish')}
       onNext={props.onNext}
       onPrevious={props.onPrevious}
     />

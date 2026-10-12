@@ -64,7 +64,7 @@ export function StrumStep(props: GuideStepProps) {
           <Card withBorder radius="md" p="sm">
             <Stack gap="xs">
               <Text fw={700} size="sm">
-                3-Wire Strum Connection
+                {t('guides.direct-pico-guitar.steps.strum.directWiringTitle')}
               </Text>
               <List spacing="xs" size="sm">
                 <List.Item>{t('guides.direct-pico-guitar.steps.strum.directStepGround')}</List.Item>
@@ -73,13 +73,13 @@ export function StrumStep(props: GuideStepProps) {
               </List>
               <Group gap={6} mt={4}>
                 <Badge color="cyan" variant="filled">
-                  Strum Up: GP7
+                  {t('guides.direct-pico-guitar.steps.strum.strumUpPin')}
                 </Badge>
                 <Badge color="indigo" variant="filled">
-                  Strum Down: GP8
+                  {t('guides.direct-pico-guitar.steps.strum.strumDownPin')}
                 </Badge>
                 <Badge color="gray" variant="filled">
-                  Common Ground: GND
+                  {t('guides.direct-pico-guitar.steps.strum.groundPin')}
                 </Badge>
               </Group>
             </Stack>
@@ -115,7 +115,7 @@ export function StrumStep(props: GuideStepProps) {
           <Card withBorder radius="md" p="sm">
             <Stack gap="xs">
               <Text fw={700} size="sm">
-                Wiring After Trace Cuts
+                {t('guides.direct-pico-guitar.steps.strum.traceCutWiringTitle')}
               </Text>
               <List spacing="xs" size="sm">
                 <List.Item>{t('guides.direct-pico-guitar.steps.strum.directStepGround')}</List.Item>
@@ -165,7 +165,7 @@ export function StrumStep(props: GuideStepProps) {
       title={t('guides.direct-pico-guitar.steps.strum.title')}
       badge={
         wiringMode === 'trace_cut'
-          ? 'Stock PCB Mod'
+          ? t('guides.direct-pico-guitar.steps.strum.badgeTraceCut')
           : t('guides.direct-pico-guitar.steps.strum.badge')
       }
       badgeColor="cyan"

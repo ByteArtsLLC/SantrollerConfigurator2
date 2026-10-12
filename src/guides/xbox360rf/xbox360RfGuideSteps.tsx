@@ -7,6 +7,7 @@ import {
   IconInfoCircle,
   IconPlugConnected,
   IconRefresh,
+  IconUsb,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -27,8 +28,16 @@ import { proto } from '@/components/SettingsContext/config';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
+import { findDeviceStatus } from '../guideConfig';
 import { GuideStepProps } from '../types';
-import { getXbox360RfModel, setXbox360RfModel, Xbox360RfModel } from './xbox360RfUtils';
+import { ensureUsbHost, profileHasUsbSlot, usbHostPins } from '../usb/usbHostUtils';
+import {
+  findXbox360RfDevice,
+  getXbox360RfModel,
+  setXbox360RfModel,
+  Xbox360RfModel,
+  xbox360RfModuleType,
+} from './xbox360RfUtils';
 
 // Step 1: Model Selection & Supplies Overview
 export function Xbox360RfIntroStep(props: GuideStepProps) {
@@ -165,7 +174,7 @@ export function Xbox360RfIntroStep(props: GuideStepProps) {
                     USB D+ / D-
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pico USB Host or PC USB</Table.Td>
+                <Table.Td>Pico GP2 (D+) / GP3 (D-)</Table.Td>
                 <Table.Td>{t('guides.xbox360-rf.steps.rf-intro.descUsb')}</Table.Td>
               </Table.Tr>
               <Table.Tr>
@@ -318,6 +327,14 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
           </Alert>
         </>
       )}
+
+      <Alert
+        color="teal"
+        icon={<IconUsb size={16} />}
+        title={t('guides.xbox360-rf.steps.rf-wiring.usbNoteTitle')}
+      >
+        {t('guides.xbox360-rf.steps.rf-wiring.usbNoteText')}
+      </Alert>
     </Stack>
   );
 
@@ -370,7 +387,7 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
                       USB D-
                     </Badge>
                   </Table.Td>
-                  <Table.Td>USB D- / Host Pin</Table.Td>
+                  <Table.Td>Pico GP3 (USB host D-)</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
                   <Table.Td>Top Pin 3</Table.Td>
@@ -380,7 +397,7 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
                       USB D+
                     </Badge>
                   </Table.Td>
-                  <Table.Td>USB D+ / Host Pin</Table.Td>
+                  <Table.Td>Pico GP2 (USB host D+)</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
                   <Table.Td>Top Pin 4</Table.Td>
@@ -446,47 +463,7 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
               </Table.Thead>
               <Table.Tbody>
                 <Table.Tr>
-                  <Table.Td>Pin 1 & 2</Table.Td>
-                  <Table.Td>
-                    <Badge color="red" size="xs">
-                      Orange / Red
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>+3.3V Power</Table.Td>
-                  <Table.Td>Pico Pin 36 (3V3 OUT)</Table.Td>
-                </Table.Tr>
-                <Table.Tr>
-                  <Table.Td>Pin 3</Table.Td>
-                  <Table.Td>
-                    <Badge color="green" size="xs">
-                      Green
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>USB Data+ (D+)</Table.Td>
-                  <Table.Td>USB D+ / Host Pin</Table.Td>
-                </Table.Tr>
-                <Table.Tr>
-                  <Table.Td>Pin 4</Table.Td>
-                  <Table.Td>
-                    <Badge color="gray" size="xs">
-                      Grey / White
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>USB Data- (D-)</Table.Td>
-                  <Table.Td>USB D- / Host Pin</Table.Td>
-                </Table.Tr>
-                <Table.Tr>
-                  <Table.Td>Pin 5</Table.Td>
-                  <Table.Td>
-                    <Badge color="yellow" size="xs">
-                      Yellow
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>Sync / Power Button</Table.Td>
-                  <Table.Td>Pico GP Pin (e.g. GP6)</Table.Td>
-                </Table.Tr>
-                <Table.Tr>
-                  <Table.Td>Pin 6</Table.Td>
+                  <Table.Td>Pin 2</Table.Td>
                   <Table.Td>
                     <Badge color="pink" size="xs">
                       Pink
@@ -496,7 +473,7 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
                   <Table.Td>Pico GP4</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Pin 7</Table.Td>
+                  <Table.Td>Pin 3</Table.Td>
                   <Table.Td>
                     <Badge color="blue" size="xs">
                       Cyan / Blue
@@ -506,7 +483,47 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
                   <Table.Td>Pico GP5</Table.Td>
                 </Table.Tr>
                 <Table.Tr>
-                  <Table.Td>Pin 13 & 14</Table.Td>
+                  <Table.Td>Pin 5</Table.Td>
+                  <Table.Td>
+                    <Badge color="gray" size="xs">
+                      Grey / White
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>USB Data- (D-)</Table.Td>
+                  <Table.Td>Pico GP3 (USB host D-)</Table.Td>
+                </Table.Tr>
+                <Table.Tr>
+                  <Table.Td>Pin 6</Table.Td>
+                  <Table.Td>
+                    <Badge color="green" size="xs">
+                      Green
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>USB Data+ (D+)</Table.Td>
+                  <Table.Td>Pico GP2 (USB host D+)</Table.Td>
+                </Table.Tr>
+                <Table.Tr>
+                  <Table.Td>Pin 12</Table.Td>
+                  <Table.Td>
+                    <Badge color="orange" size="xs">
+                      Orange
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>+3.3V Power</Table.Td>
+                  <Table.Td>Pico Pin 36 (3V3 OUT)</Table.Td>
+                </Table.Tr>
+                <Table.Tr>
+                  <Table.Td>Pin 13</Table.Td>
+                  <Table.Td>
+                    <Badge color="yellow" size="xs">
+                      Yellow
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>Sync / Power Button</Table.Td>
+                  <Table.Td>Pico GP Pin (e.g. GP6)</Table.Td>
+                </Table.Tr>
+                <Table.Tr>
+                  <Table.Td>Mounting Pad</Table.Td>
                   <Table.Td>
                     <Badge color="dark" size="xs">
                       Black
@@ -557,8 +574,11 @@ export function Xbox360RfReviewStep(props: GuideStepProps) {
   const commitConfig = useConfigStore((state) => state.commitConfig);
   const connected = useConfigStore((state) => state.connected);
   const addDevice = useConfigStore((state) => state.addDevice);
-  const updateDevice = useConfigStore((state) => state.updateDevice);
-  const devices = useConfigStore((state) => state.config.devices);
+  const existingRfEntry = useConfigStore(findXbox360RfDevice);
+  const usbHost = useConfigStore((state) => findDeviceStatus(state, 'usbHost'))?.device.usbHost;
+  const hasUsbSlot = useConfigStore(profileHasUsbSlot);
+  const usbReady = usbHost != null && hasUsbSlot;
+  const usbPins = usbHostPins(usbHost);
   const scanBluetooth = useConfigStore((state) => state.scanBluetooth);
   const scanningBluetooth = useConfigStore((state) => state.scanningBluetooth);
 
@@ -573,31 +593,26 @@ export function Xbox360RfReviewStep(props: GuideStepProps) {
 
   const isFat = model === 'fat';
 
-  const existingRfEntry = devices?.find((d) => d.xbox360Rf !== undefined && d.xbox360Rf !== null);
   const hasRfDevice = existingRfEntry !== undefined;
   const rfData = existingRfEntry?.xbox360Rf;
 
   const handleAddDevice = () => {
-    const targetType = isFat
-      ? proto.Xbox360RfModuleType.Xbox360RfFat
-      : proto.Xbox360RfModuleType.Xbox360RfSlim;
-
     if (!hasRfDevice) {
-      addDevice('xbox360Rf');
-    } else if (existingRfEntry?.deviceid !== undefined) {
-      updateDevice(
-        {
-          deviceid: existingRfEntry.deviceid,
-          xbox360Rf: {
-            type: targetType,
-            dataPin: rfData?.dataPin ?? -1,
-            clockPin: rfData?.clockPin ?? -1,
-            syncPin: rfData?.syncPin ?? -1,
-          },
-        },
-        String(existingRfEntry.deviceid)
-      );
+      // Data on GP4, clock on GP5 and sync on GP6, matching the wiring steps
+      addDevice('xbox360Rf', undefined, (device) => {
+        device.xbox360Rf = {
+          ...device.xbox360Rf,
+          type: xbox360RfModuleType(model),
+          dataPin: 4,
+          clockPin: 5,
+          syncPin: 6,
+        };
+      });
     }
+    // The xbox360Rf device only drives the serial bus (LEDs, sync). Controller data comes from the
+    // module's built in wireless receiver over USB, so it also needs a USB host port (GP2/GP3)
+    // and a USB slot in the profile.
+    ensureUsbHost();
   };
 
   const handleSave = async () => {
@@ -691,6 +706,28 @@ export function Xbox360RfReviewStep(props: GuideStepProps) {
                 </Text>
               </Group>
 
+              {usbReady ? (
+                <Badge size="md" color="teal" variant="light" leftSection={<IconUsb size={14} />}>
+                  {t('guides.xbox360-rf.steps.rf-test.usbHostReady', usbPins)}
+                </Badge>
+              ) : (
+                <Stack gap={4}>
+                  <Text size="xs" c="dimmed">
+                    {t('guides.xbox360-rf.steps.rf-test.usbHostMissing')}
+                  </Text>
+                  <Button
+                    size="xs"
+                    color="teal"
+                    variant="light"
+                    leftSection={<IconUsb size={14} />}
+                    onClick={() => ensureUsbHost()}
+                    disabled={!connected}
+                  >
+                    {t('guides.xbox360-rf.steps.rf-test.addUsbHostBtn')}
+                  </Button>
+                </Stack>
+              )}
+
               <Button
                 size="sm"
                 color="indigo"
@@ -748,7 +785,6 @@ export function Xbox360RfReviewStep(props: GuideStepProps) {
       workbenchContent={workbenchContent}
       isFirstStep={props.isFirstStep}
       isLastStep={props.isLastStep}
-      nextLabel={t('guides.xbox360-rf.steps.rf-test.finish')}
       onNext={props.onNext}
       onPrevious={props.onPrevious}
     />

@@ -6,23 +6,39 @@ import {
   IconPlugConnected,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import {
-  Alert,
-  Badge,
-  Button,
-  Card,
-  Group,
-  Image,
-  Paper,
-  Stack,
-  Table,
-  Text,
-  Title,
-} from '@mantine/core';
-import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
+import { Alert, Badge, Button, Card, Image, Paper, Stack, Table, Text, Title } from '@mantine/core';
+import { proto } from '@/components/SettingsContext/config';
+import { isDeviceAssigned, useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
+import { assignDeviceToProfile, findDeviceStatus } from '../guideConfig';
 import { GuideStepProps } from '../types';
+import { ensureDeviceToEmulate, LiveAxis, LiveButtons, LiveInput } from './adapterLiveStatus';
+
+const GUITAR_TYPES = [proto.SubType.GuitarHeroGuitar, proto.SubType.RockBandGuitar];
+
+/**
+ * Adds the PS2 controller driver on SPI0 when there isn't one, then gives the active profile a
+ * PS2 guitar slot (loading the default guitar mappings), as a PS2 device does nothing until a
+ * profile has a slot for it.
+ */
+function configurePs2Guitar() {
+  const existing = findDeviceStatus(useConfigStore.getState(), 'psx');
+  const id =
+    existing?.id ??
+    useConfigStore.getState().addDevice('psx', undefined, (device) => {
+      const psx = device.psx!;
+      psx.spi = { ...psx.spi, mosi: 3, miso: 4, sck: 6, block: 0 };
+      psx.ackPin = 7;
+      psx.attPin = 10;
+    });
+  ensureDeviceToEmulate(GUITAR_TYPES, proto.SubType.GuitarHeroGuitar);
+  assignDeviceToProfile(id, { ps2Cnt: proto.PS2ControllerType.PS2ControllerTypeGuitar });
+}
+
+function ps2Button(button: proto.PS2ButtonType) {
+  return (m: proto.IMapping) => m.input?.ps2Button?.button === button;
+}
 
 // Step 1: Supplies & Overview
 export function PS2IntroStep(props: GuideStepProps) {
@@ -32,20 +48,12 @@ export function PS2IntroStep(props: GuideStepProps) {
     <Stack gap="md">
       <Text size="sm">{t('guides.ps2-adapter.steps.ps2-intro.intro')}</Text>
 
-      <Group grow align="start">
-        <Stack gap={4}>
-          <Image src="/guides/ps2/ps2.png" radius="md" alt="PS2 plug pinout" />
-          <Text size="xs" c="dimmed" ta="center">
-            {t('guides.ps2-adapter.steps.ps2-intro.plugCaption')}
-          </Text>
-        </Stack>
-        <Stack gap={4}>
-          <Image src="/guides/ps2/ps2-pinout.png" radius="md" alt="PS2 adapter wiring" />
-          <Text size="xs" c="dimmed" ta="center">
-            {t('guides.ps2-adapter.steps.ps2-intro.socketCaption')}
-          </Text>
-        </Stack>
-      </Group>
+      <Stack gap={4}>
+        <Image src="/guides/ps2/ps2-pinout.png" radius="md" alt="PS2 controller plug pinout" />
+        <Text size="xs" c="dimmed" ta="center">
+          {t('guides.ps2-adapter.steps.ps2-intro.plugCaption')}
+        </Text>
+      </Stack>
 
       <Title order={4}>{t('guides.ps2-adapter.steps.ps2-intro.suppliesTitle')}</Title>
       <GuideList
@@ -89,7 +97,7 @@ export function PS2IntroStep(props: GuideStepProps) {
                     {t('guides.ps2-adapter.steps.ps2-intro.sigSck')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 5 (Blue)</Table.Td>
+                <Table.Td>Pin 7 (Blue)</Table.Td>
                 <Table.Td>GP6 (Pin 9)</Table.Td>
               </Table.Tr>
               <Table.Tr>
@@ -134,7 +142,7 @@ export function PS2IntroStep(props: GuideStepProps) {
                     {t('guides.ps2-adapter.steps.ps2-intro.sigPower')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 4 (Red)</Table.Td>
+                <Table.Td>Pin 5 (Red)</Table.Td>
                 <Table.Td>Pin 36 (3V3 OUT)</Table.Td>
               </Table.Tr>
               <Table.Tr>
@@ -143,7 +151,7 @@ export function PS2IntroStep(props: GuideStepProps) {
                     {t('guides.ps2-adapter.steps.ps2-intro.sigGnd')}
                   </Badge>
                 </Table.Td>
-                <Table.Td>Pin 7 (Black)</Table.Td>
+                <Table.Td>Pin 4 (Black)</Table.Td>
                 <Table.Td>Pin 38 (GND)</Table.Td>
               </Table.Tr>
             </Table.Tbody>
@@ -172,17 +180,13 @@ export function PS2IntroStep(props: GuideStepProps) {
 // Step 2: Wiring & Configuration
 export function PS2WiringStep(props: GuideStepProps) {
   const { t } = useTranslation();
-  const addDevice = useConfigStore((state) => state.addDevice);
-  const devices = useConfigStore((state) => state.config.devices);
   const connected = useConfigStore((state) => state.connected);
-
-  const hasPs2Device = devices?.some((d) => d.psx !== undefined && d.psx !== null);
-
-  const handleConfigurePS2 = () => {
-    if (!hasPs2Device) {
-      addDevice('psx');
-    }
-  };
+  // config.devices is only rebuilt on connect, so read live devices from deviceStatus
+  const ps2Device = useConfigStore((state) => findDeviceStatus(state, 'psx'));
+  const assigned = useConfigStore((state) =>
+    isDeviceAssigned('psx', state.config.profiles?.[state.currentProfile])
+  );
+  const psx = ps2Device?.device.psx;
 
   const guideContent = (
     <Stack gap="md">
@@ -205,20 +209,40 @@ export function PS2WiringStep(props: GuideStepProps) {
             {t('guides.ps2-adapter.steps.ps2-wiring.driverStatusDesc')}
           </Text>
 
-          {hasPs2Device ? (
-            <Badge color="teal" size="md" variant="filled" leftSection={<IconCheck size={14} />}>
-              {t('guides.ps2-adapter.steps.ps2-wiring.driverConfiguredBadge')}
-            </Badge>
+          {ps2Device && assigned ? (
+            <>
+              <Badge color="teal" size="md" variant="filled" leftSection={<IconCheck size={14} />}>
+                {t('guides.ps2-adapter.steps.ps2-wiring.driverConfiguredBadge')}
+              </Badge>
+              <Text size="xs" c="dimmed">
+                {t('guides.ps2-adapter.steps.ps2-wiring.driverPins', {
+                  mosi: psx?.spi?.mosi,
+                  miso: psx?.spi?.miso,
+                  sck: psx?.spi?.sck,
+                  ack: psx?.ackPin,
+                  att: psx?.attPin,
+                })}
+              </Text>
+            </>
           ) : (
-            <Button
-              size="sm"
-              color="teal"
-              leftSection={<IconPlugConnected size={16} />}
-              onClick={handleConfigurePS2}
-              disabled={!connected}
-            >
-              {t('guides.ps2-adapter.steps.ps2-wiring.enableDriverBtn')}
-            </Button>
+            <>
+              {ps2Device && (
+                <Text size="xs" c="orange">
+                  {t('guides.ps2-adapter.steps.ps2-wiring.notAssignedText')}
+                </Text>
+              )}
+              <Button
+                size="sm"
+                color="teal"
+                leftSection={<IconPlugConnected size={16} />}
+                onClick={configurePs2Guitar}
+                disabled={!connected}
+              >
+                {ps2Device
+                  ? t('guides.ps2-adapter.steps.ps2-wiring.assignBtn')
+                  : t('guides.ps2-adapter.steps.ps2-wiring.enableDriverBtn')}
+              </Button>
+            </>
           )}
         </Stack>
       </Card>
@@ -249,6 +273,66 @@ export function PS2ReviewStep(props: GuideStepProps) {
 
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const ps2Device = useConfigStore((state) => findDeviceStatus(state, 'psx'));
+  const assigned = useConfigStore((state) =>
+    isDeviceAssigned('psx', state.config.profiles?.[state.currentProfile])
+  );
+  const cntType = ps2Device?.ps2CntType ?? proto.PS2ControllerType.PS2ControllerTypeUnknown;
+  const cntDetected =
+    connected && !!ps2Device && cntType !== proto.PS2ControllerType.PS2ControllerTypeUnknown;
+  const controllerLabel = !connected
+    ? t('guides.ps2-adapter.steps.ps2-test.picoNotConnected')
+    : !ps2Device
+      ? t('guides.ps2-adapter.steps.ps2-test.driverMissing')
+      : cntDetected
+        ? t('guides.ps2-adapter.steps.ps2-test.controllerDetected', {
+            type: t(`ps2Cnt.${proto.PS2ControllerType[cntType]}`),
+          })
+        : t('guides.ps2-adapter.steps.ps2-test.controllerNone');
+
+  const B = proto.PS2ButtonType;
+  const liveButtons: LiveInput[] = [
+    {
+      label: t('guides.ps2-adapter.steps.ps2-test.green'),
+      color: 'green',
+      match: ps2Button(B.PS2ButtonGuitarGreen),
+    },
+    {
+      label: t('guides.ps2-adapter.steps.ps2-test.red'),
+      color: 'red',
+      match: ps2Button(B.PS2ButtonGuitarRed),
+    },
+    {
+      label: t('guides.ps2-adapter.steps.ps2-test.yellow'),
+      color: 'yellow',
+      match: ps2Button(B.PS2ButtonGuitarYellow),
+    },
+    {
+      label: t('guides.ps2-adapter.steps.ps2-test.blue'),
+      color: 'blue',
+      match: ps2Button(B.PS2ButtonGuitarBlue),
+    },
+    {
+      label: t('guides.ps2-adapter.steps.ps2-test.orange'),
+      color: 'orange',
+      match: ps2Button(B.PS2ButtonGuitarOrange),
+    },
+    {
+      label: t('guides.ps2-adapter.steps.ps2-test.strumUp'),
+      color: 'cyan',
+      match: ps2Button(B.PS2ButtonGuitarStrumUp),
+    },
+    {
+      label: t('guides.ps2-adapter.steps.ps2-test.strumDown'),
+      color: 'cyan',
+      match: ps2Button(B.PS2ButtonGuitarStrumDown),
+    },
+  ];
+  const liveWhammy: LiveInput = {
+    label: t('guides.ps2-adapter.steps.ps2-test.whammy'),
+    color: 'grape',
+    match: (m) => m.input?.ps2Axis?.axis === proto.PS2AxisType.PS2AxisGuitarWhammy,
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -300,15 +384,25 @@ export function PS2ReviewStep(props: GuideStepProps) {
           </Text>
           <Badge
             size="lg"
-            color="teal"
+            color={cntDetected ? 'teal' : 'gray'}
             variant="light"
             leftSection={<IconPlugConnected size={16} />}
           >
-            {t('guides.ps2-adapter.steps.ps2-test.driverActiveBadge')}
+            {controllerLabel}
           </Badge>
+          {ps2Device && !assigned && (
+            <Text size="xs" c="orange">
+              {t('guides.ps2-adapter.steps.ps2-wiring.notAssignedText')}
+            </Text>
+          )}
           <Text size="xs" c="dimmed">
             {t('guides.ps2-adapter.steps.ps2-test.verifyPrompt')}
           </Text>
+          <LiveButtons inputs={liveButtons} />
+          <LiveAxis
+            input={liveWhammy}
+            notMappedLabel={t('guides.ps2-adapter.steps.ps2-test.notMapped')}
+          />
         </Stack>
       </Paper>
     </Stack>
@@ -324,7 +418,6 @@ export function PS2ReviewStep(props: GuideStepProps) {
       workbenchContent={workbenchContent}
       isFirstStep={props.isFirstStep}
       isLastStep={props.isLastStep}
-      nextLabel={t('guides.ps2-adapter.steps.ps2-test.finish')}
       onNext={props.onNext}
       onPrevious={props.onPrevious}
     />

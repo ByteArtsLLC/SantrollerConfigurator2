@@ -1,9 +1,7 @@
 import { proto } from '@/components/SettingsContext/config';
-import {
-  ConfigState,
-  DeviceStatus,
-  useConfigStore,
-} from '@/components/SettingsContext/SettingsContext';
+import { ConfigState, useConfigStore } from '@/components/SettingsContext/SettingsContext';
+import { AnalogPins } from '@/devices/pico/pins';
+import { findDeviceStatus } from '../guideConfig';
 
 export interface PinMappingTarget {
   name: string;
@@ -344,6 +342,70 @@ export function findMappingIndex(
 }
 
 /**
+ * The GH and RB button / axis enums share ids (frets 1-5, tap / solo 6-10, whammy 1, tilt 2),
+ * so a target only needs its output field swapped to suit the family being emulated.
+ */
+export function targetForFamily(target: PinMappingTarget, family: GuitarFamily): PinMappingTarget {
+  if (family === 'rb') {
+    if (target.type === 'ghButton') {
+      return { ...target, type: 'rbButton' };
+    }
+    if (target.type === 'ghAxis') {
+      return { ...target, type: 'rbAxis' };
+    }
+  } else {
+    if (target.type === 'rbButton') {
+      return { ...target, type: 'ghButton' };
+    }
+    if (
+      target.type === 'rbAxis' &&
+      target.id !== proto.RockBandGuitarAxisType.RockBandGuitar_Pickup
+    ) {
+      return { ...target, type: 'ghAxis' };
+    }
+  }
+  return target;
+}
+
+function profileFamily(profile: proto.IProfile): GuitarFamily {
+  return profile.opts?.deviceToEmulate === proto.SubType.RockBandGuitar ? 'rb' : 'gh';
+}
+
+/**
+ * Builds a GPIO mapping for a target, or updates an existing one in place. A digital pin driving
+ * an axis (eg a tilt switch) uses pressed instead of calibration, as min and max are meaningless.
+ */
+function gpioMapping(
+  target: PinMappingTarget,
+  family: GuitarFamily,
+  pin: number,
+  isAnalog: boolean,
+  existing?: proto.IMapping
+): proto.IMapping {
+  const resolved = targetForFamily(target, family);
+  const isAxis = resolved.type === 'ghAxis' || resolved.type === 'rbAxis';
+  const input: proto.IInput = {
+    gpio: {
+      pin,
+      pinMode: isAnalog ? proto.PinMode.Floating : proto.PinMode.PullUp,
+      analog: isAnalog,
+    },
+  };
+  const mapping: proto.IMapping = existing
+    ? { ...existing, mapping: { [resolved.type]: resolved.id }, input }
+    : { mapping: { [resolved.type]: resolved.id }, input, center: 0 };
+  if (isAxis && isAnalog) {
+    mapping.min = existing?.min ?? 0;
+    mapping.max = existing?.max ?? 65535;
+    mapping.pressed = undefined;
+  } else if (isAxis) {
+    mapping.pressed = existing?.pressed ?? 65535;
+    mapping.center = 0;
+  }
+  return mapping;
+}
+
+/**
  * Gets the current pin assigned to a target in the active profile.
  */
 export function getTargetPin(state: ConfigState, target: PinMappingTarget): number {
@@ -368,33 +430,12 @@ export function setTargetPin(target: PinMappingTarget, pin: number, isAnalog = f
 
   const currentMappings = profile.mappings ? [...profile.mappings] : [];
   const idx = findMappingIndex(profile, target);
-
-  const updatedInput: proto.IInput = {
-    gpio: {
-      pin,
-      pinMode: isAnalog ? proto.PinMode.Floating : proto.PinMode.PullUp,
-      analog: isAnalog,
-    },
-  };
+  const family = profileFamily(profile);
 
   if (idx !== -1) {
-    const existing = currentMappings[idx];
-    currentMappings[idx] = {
-      ...existing,
-      input: updatedInput,
-    };
+    currentMappings[idx] = gpioMapping(target, family, pin, isAnalog, currentMappings[idx]);
   } else {
-    // Create new mapping
-    const newMapping: proto.IMapping = {
-      mapping: {
-        [target.type]: target.id,
-      },
-      input: updatedInput,
-      min: isAnalog ? 0 : undefined,
-      max: isAnalog ? 65535 : undefined,
-      center: 0,
-    };
-    currentMappings.push(newMapping);
+    currentMappings.push(gpioMapping(target, family, pin, isAnalog));
   }
 
   store.updateProfile(
@@ -436,10 +477,8 @@ export function getTargetAnalogValue(state: ConfigState, target: PinMappingTarge
  * Applies the recommended pinout for the selected guitar family (GH or RB) to the current profile.
  */
 export function applyRecommendedPinout(family: GuitarFamily = 'gh') {
-  const store = useConfigStore.getState();
-  const profileIdx = store.currentProfile;
-  const profile = store.config.profiles?.[profileIdx];
-  if (!profile) {
+  const profileIdx = useConfigStore.getState().currentProfile;
+  if (!useConfigStore.getState().config.profiles?.[profileIdx]) {
     return;
   }
 
@@ -447,8 +486,10 @@ export function applyRecommendedPinout(family: GuitarFamily = 'gh') {
     configureRbMatrixFrets();
   }
 
+  // Re-read the store, as the matrix setup above replaced the profile
+  const store = useConfigStore.getState();
+  const currentProfile = store.config.profiles![profileIdx];
   const pinout = family === 'rb' ? RECOMMENDED_PICO_PINOUT_RB : RECOMMENDED_PICO_PINOUT_GH;
-  const currentProfile = store.config.profiles?.[profileIdx] ?? profile;
   const currentMappings = currentProfile.mappings ? [...currentProfile.mappings] : [];
 
   for (const rec of pinout) {
@@ -466,31 +507,22 @@ export function applyRecommendedPinout(family: GuitarFamily = 'gh') {
       continue;
     }
 
-    const isAnalog =
+    // Only the ADC pins read analog, so the tilt switch on GP11 stays a digital pull-up input
+    const isAxis =
       (rec.target.type as string) === 'ghAxis' || (rec.target.type as string) === 'rbAxis';
+    const isAnalog = isAxis && AnalogPins.includes(rec.pin);
     const idx = findMappingIndex(currentProfile, rec.target);
 
-    const updatedInput: proto.IInput = {
-      gpio: {
-        pin: rec.pin,
-        pinMode: isAnalog ? proto.PinMode.Floating : proto.PinMode.PullUp,
-        analog: isAnalog,
-      },
-    };
-
     if (idx !== -1) {
-      currentMappings[idx] = {
-        ...currentMappings[idx],
-        input: updatedInput,
-      };
+      currentMappings[idx] = gpioMapping(
+        rec.target,
+        family,
+        rec.pin,
+        isAnalog,
+        currentMappings[idx]
+      );
     } else {
-      currentMappings.push({
-        mapping: { [rec.target.type]: rec.target.id },
-        input: updatedInput,
-        min: isAnalog ? 0 : undefined,
-        max: isAnalog ? 65535 : undefined,
-        center: 0,
-      });
+      currentMappings.push(gpioMapping(rec.target, family, rec.pin, isAnalog));
     }
   }
 
@@ -514,15 +546,21 @@ export function applyRecommendedPinout(family: GuitarFamily = 'gh') {
  * Gets the active guitar family ('gh' or 'rb') from localStorage or current profile.
  */
 export function getGuitarFamily(state?: ConfigState): GuitarFamily {
-  const saved = localStorage.getItem('santroller_guitar_family');
-  if (saved === 'gh' || saved === 'rb') {
-    return saved;
+  // A connected profile already emulating a GH or RB guitar wins over a previous session's pick
+  const profile = state?.config.profiles?.[state.currentProfile];
+  if (profile?.opts?.deviceToEmulate === proto.SubType.RockBandGuitar) {
+    return 'rb';
   }
-  if (state) {
-    const profile = state.config.profiles?.[state.currentProfile];
-    if (profile?.opts?.deviceToEmulate === proto.SubType.RockBandGuitar) {
-      return 'rb';
+  if (profile?.opts?.deviceToEmulate === proto.SubType.GuitarHeroGuitar) {
+    return 'gh';
+  }
+  try {
+    const saved = localStorage.getItem('santroller_guitar_family');
+    if (saved === 'gh' || saved === 'rb') {
+      return saved;
     }
+  } catch {
+    // Ignore storage issues
   }
   return 'gh';
 }
@@ -531,7 +569,11 @@ export function getGuitarFamily(state?: ConfigState): GuitarFamily {
  * Persists the active guitar family ('gh' or 'rb') and aligns the active profile.
  */
 export function setGuitarFamily(family: GuitarFamily): void {
-  localStorage.setItem('santroller_guitar_family', family);
+  try {
+    localStorage.setItem('santroller_guitar_family', family);
+  } catch {
+    // Ignore storage issues
+  }
   const store = useConfigStore.getState();
   const profileIdx = store.currentProfile;
   const profile = store.config.profiles?.[profileIdx];
@@ -553,54 +595,218 @@ export function setGuitarFamily(family: GuitarFamily): void {
   }
 }
 
+// Pico header pins for I2C1, shared by the GH5 neck, the MPR121 and the accelerometer
+const PICO_I2C1 = { sda: 18, scl: 19, block: 1 };
+
+const FRET_IDS = [
+  GUITAR_TARGETS.FRET_GREEN,
+  GUITAR_TARGETS.FRET_RED,
+  GUITAR_TARGETS.FRET_YELLOW,
+  GUITAR_TARGETS.FRET_BLUE,
+  GUITAR_TARGETS.FRET_ORANGE,
+].map((target) => target.id);
+
+// Tap (GH) and solo (RB) frets share ids, so this covers the slider and the lower neck
+const TAP_TARGETS = [
+  GUITAR_TARGETS.TAP_GREEN,
+  GUITAR_TARGETS.TAP_RED,
+  GUITAR_TARGETS.TAP_YELLOW,
+  GUITAR_TARGETS.TAP_BLUE,
+  GUITAR_TARGETS.TAP_ORANGE,
+];
+const TAP_IDS = TAP_TARGETS.map((target) => target.id);
+
+function isNeckButton(mapping: proto.IMapping, ids: number[]) {
+  const id = mapping.mapping?.ghButton ?? mapping.mapping?.rbButton;
+  return id != null && ids.includes(id);
+}
+
+/**
+ * Drops the fret mappings with the given ids that `remove` matches. Returns whether any were
+ * removed.
+ */
+function removeNeckMappings(ids: number[], remove: (input: proto.IInput) => boolean): boolean {
+  const store = useConfigStore.getState();
+  const profileIdx = store.currentProfile;
+  const profile = store.config.profiles?.[profileIdx];
+  if (!profile?.mappings) {
+    return false;
+  }
+  const mappings = profile.mappings.filter(
+    (m) => !isNeckButton(m, ids) || !m.input || !remove(m.input)
+  );
+  if (mappings.length === profile.mappings.length) {
+    return false;
+  }
+  store.updateProfile({ ...profile, mappings }, profileIdx);
+  return true;
+}
+
+/**
+ * Adds a device on the I2C1 header pins. The firmware shares the bus between devices at different
+ * addresses, but runs it at the clock of whichever device starts first, so every device on it is
+ * brought down to the slowest clock (eg the GH5 neck's 150 kHz).
+ */
+function addI2c1Device(
+  kind: 'gh5Neck' | 'mpr121' | 'accelerometer',
+  fill?: (device: proto.IDevice) => void
+): string {
+  const id = useConfigStore.getState().addDevice(kind, undefined, (device) => {
+    device[kind]!.i2c = { ...device[kind]!.i2c, ...PICO_I2C1 };
+    fill?.(device);
+  });
+  const store = useConfigStore.getState();
+  const onBus = Object.values(store.deviceStatus).flatMap((status) =>
+    Object.entries(status.device).flatMap(([field, config]) => {
+      const i2c = (config as { i2c?: proto.II2CDevice } | null)?.i2c;
+      return i2c?.block === PICO_I2C1.block &&
+        i2c.sda === PICO_I2C1.sda &&
+        i2c.scl === PICO_I2C1.scl
+        ? [{ status, field, i2c }]
+        : [];
+    })
+  );
+  const clock = Math.min(...onBus.map(({ i2c }) => i2c.clock));
+  for (const { status, field, i2c } of onBus) {
+    if (i2c.clock !== clock) {
+      store.updateDevice(
+        {
+          ...status.device,
+          [field]: {
+            ...(status.device[field as keyof proto.IDevice] as object),
+            i2c: { ...i2c, clock },
+          },
+        },
+        status.id
+      );
+    }
+  }
+  return id;
+}
+
 /**
  * Checks if a GH5 neck device is configured in the current controller setup.
  */
 export function isGh5NeckConfigured(state: ConfigState): boolean {
-  const hasInDevices = state.config.devices?.some(
-    (d) => d.gh5Neck !== undefined && d.gh5Neck !== null
-  );
-  const hasInStatus = Object.values(state.deviceStatus ?? {}).some(
-    (d) => d.type === 'gh5Neck' || Boolean(d.device?.gh5Neck)
-  );
-  return Boolean(hasInDevices || hasInStatus);
+  return findDeviceStatus(state, 'gh5Neck') !== undefined;
 }
 
 /**
- * Automatically adds the GH5 neck driver with standard RP2040 I2C pins (GP18 SDA, GP19 SCL)
- * and loads default mappings for frets and slider bar.
+ * Adds the GH5 neck driver on I2C1 (GP18 SDA, GP19 SCL) and loads its default mappings for the
+ * frets and slider bar. Any other fret and tap mappings (eg GPIO) are removed first, as they would
+ * otherwise be found ahead of the neck's and shadow it.
  */
 export function configureGh5Neck(): void {
-  const store = useConfigStore.getState();
-  if (isGh5NeckConfigured(store)) {
+  if (isGh5NeckConfigured(useConfigStore.getState())) {
     return;
   }
+  removeNeckMappings([...FRET_IDS, ...TAP_IDS], (input) => input.gh5Neck == null);
+  const id = addI2c1Device('gh5Neck');
+  const store = useConfigStore.getState();
+  store.loadDefaults(store.deviceStatus[id]);
+}
 
-  let devId = '0';
-  if (Object.keys(store.deviceStatus).length) {
-    devId = (
-      Math.max(...Object.values(store.deviceStatus).map((x) => x.device.deviceid)) + 1
-    ).toString();
+/**
+ * Checks if an MPR121 touch controller is configured in the current controller setup.
+ */
+export function isMpr121Configured(state: ConfigState): boolean {
+  return findDeviceStatus(state, 'mpr121') !== undefined;
+}
+
+/**
+ * Adds an MPR121 on I2C1 (GP18 SDA, GP19 SCL) and maps electrodes 0 - 4 (the World Tour slider
+ * vias) to the five tap (GH) or solo (RB) frets. The frets themselves stay on GPIO.
+ */
+export function configureMpr121Slider(): void {
+  const store = useConfigStore.getState();
+  let id = findDeviceStatus(store, 'mpr121')?.id;
+  if (id === undefined) {
+    id = addI2c1Device('mpr121', (device) => {
+      device.mpr121!.touchpadCount = TAP_TARGETS.length;
+    });
   }
 
-  const gh5Device: proto.IDevice = {
-    deviceid: parseInt(devId, 10),
-    gh5Neck: {
-      i2c: {
-        sda: 18,
-        scl: 19,
-        block: 1,
-        clock: 150000,
+  const deviceid = parseInt(id, 10);
+  const updated = useConfigStore.getState();
+  const profileIdx = updated.currentProfile;
+  const profile = updated.config.profiles?.[profileIdx];
+  if (!profile) {
+    return;
+  }
+  const family = profileFamily(profile);
+  const mappings = (profile.mappings ?? []).filter((m) => !isNeckButton(m, TAP_IDS));
+  TAP_TARGETS.forEach((target, pin) => {
+    const resolved = targetForFamily(target, family);
+    mappings.push({
+      mapping: { [resolved.type]: resolved.id },
+      input: {
+        mpr121: {
+          deviceid,
+          pin,
+          mode: proto.Mpr121PinMode.Touch,
+          pinMode: proto.PinMode.PullUp,
+        },
+      },
+      center: 0,
+    });
+  });
+  updated.updateProfile({ ...profile, mappings }, profileIdx);
+}
+
+/**
+ * Checks if the tilt axis reads from an I2C accelerometer.
+ */
+export function isAccelerometerTiltConfigured(state: ConfigState): boolean {
+  const profile = state.config.profiles?.[state.currentProfile];
+  const idx = findMappingIndex(profile, GUITAR_TARGETS.TILT);
+  return (
+    findDeviceStatus(state, 'accelerometer') !== undefined &&
+    idx !== -1 &&
+    profile?.mappings?.[idx]?.input?.accelerometer != null
+  );
+}
+
+/**
+ * Adds an accelerometer on I2C1 (GP18 SDA, GP19 SCL), which it can share with a GH5 neck or
+ * MPR121, and drives the tilt axis from its X axis.
+ */
+export function configureAccelerometerTilt(): void {
+  const store = useConfigStore.getState();
+  let id = findDeviceStatus(store, 'accelerometer')?.id;
+  if (id === undefined) {
+    id = addI2c1Device('accelerometer');
+  }
+
+  const updated = useConfigStore.getState();
+  const profileIdx = updated.currentProfile;
+  const profile = updated.config.profiles?.[profileIdx];
+  if (!profile) {
+    return;
+  }
+  const tilt = targetForFamily(GUITAR_TARGETS.TILT, profileFamily(profile));
+  // The firmware scales every supported accelerometer to roughly 16384 counts per g around
+  // 32767, so level reads as no tilt and the axis pointing straight up as full tilt
+  const mapping: proto.IMapping = {
+    mapping: { [tilt.type]: tilt.id },
+    input: {
+      accelerometer: {
+        deviceid: parseInt(id, 10),
+        type: proto.AccelerometerInputType.AccelerometerX,
       },
     },
+    min: 32767,
+    center: 40959,
+    max: 49151,
+    deadzone: 0,
   };
-
-  const newStatus = new DeviceStatus(devId, 'gh5Neck', gh5Device);
-  useConfigStore.setState((state) => {
-    state.deviceStatus[devId] = newStatus;
-  });
-
-  store.loadDefaults(newStatus);
+  const mappings = [...(profile.mappings ?? [])];
+  const idx = findMappingIndex(profile, GUITAR_TARGETS.TILT);
+  if (idx !== -1) {
+    mappings[idx] = mapping;
+  } else {
+    mappings.push(mapping);
+  }
+  updated.updateProfile({ ...profile, mappings }, profileIdx);
 }
 
 /**
@@ -623,13 +829,21 @@ export function configureDirectGpioFrets(): void {
  * Checks if a Matrix device is configured in the current controller setup.
  */
 export function isRbMatrixConfigured(state: ConfigState): boolean {
-  const hasInDevices = state.config.devices?.some(
-    (d) => d.matrix !== undefined && d.matrix !== null
-  );
-  const hasInStatus = Object.values(state.deviceStatus ?? {}).some(
-    (d) => d.type === 'matrix' || Boolean(d.device?.matrix)
-  );
-  return Boolean(hasInDevices || hasInStatus);
+  return findDeviceStatus(state, 'matrix') !== undefined;
+}
+
+/**
+ * Deletes the 7-wire matrix device along with the fret mappings reading from it, freeing its
+ * GP14 / GP15 row outputs for another wiring method. Returns whether there was one to delete.
+ */
+export function removeRbMatrixFrets(): boolean {
+  const store = useConfigStore.getState();
+  const status = findDeviceStatus(store, 'matrix');
+  if (!status) {
+    return false;
+  }
+  store.deleteDevice(status.id);
+  return true;
 }
 
 /**
@@ -649,28 +863,11 @@ export function configureRbMatrixFrets(): void {
   const inPins = (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5) | (1 << 6);
   const outPins = (1 << 14) | (1 << 15);
 
-  let devId = Object.keys(store.deviceStatus).find(
-    (k) => store.deviceStatus[k].type === 'matrix' || Boolean(store.deviceStatus[k].device?.matrix)
-  );
+  let devId = findDeviceStatus(store, 'matrix')?.id;
 
   if (!devId) {
-    let nextNum = 0;
-    if (Object.keys(store.deviceStatus).length) {
-      nextNum = Math.max(...Object.values(store.deviceStatus).map((x) => x.device.deviceid)) + 1;
-    }
-    devId = nextNum.toString();
-
-    const matrixDevice: proto.IDevice = {
-      deviceid: nextNum,
-      matrix: {
-        inPins,
-        outPins,
-      },
-    };
-
-    const newStatus = new DeviceStatus(devId, 'matrix', matrixDevice);
-    useConfigStore.setState((state) => {
-      state.deviceStatus[devId!] = newStatus;
+    devId = store.addDevice('matrix', undefined, (device) => {
+      device.matrix = { ...device.matrix!, inPins, outPins };
     });
   } else {
     const existing = store.deviceStatus[devId];
@@ -715,15 +912,17 @@ export function configureRbMatrixFrets(): void {
       },
     };
 
+    const target = targetForFamily(m.target, 'rb');
     const idx = findMappingIndex(profile, m.target);
     if (idx !== -1) {
       currentMappings[idx] = {
         ...currentMappings[idx],
+        mapping: { [target.type]: target.id },
         input: updatedInput,
       };
     } else {
       currentMappings.push({
-        mapping: { [m.target.type]: m.target.id },
+        mapping: { [target.type]: target.id },
         input: updatedInput,
         center: 0,
       });
@@ -747,6 +946,14 @@ export function isRbShiftedConfigured(state: ConfigState): boolean {
   return Boolean(
     profile?.mappings?.some((m) => m.input?.shifted !== undefined && m.input?.shifted !== null)
   );
+}
+
+/**
+ * Removes the shifted fret and solo mappings set up by configureRbShiftedFrets. Returns whether
+ * there were any.
+ */
+export function removeRbShiftedFrets(): boolean {
+  return removeNeckMappings([...FRET_IDS, ...TAP_IDS], (input) => input.shifted != null);
 }
 
 /**
@@ -783,12 +990,17 @@ export function configureRbShiftedFrets(soloPin = 12): void {
         invertShift: true,
       },
     };
+    const main = targetForFamily(item.main, 'rb');
     const mainIdx = findMappingIndex(profile, item.main);
     if (mainIdx !== -1) {
-      currentMappings[mainIdx] = { ...currentMappings[mainIdx], input: mainInput };
+      currentMappings[mainIdx] = {
+        ...currentMappings[mainIdx],
+        mapping: { [main.type]: main.id },
+        input: mainInput,
+      };
     } else {
       currentMappings.push({
-        mapping: { [item.main.type]: item.main.id },
+        mapping: { [main.type]: main.id },
         input: mainInput,
         center: 0,
       });

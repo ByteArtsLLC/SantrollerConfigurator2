@@ -26,18 +26,23 @@ import { InputTestRow } from '@/guides/components/InputTestRow';
 import { StepWorkbench } from '@/guides/components/StepWorkbench';
 import { GuideStepProps } from '@/guides/types';
 import {
+  configureDirectGpioFrets,
   configureGh5Neck,
+  configureMpr121Slider,
   configureRbMatrixFrets,
   configureRbShiftedFrets,
   getGuitarFamily,
   GUITAR_TARGETS,
   isGh5NeckConfigured,
+  isMpr121Configured,
   isRbMatrixConfigured,
   isRbShiftedConfigured,
   isTargetPressed,
+  removeRbMatrixFrets,
+  removeRbShiftedFrets,
 } from '../guitarMappingUtils';
 
-export type FretWiringMode = 'direct' | 'gh5' | 'mpr121' | 'rb_solo' | 'rb_shifted' | 'rb_split';
+export type FretWiringMode = 'direct' | 'gh5' | 'mpr121' | 'rb_solo' | 'rb_shifted';
 
 export function SliderBarVisualizer() {
   const { t } = useTranslation();
@@ -50,31 +55,31 @@ export function SliderBarVisualizer() {
   const zones = [
     {
       label: t('guides.direct-pico-guitar.steps.frets.tapGreen'),
-      short: 'GRN',
+      short: t('guides.direct-pico-guitar.steps.frets.shortGreen'),
       color: 'green',
       active: tapGreen,
     },
     {
       label: t('guides.direct-pico-guitar.steps.frets.tapRed'),
-      short: 'RED',
+      short: t('guides.direct-pico-guitar.steps.frets.shortRed'),
       color: 'red',
       active: tapRed,
     },
     {
       label: t('guides.direct-pico-guitar.steps.frets.tapYellow'),
-      short: 'YEL',
+      short: t('guides.direct-pico-guitar.steps.frets.shortYellow'),
       color: 'yellow',
       active: tapYellow,
     },
     {
       label: t('guides.direct-pico-guitar.steps.frets.tapBlue'),
-      short: 'BLU',
+      short: t('guides.direct-pico-guitar.steps.frets.shortBlue'),
       color: 'blue',
       active: tapBlue,
     },
     {
       label: t('guides.direct-pico-guitar.steps.frets.tapOrange'),
-      short: 'ORG',
+      short: t('guides.direct-pico-guitar.steps.frets.shortOrange'),
       color: 'orange',
       active: tapOrange,
     },
@@ -88,7 +93,7 @@ export function SliderBarVisualizer() {
             {t('guides.direct-pico-guitar.steps.frets.sliderTitle')}
           </Text>
           <Badge size="xs" color="gray" variant="outline">
-            Touch Slider
+            {t('guides.direct-pico-guitar.steps.frets.sliderBadge')}
           </Badge>
         </Group>
 
@@ -136,11 +141,27 @@ export function SoloFretsVisualizer() {
   const soloOrange = useConfigStore((s) => isTargetPressed(s, GUITAR_TARGETS.SOLO_ORANGE));
 
   const soloButtons = [
-    { short: 'SOLO GRN', color: 'green', pressed: soloGreen },
-    { short: 'SOLO RED', color: 'red', pressed: soloRed },
-    { short: 'SOLO YEL', color: 'yellow', pressed: soloYellow },
-    { short: 'SOLO BLU', color: 'blue', pressed: soloBlue },
-    { short: 'SOLO ORG', color: 'orange', pressed: soloOrange },
+    {
+      short: t('guides.direct-pico-guitar.steps.frets.shortGreen'),
+      color: 'green',
+      pressed: soloGreen,
+    },
+    { short: t('guides.direct-pico-guitar.steps.frets.shortRed'), color: 'red', pressed: soloRed },
+    {
+      short: t('guides.direct-pico-guitar.steps.frets.shortYellow'),
+      color: 'yellow',
+      pressed: soloYellow,
+    },
+    {
+      short: t('guides.direct-pico-guitar.steps.frets.shortBlue'),
+      color: 'blue',
+      pressed: soloBlue,
+    },
+    {
+      short: t('guides.direct-pico-guitar.steps.frets.shortOrange'),
+      color: 'orange',
+      pressed: soloOrange,
+    },
   ];
 
   return (
@@ -151,13 +172,13 @@ export function SoloFretsVisualizer() {
             {t('guides.direct-pico-guitar.steps.frets.soloFretsHeader')}
           </Text>
           <Badge size="xs" color="violet" variant="outline">
-            Solo Taps
+            {t('guides.direct-pico-guitar.steps.frets.soloTapsBadge')}
           </Badge>
         </Group>
         <Group gap="xs" grow>
           {soloButtons.map((btn, i) => (
             <Badge key={i} size="md" color={btn.color} variant={btn.pressed ? 'filled' : 'outline'}>
-              {btn.short}
+              {t('guides.direct-pico-guitar.steps.frets.soloShort', { fret: btn.short })}
             </Badge>
           ))}
         </Group>
@@ -172,18 +193,18 @@ export function FretsStep(props: GuideStepProps) {
   const isGh5Active = useConfigStore((state) => isGh5NeckConfigured(state));
   const isMatrixActive = useConfigStore(isRbMatrixConfigured);
   const isShiftedActive = useConfigStore(isRbShiftedConfigured);
+  const isMpr121Active = useConfigStore(isMpr121Configured);
   const family = getGuitarFamily(useConfigStore.getState());
 
   const [wiringMode, setWiringMode] = React.useState<FretWiringMode>(() => {
     const saved = localStorage.getItem('santroller_guitar_fret_mode');
     if (family === 'rb') {
-      if (
-        saved === 'rb_solo' ||
-        saved === 'rb_shifted' ||
-        saved === 'rb_split' ||
-        saved === 'direct'
-      ) {
+      if (saved === 'rb_solo' || saved === 'rb_shifted' || saved === 'direct') {
         return saved;
+      }
+      // The split neck method was folded into Direct GPIO
+      if (saved === 'rb_split') {
+        return 'direct';
       }
       if (isShiftedActive) {
         return 'rb_shifted';
@@ -203,6 +224,15 @@ export function FretsStep(props: GuideStepProps) {
     const val = mode as FretWiringMode;
     setWiringMode(val);
     localStorage.setItem('santroller_guitar_fret_mode', val);
+
+    // Free the pins and fret mappings of the RB methods that this one replaces (the matrix rows on
+    // GP14 / GP15 clash with direct wiring's solo frets), then put the frets back on the GP2-GP6
+    // lines the neck was already wired to
+    const removedMatrix = val !== 'rb_solo' && removeRbMatrixFrets();
+    const removedShifted = val !== 'rb_shifted' && removeRbShiftedFrets();
+    if ((removedMatrix || removedShifted) && val === 'direct') {
+      configureDirectGpioFrets();
+    }
   };
 
   const handleEnableGh5 = () => {
@@ -226,26 +256,31 @@ export function FretsStep(props: GuideStepProps) {
   const fretButtons = [
     {
       label: t('guides.direct-pico-guitar.steps.frets.fretGreen'),
+      short: t('guides.direct-pico-guitar.steps.frets.shortGreen'),
       color: 'green',
       pressed: fretGreenPressed,
     },
     {
       label: t('guides.direct-pico-guitar.steps.frets.fretRed'),
+      short: t('guides.direct-pico-guitar.steps.frets.shortRed'),
       color: 'red',
       pressed: fretRedPressed,
     },
     {
       label: t('guides.direct-pico-guitar.steps.frets.fretYellow'),
+      short: t('guides.direct-pico-guitar.steps.frets.shortYellow'),
       color: 'yellow',
       pressed: fretYellowPressed,
     },
     {
       label: t('guides.direct-pico-guitar.steps.frets.fretBlue'),
+      short: t('guides.direct-pico-guitar.steps.frets.shortBlue'),
       color: 'blue',
       pressed: fretBluePressed,
     },
     {
       label: t('guides.direct-pico-guitar.steps.frets.fretOrange'),
+      short: t('guides.direct-pico-guitar.steps.frets.shortOrange'),
       color: 'orange',
       pressed: fretOrangePressed,
     },
@@ -260,8 +295,7 @@ export function FretsStep(props: GuideStepProps) {
             label: t('guides.direct-pico-guitar.steps.frets.methodRbShifted'),
             value: 'rb_shifted',
           },
-          { label: t('guides.direct-pico-guitar.steps.frets.methodRbSplit'), value: 'rb_split' },
-          { label: t('guides.direct-pico-guitar.steps.frets.methodDirect'), value: 'direct' },
+          { label: t('guides.direct-pico-guitar.steps.frets.methodDirectRb'), value: 'direct' },
         ]
       : [
           { label: t('guides.direct-pico-guitar.steps.frets.methodDirect'), value: 'direct' },
@@ -276,8 +310,11 @@ export function FretsStep(props: GuideStepProps) {
         <Text size="xs" fw={600} c="dimmed">
           {t('guides.direct-pico-guitar.steps.frets.wiringMethodLabel')}
         </Text>
+        {/* Stacked, as the RB labels don't fit side by side in the guide column */}
         <SegmentedControl
           size="sm"
+          orientation="vertical"
+          fullWidth
           value={wiringMode}
           onChange={handleModeChange}
           data={selectorOptions}
@@ -287,7 +324,41 @@ export function FretsStep(props: GuideStepProps) {
       {/* 1. Direct Wiring (GH & RB) */}
       {wiringMode === 'direct' && (
         <Stack gap="md">
-          <Text size="sm">{t('guides.direct-pico-guitar.steps.frets.intro')}</Text>
+          <Text size="sm">
+            {family === 'rb'
+              ? t('guides.direct-pico-guitar.steps.frets.introRb')
+              : t('guides.direct-pico-guitar.steps.frets.intro')}
+          </Text>
+
+          {family === 'rb' && (
+            <Card withBorder radius="md" p="sm">
+              <Stack gap="xs">
+                <Text fw={700} size="sm">
+                  {t('guides.direct-pico-guitar.steps.frets.directRbLayoutTitle')}
+                </Text>
+                <Group gap={6} wrap="wrap">
+                  {fretButtons.map((btn, i) => (
+                    <Badge key={btn.color} color={btn.color} size="sm">
+                      {t('guides.direct-pico-guitar.steps.frets.pinBadge', {
+                        label: btn.short,
+                        pin: 2 + i,
+                      })}
+                    </Badge>
+                  ))}
+                  {fretButtons.map((btn, i) => (
+                    <Badge key={`solo-${btn.color}`} color={btn.color} variant="outline" size="sm">
+                      {t('guides.direct-pico-guitar.steps.frets.pinBadge', {
+                        label: t('guides.direct-pico-guitar.steps.frets.soloShort', {
+                          fret: btn.short,
+                        }),
+                        pin: 12 + i,
+                      })}
+                    </Badge>
+                  ))}
+                </Group>
+              </Stack>
+            </Card>
+          )}
 
           <Image src="/guides/guitar/xplorer.png" radius="md" alt="Fret PCB traces" />
           <Text size="xs" c="dimmed" ta="center">
@@ -344,15 +415,15 @@ export function FretsStep(props: GuideStepProps) {
               <Table striped highlightOnHover withTableBorder>
                 <Table.Thead>
                   <Table.Tr>
-                    <Table.Th>Neck Pin</Table.Th>
-                    <Table.Th>Raspberry Pi Pico Pin</Table.Th>
+                    <Table.Th>{t('guides.direct-pico-guitar.steps.frets.thNeckPin')}</Table.Th>
+                    <Table.Th>{t('guides.direct-pico-guitar.steps.frets.thPicoPin')}</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="red" size="xs">
-                        3.3V (VCC)
+                        {t('guides.direct-pico-guitar.steps.frets.neckVcc')}
                       </Badge>
                     </Table.Td>
                     <Table.Td>{t('guides.direct-pico-guitar.steps.frets.gh5PinVcc')}</Table.Td>
@@ -360,7 +431,7 @@ export function FretsStep(props: GuideStepProps) {
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="gray" size="xs">
-                        GND
+                        {t('guides.direct-pico-guitar.steps.frets.neckGnd')}
                       </Badge>
                     </Table.Td>
                     <Table.Td>{t('guides.direct-pico-guitar.steps.frets.gh5PinGnd')}</Table.Td>
@@ -368,7 +439,7 @@ export function FretsStep(props: GuideStepProps) {
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="blue" size="xs">
-                        SDA (Data)
+                        {t('guides.direct-pico-guitar.steps.frets.neckSda')}
                       </Badge>
                     </Table.Td>
                     <Table.Td>{t('guides.direct-pico-guitar.steps.frets.gh5PinSda')}</Table.Td>
@@ -376,7 +447,7 @@ export function FretsStep(props: GuideStepProps) {
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="yellow" size="xs">
-                        SCL (Clock)
+                        {t('guides.direct-pico-guitar.steps.frets.neckScl')}
                       </Badge>
                     </Table.Td>
                     <Table.Td>{t('guides.direct-pico-guitar.steps.frets.gh5PinScl')}</Table.Td>
@@ -386,7 +457,11 @@ export function FretsStep(props: GuideStepProps) {
             </Stack>
           </Card>
 
-          <Alert color="red" icon={<IconAlertTriangle size={16} />} title="3.3V Power Only">
+          <Alert
+            color="red"
+            icon={<IconAlertTriangle size={16} />}
+            title={t('guides.direct-pico-guitar.steps.frets.gh5VoltageTitle')}
+          >
             {t('guides.direct-pico-guitar.steps.frets.gh5VoltageWarning')}
           </Alert>
         </Stack>
@@ -405,74 +480,102 @@ export function FretsStep(props: GuideStepProps) {
               <Table striped highlightOnHover withTableBorder>
                 <Table.Thead>
                   <Table.Tr>
-                    <Table.Th>Neck Wire</Table.Th>
-                    <Table.Th>Role</Table.Th>
-                    <Table.Th>Raspberry Pi Pico Pin</Table.Th>
+                    <Table.Th>{t('guides.direct-pico-guitar.steps.frets.thNeckWire')}</Table.Th>
+                    <Table.Th>{t('guides.direct-pico-guitar.steps.frets.thRole')}</Table.Th>
+                    <Table.Th>{t('guides.direct-pico-guitar.steps.frets.thPicoPin')}</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="green" size="xs">
-                        Green Signal
+                        {t('guides.direct-pico-guitar.steps.frets.wireGreen')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Column 0 (Input)</Table.Td>
-                    <Table.Td>GP2 (Pin 4)</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.roleColumn', { n: 0 })}
+                    </Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 2, pin: 4 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="red" size="xs">
-                        Red Signal
+                        {t('guides.direct-pico-guitar.steps.frets.wireRed')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Column 1 (Input)</Table.Td>
-                    <Table.Td>GP3 (Pin 5)</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.roleColumn', { n: 1 })}
+                    </Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 3, pin: 5 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="yellow" size="xs">
-                        Yellow Signal
+                        {t('guides.direct-pico-guitar.steps.frets.wireYellow')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Column 2 (Input)</Table.Td>
-                    <Table.Td>GP4 (Pin 6)</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.roleColumn', { n: 2 })}
+                    </Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 4, pin: 6 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="blue" size="xs">
-                        Blue Signal
+                        {t('guides.direct-pico-guitar.steps.frets.wireBlue')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Column 3 (Input)</Table.Td>
-                    <Table.Td>GP5 (Pin 7)</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.roleColumn', { n: 3 })}
+                    </Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 5, pin: 7 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="orange" size="xs">
-                        Orange Signal
+                        {t('guides.direct-pico-guitar.steps.frets.wireOrange')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Column 4 (Input)</Table.Td>
-                    <Table.Td>GP6 (Pin 9)</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.roleColumn', { n: 4 })}
+                    </Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 6, pin: 9 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="violet" size="xs">
-                        Upper Common
+                        {t('guides.direct-pico-guitar.steps.frets.wireUpperCommon')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Row 0 (Output)</Table.Td>
-                    <Table.Td>GP14 (Pin 19)</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.roleRow', { n: 0 })}
+                    </Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 14, pin: 19 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="violet" size="xs">
-                        Solo Common
+                        {t('guides.direct-pico-guitar.steps.frets.wireSoloCommon')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Row 1 (Output)</Table.Td>
-                    <Table.Td>GP15 (Pin 20)</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.roleRow', { n: 1 })}
+                    </Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 15, pin: 20 })}
+                    </Table.Td>
                   </Table.Tr>
                 </Table.Tbody>
               </Table>
@@ -506,7 +609,11 @@ export function FretsStep(props: GuideStepProps) {
             </Group>
           </Card>
 
-          <Alert color="teal" icon={<IconInfoCircle size={16} />} title="No Ground Wire Needed">
+          <Alert
+            color="teal"
+            icon={<IconInfoCircle size={16} />}
+            title={t('guides.direct-pico-guitar.steps.frets.rbSoloNoGndTitle')}
+          >
             {t('guides.direct-pico-guitar.steps.frets.rbSoloMatrixNoGnd')}
           </Alert>
         </Stack>
@@ -525,74 +632,86 @@ export function FretsStep(props: GuideStepProps) {
               <Table striped highlightOnHover withTableBorder>
                 <Table.Thead>
                   <Table.Tr>
-                    <Table.Th>Neck Wire</Table.Th>
-                    <Table.Th>Role</Table.Th>
-                    <Table.Th>Raspberry Pi Pico Pin</Table.Th>
+                    <Table.Th>{t('guides.direct-pico-guitar.steps.frets.thNeckWire')}</Table.Th>
+                    <Table.Th>{t('guides.direct-pico-guitar.steps.frets.thRole')}</Table.Th>
+                    <Table.Th>{t('guides.direct-pico-guitar.steps.frets.thPicoPin')}</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="green" size="xs">
-                        Green Signal
+                        {t('guides.direct-pico-guitar.steps.frets.wireGreen')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Green Fret Line</Table.Td>
-                    <Table.Td>GP2 (Pin 4)</Table.Td>
+                    <Table.Td>{t('guides.direct-pico-guitar.steps.frets.roleFretLine')}</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 2, pin: 4 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="red" size="xs">
-                        Red Signal
+                        {t('guides.direct-pico-guitar.steps.frets.wireRed')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Red Fret Line</Table.Td>
-                    <Table.Td>GP3 (Pin 5)</Table.Td>
+                    <Table.Td>{t('guides.direct-pico-guitar.steps.frets.roleFretLine')}</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 3, pin: 5 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="yellow" size="xs">
-                        Yellow Signal
+                        {t('guides.direct-pico-guitar.steps.frets.wireYellow')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Yellow Fret Line</Table.Td>
-                    <Table.Td>GP4 (Pin 6)</Table.Td>
+                    <Table.Td>{t('guides.direct-pico-guitar.steps.frets.roleFretLine')}</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 4, pin: 6 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="blue" size="xs">
-                        Blue Signal
+                        {t('guides.direct-pico-guitar.steps.frets.wireBlue')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Blue Fret Line</Table.Td>
-                    <Table.Td>GP5 (Pin 7)</Table.Td>
+                    <Table.Td>{t('guides.direct-pico-guitar.steps.frets.roleFretLine')}</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 5, pin: 7 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="orange" size="xs">
-                        Orange Signal
+                        {t('guides.direct-pico-guitar.steps.frets.wireOrange')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Orange Fret Line</Table.Td>
-                    <Table.Td>GP6 (Pin 9)</Table.Td>
+                    <Table.Td>{t('guides.direct-pico-guitar.steps.frets.roleFretLine')}</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 6, pin: 9 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="violet" size="xs">
-                        Solo Bus
+                        {t('guides.direct-pico-guitar.steps.frets.wireSoloBus')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Solo Modifier Switch</Table.Td>
-                    <Table.Td>GP12 (Pin 16)</Table.Td>
+                    <Table.Td>{t('guides.direct-pico-guitar.steps.frets.roleSoloSwitch')}</Table.Td>
+                    <Table.Td>
+                      {t('guides.direct-pico-guitar.steps.frets.picoPin', { gp: 12, pin: 16 })}
+                    </Table.Td>
                   </Table.Tr>
                   <Table.Tr>
                     <Table.Td>
                       <Badge color="gray" size="xs">
-                        Common GND
+                        {t('guides.direct-pico-guitar.steps.frets.wireGround')}
                       </Badge>
                     </Table.Td>
-                    <Table.Td>Ground</Table.Td>
-                    <Table.Td>GND (Pin 3, 8, etc.)</Table.Td>
+                    <Table.Td>{t('guides.direct-pico-guitar.steps.frets.roleGround')}</Table.Td>
+                    <Table.Td>{t('guides.direct-pico-guitar.steps.frets.picoGnd')}</Table.Td>
                   </Table.Tr>
                 </Table.Tbody>
               </Table>
@@ -637,51 +756,6 @@ export function FretsStep(props: GuideStepProps) {
       )}
 
       {/* 4. Rock Band Split Neck (RB) */}
-      {wiringMode === 'rb_split' && (
-        <Stack gap="md">
-          <Text size="sm">{t('guides.direct-pico-guitar.steps.frets.rbSplitIntro')}</Text>
-
-          <Card withBorder radius="md" p="sm">
-            <Stack gap="xs">
-              <Text fw={700} size="sm">
-                Recommended 10-Pin Split Neck Layout
-              </Text>
-              <Group gap={6} wrap="wrap">
-                <Badge color="green" size="sm">
-                  GRN: GP2
-                </Badge>
-                <Badge color="red" size="sm">
-                  RED: GP3
-                </Badge>
-                <Badge color="yellow" size="sm">
-                  YEL: GP4
-                </Badge>
-                <Badge color="blue" size="sm">
-                  BLU: GP5
-                </Badge>
-                <Badge color="orange" size="sm">
-                  ORG: GP6
-                </Badge>
-                <Badge color="green" variant="outline" size="sm">
-                  SOLO GRN: GP12
-                </Badge>
-                <Badge color="red" variant="outline" size="sm">
-                  SOLO RED: GP13
-                </Badge>
-                <Badge color="yellow" variant="outline" size="sm">
-                  SOLO YEL: GP14
-                </Badge>
-                <Badge color="blue" variant="outline" size="sm">
-                  SOLO BLU: GP15
-                </Badge>
-                <Badge color="orange" variant="outline" size="sm">
-                  SOLO ORG: GP16
-                </Badge>
-              </Group>
-            </Stack>
-          </Card>
-        </Stack>
-      )}
 
       {/* 5. World Tour Slider (MPR121) */}
       {wiringMode === 'mpr121' && (
@@ -692,7 +766,7 @@ export function FretsStep(props: GuideStepProps) {
 
           <Stack gap="xs">
             <Text size="sm" fw={600}>
-              1. Cut U2 Chip Traces
+              {t('guides.direct-pico-guitar.steps.frets.mpr121TracesTitle')}
             </Text>
             <Text size="xs" c="dimmed">
               {t('guides.direct-pico-guitar.steps.frets.mpr121StepTraces')}
@@ -705,7 +779,7 @@ export function FretsStep(props: GuideStepProps) {
 
           <Stack gap="xs">
             <Text size="sm" fw={600}>
-              2. Solder Slider Vias to MPR121
+              {t('guides.direct-pico-guitar.steps.frets.mpr121ViasTitle')}
             </Text>
             <Text size="xs" c="dimmed">
               {t('guides.direct-pico-guitar.steps.frets.mpr121StepVias')}
@@ -719,71 +793,134 @@ export function FretsStep(props: GuideStepProps) {
           <Card withBorder radius="md" p="sm">
             <Stack gap="xs">
               <Text fw={700} size="sm">
-                3. MPR121 to Raspberry Pi Pico Connections
+                {t('guides.direct-pico-guitar.steps.frets.mpr121I2cTitle')}
               </Text>
               <Text size="xs" c="dimmed">
                 {t('guides.direct-pico-guitar.steps.frets.mpr121StepI2c')}
               </Text>
               <Group gap={6} wrap="wrap">
                 <Badge color="red" size="sm">
-                  VCC: 3V3 OUT (Pin 36)
+                  {t('guides.direct-pico-guitar.steps.frets.mpr121Vcc')}
                 </Badge>
                 <Badge color="gray" size="sm">
-                  GND: Pin 38
+                  {t('guides.direct-pico-guitar.steps.frets.mpr121Gnd')}
                 </Badge>
                 <Badge color="blue" size="sm">
-                  SDA: GP18 (Pin 24)
+                  {t('guides.direct-pico-guitar.steps.frets.mpr121Sda')}
                 </Badge>
                 <Badge color="yellow" size="sm">
-                  SCL: GP19 (Pin 25)
+                  {t('guides.direct-pico-guitar.steps.frets.mpr121Scl')}
                 </Badge>
               </Group>
             </Stack>
           </Card>
+
+          <Stack gap="xs">
+            <Text size="sm" fw={600}>
+              {t('guides.direct-pico-guitar.steps.frets.mpr121FretsTitle')}
+            </Text>
+            <Text size="xs" c="dimmed">
+              {t('guides.direct-pico-guitar.steps.frets.mpr121StepFrets')}
+            </Text>
+          </Stack>
         </Stack>
       )}
     </Stack>
+  );
+
+  const directFretRows = (
+    <>
+      <InputTestRow
+        label={t('guides.direct-pico-guitar.steps.frets.fretGreen')}
+        target={GUITAR_TARGETS.FRET_GREEN}
+        color="green"
+        recommendedPin={2}
+      />
+      <InputTestRow
+        label={t('guides.direct-pico-guitar.steps.frets.fretRed')}
+        target={GUITAR_TARGETS.FRET_RED}
+        color="red"
+        recommendedPin={3}
+      />
+      <InputTestRow
+        label={t('guides.direct-pico-guitar.steps.frets.fretYellow')}
+        target={GUITAR_TARGETS.FRET_YELLOW}
+        color="yellow"
+        recommendedPin={4}
+      />
+      <InputTestRow
+        label={t('guides.direct-pico-guitar.steps.frets.fretBlue')}
+        target={GUITAR_TARGETS.FRET_BLUE}
+        color="blue"
+        recommendedPin={5}
+      />
+      <InputTestRow
+        label={t('guides.direct-pico-guitar.steps.frets.fretOrange')}
+        target={GUITAR_TARGETS.FRET_ORANGE}
+        color="orange"
+        recommendedPin={6}
+      />
+    </>
   );
 
   // Mode-dependent Workbench Content
   const workbenchContent = (
     <Stack gap="sm">
       {/* Direct Mode Workbench */}
-      {wiringMode === 'direct' && (
+      {wiringMode === 'direct' && family !== 'rb' && (
         <>
           <Text size="xs" c="dimmed">
             {t('guides.direct-pico-guitar.steps.frets.benchHint')}
           </Text>
 
+          {directFretRows}
+        </>
+      )}
+
+      {/* RB Direct Mode Workbench (upper and solo frets each on their own pin) */}
+      {wiringMode === 'direct' && family === 'rb' && (
+        <>
+          <Text size="xs" c="dimmed">
+            {t('guides.direct-pico-guitar.steps.frets.benchHint')}
+          </Text>
+
+          <Text size="xs" fw={700} c="dimmed">
+            {t('guides.direct-pico-guitar.steps.frets.splitUpperHeader')}
+          </Text>
+          {directFretRows}
+
+          <Text size="xs" fw={700} c="dimmed" mt="xs">
+            {t('guides.direct-pico-guitar.steps.frets.splitSoloHeader')}
+          </Text>
           <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.fretGreen')}
-            target={GUITAR_TARGETS.FRET_GREEN}
+            label={t('guides.direct-pico-guitar.steps.frets.soloGreen')}
+            target={GUITAR_TARGETS.SOLO_GREEN}
             color="green"
-            recommendedPin={2}
+            recommendedPin={12}
           />
           <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.fretRed')}
-            target={GUITAR_TARGETS.FRET_RED}
+            label={t('guides.direct-pico-guitar.steps.frets.soloRed')}
+            target={GUITAR_TARGETS.SOLO_RED}
             color="red"
-            recommendedPin={3}
+            recommendedPin={13}
           />
           <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.fretYellow')}
-            target={GUITAR_TARGETS.FRET_YELLOW}
+            label={t('guides.direct-pico-guitar.steps.frets.soloYellow')}
+            target={GUITAR_TARGETS.SOLO_YELLOW}
             color="yellow"
-            recommendedPin={4}
+            recommendedPin={14}
           />
           <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.fretBlue')}
-            target={GUITAR_TARGETS.FRET_BLUE}
+            label={t('guides.direct-pico-guitar.steps.frets.soloBlue')}
+            target={GUITAR_TARGETS.SOLO_BLUE}
             color="blue"
-            recommendedPin={5}
+            recommendedPin={15}
           />
           <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.fretOrange')}
-            target={GUITAR_TARGETS.FRET_ORANGE}
+            label={t('guides.direct-pico-guitar.steps.frets.soloOrange')}
+            target={GUITAR_TARGETS.SOLO_ORANGE}
             color="orange"
-            recommendedPin={6}
+            recommendedPin={16}
           />
         </>
       )}
@@ -826,7 +963,7 @@ export function FretsStep(props: GuideStepProps) {
           <Paper withBorder p="sm" radius="md" bg="var(--mantine-color-body)">
             <Stack gap="xs">
               <Text size="xs" fw={700} c="dimmed">
-                GH5 I2C FRET BUTTONS
+                {t('guides.direct-pico-guitar.steps.frets.gh5FretsHeader')}
               </Text>
               <Group gap="xs" grow>
                 {fretButtons.map((btn, i) => (
@@ -836,7 +973,7 @@ export function FretsStep(props: GuideStepProps) {
                     color={btn.color}
                     variant={btn.pressed ? 'filled' : 'outline'}
                   >
-                    {btn.label.split(' ')[0]}
+                    {btn.short}
                   </Badge>
                 ))}
               </Group>
@@ -853,7 +990,7 @@ export function FretsStep(props: GuideStepProps) {
           <Paper withBorder p="sm" radius="md" bg="var(--mantine-color-body)">
             <Stack gap="xs">
               <Text size="xs" fw={700} c="dimmed">
-                LIVE MAIN FRETS (UPPER NECK)
+                {t('guides.direct-pico-guitar.steps.frets.upperFretsHeader')}
               </Text>
               <Group gap="xs" grow>
                 {fretButtons.map((btn, i) => (
@@ -863,7 +1000,7 @@ export function FretsStep(props: GuideStepProps) {
                     color={btn.color}
                     variant={btn.pressed ? 'filled' : 'outline'}
                   >
-                    {btn.label.split(' ')[0]}
+                    {btn.short}
                   </Badge>
                 ))}
               </Group>
@@ -880,7 +1017,7 @@ export function FretsStep(props: GuideStepProps) {
           <Paper withBorder p="sm" radius="md" bg="var(--mantine-color-body)">
             <Stack gap="xs">
               <Text size="xs" fw={700} c="dimmed">
-                LIVE MAIN FRETS (UPPER NECK)
+                {t('guides.direct-pico-guitar.steps.frets.upperFretsHeader')}
               </Text>
               <Group gap="xs" grow>
                 {fretButtons.map((btn, i) => (
@@ -890,7 +1027,7 @@ export function FretsStep(props: GuideStepProps) {
                     color={btn.color}
                     variant={btn.pressed ? 'filled' : 'outline'}
                   >
-                    {btn.label.split(' ')[0]}
+                    {btn.short}
                   </Badge>
                 ))}
               </Group>
@@ -901,107 +1038,47 @@ export function FretsStep(props: GuideStepProps) {
         </Stack>
       )}
 
-      {/* RB Split Neck 10-Wire Workbench */}
-      {wiringMode === 'rb_split' && (
-        <>
-          <Text size="xs" c="dimmed">
-            {t('guides.direct-pico-guitar.steps.frets.benchHint')}
-          </Text>
-
-          <Text size="xs" fw={700} c="dimmed">
-            MAIN FRETS (UPPER)
-          </Text>
-          <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.fretGreen')}
-            target={GUITAR_TARGETS.FRET_GREEN}
-            color="green"
-            recommendedPin={2}
-          />
-          <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.fretRed')}
-            target={GUITAR_TARGETS.FRET_RED}
-            color="red"
-            recommendedPin={3}
-          />
-          <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.fretYellow')}
-            target={GUITAR_TARGETS.FRET_YELLOW}
-            color="yellow"
-            recommendedPin={4}
-          />
-          <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.fretBlue')}
-            target={GUITAR_TARGETS.FRET_BLUE}
-            color="blue"
-            recommendedPin={5}
-          />
-          <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.fretOrange')}
-            target={GUITAR_TARGETS.FRET_ORANGE}
-            color="orange"
-            recommendedPin={6}
-          />
-
-          <Text size="xs" fw={700} c="dimmed" mt="xs">
-            SOLO FRETS (LOWER)
-          </Text>
-          <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.soloGreen')}
-            target={GUITAR_TARGETS.SOLO_GREEN}
-            color="green"
-            recommendedPin={12}
-          />
-          <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.soloRed')}
-            target={GUITAR_TARGETS.SOLO_RED}
-            color="red"
-            recommendedPin={13}
-          />
-          <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.soloYellow')}
-            target={GUITAR_TARGETS.SOLO_YELLOW}
-            color="yellow"
-            recommendedPin={14}
-          />
-          <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.soloBlue')}
-            target={GUITAR_TARGETS.SOLO_BLUE}
-            color="blue"
-            recommendedPin={15}
-          />
-          <InputTestRow
-            label={t('guides.direct-pico-guitar.steps.frets.soloOrange')}
-            target={GUITAR_TARGETS.SOLO_ORANGE}
-            color="orange"
-            recommendedPin={16}
-          />
-        </>
-      )}
-
       {/* MPR121 Mode Workbench */}
       {wiringMode === 'mpr121' && (
         <Stack gap="md">
-          <Paper withBorder p="sm" radius="md" bg="var(--mantine-color-body)">
+          <Card withBorder radius="md" p="sm">
             <Stack gap="xs">
-              <Text size="xs" fw={700} c="dimmed">
-                LIVE FRET BUTTON STATUS
+              <Text fw={700} size="sm">
+                {t('guides.direct-pico-guitar.steps.frets.mpr121DriverTitle')}
               </Text>
-              <Group gap="xs" grow>
-                {fretButtons.map((btn, i) => (
-                  <Badge
-                    key={i}
-                    size="lg"
-                    color={btn.color}
-                    variant={btn.pressed ? 'filled' : 'outline'}
-                  >
-                    {btn.label.split(' ')[0]}
-                  </Badge>
-                ))}
-              </Group>
+              <Text size="xs" c="dimmed">
+                {t('guides.direct-pico-guitar.steps.frets.mpr121DriverDesc')}
+              </Text>
+
+              {isMpr121Active ? (
+                <Badge
+                  color="teal"
+                  size="md"
+                  variant="filled"
+                  leftSection={<IconCheck size={14} />}
+                >
+                  {t('guides.direct-pico-guitar.steps.frets.mpr121DriverActive')}
+                </Badge>
+              ) : (
+                <Button
+                  size="sm"
+                  color="teal"
+                  leftSection={<IconPlugConnected size={16} />}
+                  onClick={configureMpr121Slider}
+                  disabled={!connected}
+                >
+                  {t('guides.direct-pico-guitar.steps.frets.mpr121DriverBtn')}
+                </Button>
+              )}
             </Stack>
-          </Paper>
+          </Card>
 
           <SliderBarVisualizer />
+
+          <Text size="xs" c="dimmed">
+            {t('guides.direct-pico-guitar.steps.frets.benchHint')}
+          </Text>
+          {directFretRows}
         </Stack>
       )}
     </Stack>
@@ -1011,17 +1088,9 @@ export function FretsStep(props: GuideStepProps) {
     <StepWorkbench
       title={t('guides.direct-pico-guitar.steps.frets.title')}
       badge={
-        wiringMode === 'gh5'
-          ? '4-Wire I2C Neck'
-          : wiringMode === 'rb_solo'
-            ? '7-Wire Matrix'
-            : wiringMode === 'rb_shifted'
-              ? '7-Wire Solo Bus'
-              : wiringMode === 'rb_split'
-                ? '10-Wire Split Neck'
-                : wiringMode === 'mpr121'
-                  ? 'MPR121 I2C'
-                  : t('guides.direct-pico-guitar.steps.frets.badge')
+        wiringMode === 'direct'
+          ? t('guides.direct-pico-guitar.steps.frets.badge')
+          : t(`guides.direct-pico-guitar.steps.frets.badgeModes.${wiringMode}`)
       }
       badgeColor={family === 'rb' ? 'violet' : 'green'}
       description={t('guides.direct-pico-guitar.steps.frets.description')}
