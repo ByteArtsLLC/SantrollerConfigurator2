@@ -48,91 +48,91 @@ const COMPARISON_DATA: FeatureComparisonRow[] = [
   {
     category: 'Architecture & Profiles',
     feature: 'Multi-Profile Architecture',
-    santroller1: 'Single monolithic config per flash. Re-flashing required to change controller identity or pin mapping.',
-    santroller2: 'Dynamic multi-profile system with conditional Assignments (USB, Bluetooth, console mode, connected extensions).',
+    santroller1: 'One configuration per controller, with button-combo switching between console emulation modes. Changing bindings or controller type meant rebuilding and re-flashing the firmware.',
+    santroller2: 'Multiple profiles with conditional Assignments (USB, Bluetooth, console mode, connected extensions), switchable at runtime without re-flashing.',
     status: 'major',
   },
   {
     category: 'Architecture & Profiles',
-    feature: 'Configuration & Communication',
-    santroller1: 'Custom raw packed binary structs / packet headers over USB serial.',
-    santroller2: 'Standardized Google Protocol Buffers (nanopb on device, protobuf.js in configurator) with robust schema versioning.',
+    feature: 'Configuration & Firmware Builds',
+    santroller1: 'The configurator saved configs as .picoconfig files, then generated a config header and compiled a custom firmware build (PlatformIO) for every configuration change.',
+    santroller2: 'A single prebuilt firmware. Configuration is sent to the device at runtime as Protocol Buffers (nanopb on device, protobuf.js in the configurator), so changes apply instantly without a rebuild.',
     status: 'major',
   },
   {
     category: 'Hardware & Microcontrollers',
     feature: 'Raspberry Pi Pico & RP2040',
-    santroller1: 'Basic Arduino-Pico core support.',
-    santroller2: 'Native Pico SDK 2.x C++ implementation with custom dual-core tasking, hardware PIO state machines, and DMA.',
-    status: 'major',
+    santroller1: 'Primary platform, built on the Arduino-Pico core with multicore, PIO USB and PIO-driven LEDs.',
+    santroller2: 'Rewritten directly on the Pico SDK 2.x in C++ with a modular device, emulation and profile framework.',
+    status: 'improved',
   },
   {
     category: 'Hardware & Microcontrollers',
     feature: 'Raspberry Pi Pico 2 (RP2350)',
-    santroller1: 'Experimental or limited support.',
-    santroller2: 'Full first-class support for RP2350 (ARM Cortex-M33) with optimized binaries and compatibility builds.',
-    status: 'major',
+    santroller1: 'Supported (Pico 2 and Pico 2 W builds, including secondary-Pico builds).',
+    santroller2: 'Supported (Pico 2 and Pico 2 W), using the same prebuilt firmware approach as RP2040.',
+    status: 'unchanged',
   },
   {
     category: 'Hardware & Microcontrollers',
-    feature: 'Legacy AVR Microcontrollers (Pro Micro / Uno / Mega)',
-    santroller1: 'Supported (ATmega32U4, ATmega16U2 via DFU).',
-    santroller2: 'Deprecated. RP2040/RP2350 is required for full feature set. Legacy firmware (v10.1.189-legacy) is maintained for old boards.',
+    feature: 'Legacy AVR Microcontrollers (Pro Micro / Leonardo / Uno / Mega)',
+    santroller1: 'Supported (ATmega32U4 directly; Uno/Mega via the ATmega16U2 USB chip).',
+    santroller2: 'Not supported. RP2040/RP2350 is required. AVR boards stay on the legacy firmware (v10.1.189-legacy).',
     status: 'dropped',
   },
   {
     category: 'Firmware Updates & Flashing',
-    feature: 'Over-The-Air (OTA) Updates',
-    santroller1: 'Manual UF2 dragging or USB DFU flashing.',
-    santroller2: 'Bluetooth FOTA (Firmware Over-The-Air) update support on Pico W / Pico 2 W, plus WebHID in-app updates.',
-    status: 'major',
+    feature: 'Firmware Updates',
+    santroller1: 'The desktop configurator compiled and flashed firmware over USB.',
+    santroller2: 'In-browser updates over USB, plus Bluetooth FOTA (Firmware Over-The-Air) on Pico W / Pico 2 W.',
+    status: 'improved',
   },
   {
     category: 'USB Host & Peripherals',
     feature: 'USB Host Subsystem',
-    santroller1: 'Experimental PIO USB host with limited device class support.',
-    santroller2: 'Comprehensive TinyUSB + Pico-PIO-USB host stack supporting USB hubs, Xbox 360 wireless receivers, Xbox One dongles, PS3/PS4/PS5 controllers, and USB MIDI.',
-    status: 'major',
-  },
-  {
-    category: 'Console Emulation & Auth',
-    feature: 'Console Emulation Breadth',
-    santroller1: 'XInput, PS3, PS4, Switch, Wii, PC HID, OG Xbox.',
-    santroller2: 'Refactored modular emulators: PS3, PS4, PS5, XInput, Xbox One (GIP/XGIP), Switch, OG Xbox, PS2, Wii Extension, Wii Remote, Joybus (N64/GC), SNES.',
+    santroller1: 'PIO USB host with hub support, Xbox 360 wired and wireless receivers, PS4/PS5 controllers, generic HID devices and USB MIDI.',
+    santroller2: 'Reworked TinyUSB + Pico-PIO-USB host stack, adding Xbox One wireless adapters, OG Xbox controllers and USB Bluetooth dongles.',
     status: 'improved',
   },
   {
     category: 'Console Emulation & Auth',
-    feature: 'Console Authentication (PS4, PS5, Xbox One)',
-    santroller1: 'Supported console authentication passthrough for PS4, PS5, and Xbox One, but USB host handshakes were less resilient to timing drops and reconnects.',
-    santroller2: 'Hardened authentication architecture with rock-solid reconnect handling, plus added support for dedicated hardware auth chips (e.g. harvested Xbox One security chips over I2C) in addition to USB passthrough dongles/controllers.',
+    feature: 'Console Emulation Breadth',
+    santroller1: 'XInput, Xbox One, OG Xbox, PS2 (via PS3 adapters and on AVR), PS3, PS4/PS5, Switch, Wii (RB and extension emulation), PC HID, Raphnet and Fortnite Festival modes.',
+    santroller2: 'Modular emulators for all of the above, plus Joybus (N64/GC), SNES and Wii Remote over Bluetooth.',
+    status: 'improved',
+  },
+  {
+    category: 'Console Emulation & Auth',
+    feature: 'Console Authentication',
+    santroller1: 'PS4 and Xbox One authentication passthrough using a connected USB controller, and PS5 authentication via a P5General.',
+    santroller2: 'The same USB passthrough authentication (including PS5 via a P5General), plus support for dedicated Xbox One security chips over I2C.',
     status: 'improved',
   },
   {
     category: 'Console Emulation & Auth',
     feature: 'Fortnite Festival Support',
-    santroller1: 'Handled via rigid console mode bindings. Only offered a single fixed, non-customizable set of standard mappings embedded into the global console mode.',
-    santroller2: 'Dedicated custom Festival profile workflow. You can build tailored Festival profiles with customized layouts, strum/fret bindings, and navigation controls, assigning them conditionally without altering standard gameplay profiles.',
+    santroller1: 'Festival was a separate emulation type with a single hardcoded mapping that could not be customized.',
+    santroller2: 'Festival is a profile like any other, so it can have its own layout and bindings and be selected by Assignments alongside your standard profiles.',
     status: 'improved',
   },
   {
     category: 'Wireless & Bluetooth',
-    feature: 'Bluetooth Controller Emulation',
-    santroller1: 'Limited Bluetooth experimentation.',
-    santroller2: 'Full BTstack integration for Pico W and CSR8510 USB dongles (Wii Remote emulation, Bluetooth HID Gamepad & Keyboard profiles).',
-    status: 'major',
+    feature: 'Bluetooth',
+    santroller1: 'Pico W BLE HID gamepad and keyboard/mouse emulation, plus Bluetooth input from another Santroller.',
+    santroller2: 'BTstack integration on Pico W and USB Bluetooth dongles, adding Wii Remote emulation alongside the BLE gamepad and keyboard profiles.',
+    status: 'improved',
   },
   {
     category: 'Input & Processing',
     feature: 'Input Pipeline & Filtering',
-    santroller1: 'Simple debouncing and basic analog smoothing.',
-    santroller2: 'Advanced input manager, flexible debounce models, custom analog range remapping, and dedicated trigger types.',
+    santroller1: 'Debouncing, deadzones, multipliers, analog-to-digital and digital-to-analog conversion, joystick-to-dpad and macros.',
+    santroller2: 'Reworked input manager with the same processing options, plus custom analog range remapping.',
     status: 'improved',
   },
   {
     category: 'Sensors & Peripherals',
     feature: 'Core Instruments, Peripherals & LEDs (Already Supported in v1)',
-    santroller1: 'Already supported: MPR121 fret sensing, analog multiplexers, matrix keypads, ADS1115 ADCs, rotary encoders, APA102 & WS2812 RGB LEDs, STP16CPC constant-current LED drivers, I2C/SPI accelerometers, GH5 tap bars, DJ Hero turntables, WT/BH drums, CRKD guitar necks, and MAX1704x battery monitors.',
+    santroller1: 'Already supported: MPR121 fret sensing, analog multiplexers, matrix keypads, rotary encoders, APA102 & WS2812 RGB LEDs, STP16CPC constant-current LED drivers, I2C accelerometers, GH5 tap bars, DJ Hero turntables, WT/BH drums, CRKD guitar necks, and MAX1704x battery monitors.',
     santroller2: 'All ported to the modular device framework with unified pin assignments, per-device configuration, and profile-aware mapping.',
     status: 'unchanged',
   },
@@ -140,14 +140,14 @@ const COMPARISON_DATA: FeatureComparisonRow[] = [
     category: 'Sensors & Peripherals',
     feature: 'Newly Added Peripherals & Input Buses',
     santroller1: 'Not supported.',
-    santroller2: 'Dedicated Switch Network (paired pin key matrix), integrated Xbox 360 RF wireless receiver (front panel module), native Joybus controller input (N64 / GameCube), SNES/NES controller pad input, Infinium optical contactless crossfaders, DMX512 stage lighting output, CRKD drum kits, and VTech guitar expanders.',
+    santroller2: 'Switch Network (paired pin key matrix), Xbox 360 RF front panel module, Joybus controller input (N64 / GameCube), SNES/NES controller input, ADS1115 ADCs, Infinium optical crossfaders, DMX512 lighting output, CRKD drum kits, and VTech guitar expanders.',
     status: 'major',
   },
   {
     category: 'Configuration Tooling',
     feature: 'Configurator Application & Mobile Support',
-    santroller1: 'Desktop C# WPF / Avalonia desktop client (PC only).',
-    santroller2: 'Modern, cross-platform Web App using standard WebHID & Web Bluetooth. Runs on desktop operating systems as well as mobile phones directly in the browser (Chrome on Android, Bluefy on iOS)—no app or driver install required.',
+    santroller1: 'Desktop Avalonia (C#) application for Windows, macOS and Linux.',
+    santroller2: 'Web app using WebHID and Web Bluetooth, with no install required. On phones, Bluetooth-capable controllers can be configured over Web Bluetooth (Chrome on Android, Bluefy on iOS).',
     status: 'major',
   },
 ];
@@ -247,7 +247,7 @@ export function FirmwareDifferencesPage() {
                     Multi-Profile & Assignments
                   </Title>
                   <Text size="xs" c="dimmed">
-                    In Santroller 1, you flashed a fixed monolithic configuration for one controller type. Santroller 2 introduces dynamic <strong>Profiles</strong> paired with conditional <strong>Assignments</strong>. A single RP2040 can seamlessly switch between PC, Xbox, PlayStation, and Wii mode, or adapt configurations depending on what guitar neck or USB device is plugged in.
+                    In Santroller 1, each controller had one configuration (with button-combo console mode switching), and changing it meant rebuilding and re-flashing the firmware. Santroller 2 introduces <strong>Profiles</strong> paired with conditional <strong>Assignments</strong>, so a single controller can use different bindings depending on the console mode, connection type, or which guitar neck or USB device is plugged in.
                   </Text>
                 </Card>
 
@@ -259,7 +259,7 @@ export function FirmwareDifferencesPage() {
                     Protocol Buffers & Nanopb
                   </Title>
                   <Text size="xs" c="dimmed">
-                    Santroller 1 utilized tightly packed raw binary structs that were prone to breaking configuration changes between firmware builds. Santroller 2 standardizes configuration, commands, and real-time debug telemetry around <strong>Google Protocol Buffers</strong> (nanopb), enabling extensible backward-compatible configuration schemas.
+                    Santroller 1 compiled your configuration directly into a custom firmware build every time you changed it. Santroller 2 ships one prebuilt firmware and sends configuration, commands, and debug data at runtime as <strong>Google Protocol Buffers</strong> (nanopb), so changes apply instantly and the schema can grow without breaking existing configs.
                   </Text>
                 </Card>
 
@@ -271,7 +271,7 @@ export function FirmwareDifferencesPage() {
                     Modern USB Host & PIO USB
                   </Title>
                   <Text size="xs" c="dimmed">
-                    Santroller 2 features a robust TinyUSB + PIO USB host implementation. It supports multi-port USB hubs, passthrough authentication controllers, Xbox 360 wireless gaming receivers, Xbox One wireless adapters, and direct USB MIDI synthesizers and e-drums.
+                    Santroller 2 reworks the TinyUSB + PIO USB host stack. Alongside the hubs, Xbox 360 wireless receivers, PlayStation controllers, and USB MIDI devices supported in Santroller 1, it adds Xbox One wireless adapters, OG Xbox controllers, and USB Bluetooth dongles.
                   </Text>
                 </Card>
 
@@ -280,10 +280,10 @@ export function FirmwareDifferencesPage() {
                     <IconCpu size={20} />
                   </ThemeIcon>
                   <Title order={4} size="h5" mb={4}>
-                    RP2040 & RP2350 Native Architecture
+                    Native Pico SDK Rewrite
                   </Title>
                   <Text size="xs" c="dimmed">
-                    Built natively on the official Raspberry Pi Pico SDK 2.x rather than Arduino abstraction layers. Leverages RP2040 dual ARM Cortex-M0+ cores and RP2350 dual Cortex-M33 cores, hardware PIO state machines, and DMA transfers for sub-millisecond polling latency.
+                    Santroller 1 was built on the Arduino-Pico core. Santroller 2 is rewritten directly on the Raspberry Pi Pico SDK 2.x, with a modular framework for devices, console emulators, and profiles on both RP2040 and RP2350.
                   </Text>
                 </Card>
 
@@ -295,7 +295,7 @@ export function FirmwareDifferencesPage() {
                     FOTA (Firmware Over-The-Air)
                   </Title>
                   <Text size="xs" c="dimmed">
-                    On wireless hardware (Pico W and Pico 2 W), Santroller 2 embeds an autonomous FOTA bootloader. Users can update firmware directly over Bluetooth via the web configurator without opening controller shells or pressing physical BOOTSEL buttons.
+                    On wireless hardware (Pico W and Pico 2 W), Santroller 2 includes a FOTA bootloader, so firmware can be updated over Bluetooth from the web configurator without plugging the controller in.
                   </Text>
                 </Card>
 
@@ -307,7 +307,7 @@ export function FirmwareDifferencesPage() {
                     Web & Mobile Configurator
                   </Title>
                   <Text size="xs" c="dimmed">
-                    Replaced the old desktop C# application with a fast, zero-install Web App utilizing standard WebHID (for USB) and Web Bluetooth. You can configure controllers, map inputs, test sensors, and update firmware directly from desktop computers as well as <strong>mobile phones</strong> (Chrome on Android, Bluefy on iOS).
+                    Replaced the desktop Avalonia (C#) application with a zero-install web app using WebHID (for USB) and Web Bluetooth. You can configure controllers, map inputs, test sensors, and update firmware from a desktop browser, and Bluetooth-capable controllers can also be configured from <strong>mobile phones</strong> (Chrome on Android, Bluefy on iOS).
                   </Text>
                 </Card>
               </SimpleGrid>
@@ -320,7 +320,7 @@ export function FirmwareDifferencesPage() {
                 radius="md"
               >
                 <Text size="xs">
-                  Santroller 1 originated as "Ardwiino" targeting 8-bit AVR microcontrollers like the ATmega32U4 (Arduino Leonardo / SparkFun Pro Micro) and ATmega16U2 (Arduino Uno / Mega). Due to strict ROM (32 KB) and RAM (2.5 KB) constraints, AVR chips cannot support multi-profile storage, protocol buffers, USB host stacks, or Bluetooth emulation. 
+                  Santroller 1 originated as "Ardwiino" and still supports 8-bit AVR microcontrollers like the ATmega32U4 (Arduino Leonardo / SparkFun Pro Micro) and ATmega16U2 (Arduino Uno / Mega). Due to their limited flash and RAM (32 KB / 2.5 KB on the ATmega32U4), AVR chips cannot support multi-profile storage, protocol buffers, USB host stacks, or Bluetooth emulation. 
                   Santroller 2 requires a <strong>Raspberry Pi Pico (RP2040)</strong> or <strong>Pico 2 (RP2350)</strong>. Existing AVR builds should remain on the legacy Santroller 1 firmware (v10.1.189-legacy.2).
                 </Text>
               </Alert>
@@ -400,7 +400,7 @@ export function FirmwareDifferencesPage() {
                         </Text>
                         <Text size="xs" c="dimmed" mt={2}>
                           The Santroller Configurator provides an automated import tool for legacy <Code>.picoconfig</Code> files. 
-                          It translates legacy binding tables, axis thresholds, multipliers, and peripheral definitions directly into Santroller 2 Profiles and Assignments.
+                          It translates legacy bindings, pins, axis thresholds, multipliers, and peripheral definitions into Santroller 2 Profiles and Assignments.
                         </Text>
                       </div>
                     </Group>
@@ -416,8 +416,8 @@ export function FirmwareDifferencesPage() {
                           Pinout Compatibility
                         </Text>
                         <Text size="xs" c="dimmed" mt={2}>
-                          If you already built a controller using a Raspberry Pi Pico on Santroller 1, your physical wiring and pin assignments remain completely compatible. 
-                          You can flash the Santroller 2 UF2 file and re-assign your existing GPIO pins without re-soldering.
+                          If you already built a controller using a Raspberry Pi Pico on Santroller 1, your physical wiring stays the same. 
+                          Flash Santroller 2 and import your .picoconfig (or set up your existing GPIO pins manually) without re-soldering.
                         </Text>
                       </div>
                     </Group>
@@ -463,13 +463,14 @@ export function FirmwareDifferencesPage() {
                     </Text>
                   </Group>
                   <List size="xs" spacing="xs" icon={<IconCheck size={12} color="var(--mantine-color-teal-6)" />}>
-                    <List.Item>Multiple profiles with instant context-aware profile switching</List.Item>
-                    <List.Item>Full USB Host support (Hubs, wireless receivers) with hardened PS4/PS5/Xbox One auth and dedicated I2C auth chip support</List.Item>
-                    <List.Item>Dedicated custom Fortnite Festival profiles (customizable layouts instead of fixed console-mode bindings)</List.Item>
+                    <List.Item>Multiple profiles with Assignments, changeable at runtime without re-flashing</List.Item>
+                    <List.Item>Xbox One wireless adapters, OG Xbox controllers and USB Bluetooth dongles over USB host, plus I2C Xbox One auth chip support</List.Item>
+                    <List.Item>Customizable Fortnite Festival profiles instead of a single hardcoded mapping</List.Item>
                     <List.Item>Bluetooth FOTA updates on Pico W & Pico 2 W</List.Item>
-                    <List.Item>Robust Protocol Buffers configuration schema</List.Item>
-                    <List.Item>New input buses & hardware: Joybus (N64/GC), SNES/NES pads, Xbox 360 RF receiver, Switch Network, DMX output, and optical crossfaders</List.Item>
-                    <List.Item>Mobile phone configurator support directly from the browser (Chrome on Android, Bluefy on iOS)</List.Item>
+                    <List.Item>One prebuilt firmware with runtime Protocol Buffers configuration (no per-config rebuilds)</List.Item>
+                    <List.Item>New console emulation: Joybus (N64/GC), SNES, and Wii Remote over Bluetooth</List.Item>
+                    <List.Item>New input buses & hardware: Joybus (N64/GC), SNES/NES pads, Xbox 360 RF module, Switch Network, ADS1115, DMX output, and optical crossfaders</List.Item>
+                    <List.Item>Mobile configuration over Web Bluetooth (Chrome on Android, Bluefy on iOS)</List.Item>
                   </List>
                 </Paper>
 
@@ -484,9 +485,8 @@ export function FirmwareDifferencesPage() {
                   </Group>
                   <List size="xs" spacing="xs" icon={<IconX size={12} color="var(--mantine-color-orange-6)" />}>
                     <List.Item>Support for 8-bit AVR microcontrollers (ATmega32U4 / ATmega16U2)</List.Item>
-                    <List.Item>Legacy desktop C# Configurator application</List.Item>
-                    <List.Item>Old raw binary struct EEPROM serialization format</List.Item>
-                    <List.Item>Single-controller-only fixed configuration mode</List.Item>
+                    <List.Item>Legacy desktop Avalonia (C#) configurator application</List.Item>
+                    <List.Item>Per-configuration firmware compilation</List.Item>
                   </List>
                 </Paper>
               </SimpleGrid>
