@@ -14,8 +14,6 @@ export const USB_HOST_GUIDE: GuideDefinition = {
   supplies: [
     'Raspberry Pi Pico 1 or Pico 2',
     'USB Female Breakout Board or cut USB extension cable (keep the socket end)',
-    '2x 22Ω to 27Ω resistors (recommended, in series with D+ and D-)',
-    'Optional: 2x 47pF capacitors (from D+ and D- to GND)',
     'Soldering Iron & Wire',
   ],
   steps: [

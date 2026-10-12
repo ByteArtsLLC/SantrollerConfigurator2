@@ -17,7 +17,7 @@ export function UsbHostIntroStep(props: GuideStepProps) {
     <Stack gap="md">
       <Text size="sm">{t('guides.usb-host.steps.usb-intro.intro')}</Text>
 
-      <Image src="/guides/usb/usb.png" radius="md" alt="USB Host cable wiring" />
+      <Image src="/guides/usb/usb.svg" radius="md" alt="USB Host cable wiring" />
       <Text size="xs" c="dimmed" ta="center">
         {t('guides.usb-host.steps.usb-intro.cableCaption')}
       </Text>

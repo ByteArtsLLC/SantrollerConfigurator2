@@ -2511,7 +2511,7 @@
           "thMuxChannel": "Multiplexer Channel",
           "ghOnly": "Guitar Hero kits only",
           "otherKitsTitle": "Band Hero or World Tour kit?",
-          "otherKitsText": "These kits can be converted without hardwiring piezos. For a Band Hero / Guitar Hero 5 era kit, use the Band Hero Drum Kit guide instead. For a Guitar Hero World Tour kit, use the World Tour Drum Kit guide."
+          "otherKitsText": "These kits can be converted without hardwiring piezos. For a Band Hero / Guitar Hero 5 era kit, use the Band Hero Drum Kit guide instead. For a Guitar Hero World Tour kit, use the World Tour Drum Kit guide. An e-drum kit with a 5-pin MIDI OUT port doesn't need hardwired piezos either: use the MIDI In (5-pin DIN) guide to connect its MIDI OUT to the Pico."
         },
         "drum-wiring": {
           "shortTitle": "Pad Wiring",
@@ -2800,6 +2800,198 @@
         }
       }
     },
+    "midi-din": {
+      "title": "MIDI In (5-pin DIN)",
+      "subtitle": "Play with an E-Drum Kit or Other MIDI Gear",
+      "description": "Build a small opto-isolated MIDI input so an e-drum kit, keyboard or other device with a 5-pin MIDI OUT port can drive the Pico, which then acts as a Guitar Hero or Rock Band drum kit.",
+      "badge": "MIDI over UART",
+      "estimatedTime": "30 - 45 mins",
+      "supplies": [
+        "Raspberry Pi Pico 1 or Pico 2",
+        "H11L1 optocoupler",
+        "1N914 diode",
+        "220Ω resistor",
+        "470Ω resistor",
+        "5-pin DIN MIDI socket (female)",
+        "A MIDI cable"
+      ],
+      "steps": {
+        "din-intro": {
+          "shortTitle": "Supplies",
+          "title": "Supplies & Overview",
+          "badge": "Opto-Isolated",
+          "description": "What the MIDI input does, and the parts the receiver circuit needs.",
+          "intro": "Most e-drum kits, keyboards and other MIDI gear have a round 5-pin DIN MIDI OUT port. With a small receiver circuit, the Pico can listen to that port and turn the notes it receives into controller inputs, so an e-drum kit can be played as a Guitar Hero or Rock Band drum kit on a console or PC. The kit keeps working as normal; the Pico only listens to its MIDI OUT.",
+          "howTitle": "How It Works",
+          "howText": "MIDI sends its data as a current loop on pins 4 and 5 of the DIN connector. In the receiver, that current lights the LED inside an H11L1 optocoupler, and the H11L1's output switches the Pico's UART RX pin. The sending device and the Pico are never electrically connected, which is what the MIDI standard asks a receiver to do. The Pico reads the stream at MIDI's 31250 baud and maps each note to a drum pad.",
+          "suppliesTitle": "Supplies Required",
+          "supplies": [
+            "Raspberry Pi Pico 1 or Pico 2",
+            "H11L1 optocoupler (IC1 on the schematic)",
+            "1N914 diode",
+            "220Ω resistor (R1 on the schematic)",
+            "470Ω resistor (R2 on the schematic)",
+            "5-pin DIN MIDI socket (female)",
+            "A MIDI cable to connect the kit's MIDI OUT to the socket",
+            "Stripboard, perfboard or a breadboard, plus wire and a soldering iron",
+            "Optional: a 100nF capacitor (listed in the written guide, not shown on the schematic)"
+          ],
+          "voltageTitle": "This is the 3.3V version of the circuit",
+          "voltageText": "The H11L1 is powered from the Pico's 3V3(OUT) pin, and R2 pulls its output up to 3.3V, so the Pico's RX pin never sees more than 3.3V. Don't power the H11L1 or connect R2 to VBUS or VSYS (5V): the Pico's GPIO pins are not 5V tolerant.",
+          "keysTitle": "Keyboards and other MIDI gear",
+          "keysText": "This guide sets the Pico up as a drum kit. Any MIDI device with a 5-pin MIDI OUT works with the same circuit; for a keyboard used as Pro Keys, set the profile up as Pro Keys instead, then pick the key your keyboard starts at with Click to assign and press that key on the keyboard.",
+          "glanceTitle": "Connections at a Glance",
+          "glanceDesc": "Every connection in the receiver, from the MIDI socket through the H11L1 to the Pico."
+        },
+        "din-wiring": {
+          "shortTitle": "Wiring",
+          "title": "Circuit & Wiring",
+          "badge": "H11L1",
+          "description": "Build the optocoupler receiver, then connect it to the MIDI socket and the Pico.",
+          "schematicCaption": "The 3.3V MIDI receiver: MIDI socket on the left, H11L1 optocoupler (IC1) in the middle, Pico connections (+3.3V, RX, GND) on the right",
+          "schematicText": "On the input side, socket pin 4 runs through R1 (220Ω) to H11L1 pin 1, and socket pin 5 goes straight to H11L1 pin 2. A diode sits across H11L1 pins 1 and 2, pointing the opposite way to the optocoupler's LED. Socket pins 1, 2 and 3 and H11L1 pin 3 are not connected. On the output side, H11L1 pin 6 goes to +3.3V, pin 5 to GND and pin 4 to the Pico's RX pin, with R2 (470Ω) pulling pin 4 up to +3.3V.",
+          "socketTitle": "Check the socket's pin numbers",
+          "socketText": "DIN socket pins aren't numbered in order around the circle. Going around the arc the order is 1, 4, 2, 5, 3, so pin 2 is the middle pin and pins 4 and 5 are the two either side of it. Most sockets have the numbers moulded next to the pins: check against those, and remember the order is mirrored when you look at the solder side instead of the front.",
+          "buildTitle": "Building the Receiver",
+          "buildSteps": [
+            "Find H11L1 Pin 1: Pin 1 is marked with a dot or notch on the package. Pins 1 to 3 run down one side and pins 4 to 6 come back up the other, so pin 6 is opposite pin 1.",
+            "Socket Pin 4: Connect MIDI socket pin 4 to one end of the 220Ω resistor (R1), and the other end of R1 to H11L1 pin 1 (the LED's anode).",
+            "Socket Pin 5: Connect MIDI socket pin 5 straight to H11L1 pin 2 (the LED's cathode).",
+            "Diode: Connect the 1N914 across H11L1 pins 1 and 2, with its banded end (cathode) on pin 1 and its other end (anode) on pin 2. It points the opposite way to the H11L1's LED, protecting the LED if the signal is ever reversed.",
+            "Leave the Rest of the Socket: Socket pins 1, 2 and 3 are not connected. Pin 2 carries the cable's shield, which the sending device grounds; leaving it unconnected keeps the two devices' grounds apart.",
+            "Power: Connect H11L1 pin 6 (VCC) to the Pico's 3V3(OUT) (Pin 36), and H11L1 pin 5 (GND) to a Pico GND (Pin 38). Leave H11L1 pin 3 unconnected.",
+            "Pull-Up: Connect the 470Ω resistor (R2) between H11L1 pin 4 and 3V3(OUT).",
+            "Output: Connect H11L1 pin 4 to GP{{rx}} (Pin {{rxPhysical}}), the Pico's UART RX. You can pick a different RX pin in the next step.",
+            "Connect the Kit: Run a MIDI cable from the kit's MIDI OUT port to the socket. The socket is the receiver's MIDI IN."
+          ],
+          "capTitle": "About the 100nF capacitor",
+          "capText": "The written guide's parts list includes a 100nF capacitor, but the schematic doesn't show one. It is optional; if you fit it, connect it between H11L1 pin 6 (VCC) and pin 5 (GND), as close to the chip as you can, as a decoupling capacitor.",
+          "socketTableTitle": "MIDI Socket Side",
+          "socketTableDesc": "The input side of the H11L1, powered only by the sending device.",
+          "picoTableTitle": "Pico Side",
+          "picoTableDesc": "The output side of the H11L1, powered by the Pico.",
+          "thFrom": "From",
+          "thTo": "To",
+          "rows": {
+            "din4": "MIDI socket pin 4",
+            "din4To": "R1 (220Ω), then H11L1 pin 1 (LED anode)",
+            "din5": "MIDI socket pin 5",
+            "din5To": "H11L1 pin 2 (LED cathode)",
+            "dinNc": "MIDI socket pins 1, 2 and 3",
+            "dinNcTo": "Not connected",
+            "diode": "1N914 diode",
+            "diodeTo": "Across H11L1 pins 1 and 2: banded end (cathode) to pin 1, anode to pin 2",
+            "opto6": "H11L1 pin 6 (VCC)",
+            "opto6To": "Pico 3V3(OUT) (Pin 36)",
+            "opto5": "H11L1 pin 5 (GND)",
+            "opto5To": "Pico GND (Pin 38)",
+            "opto4": "H11L1 pin 4 (output)",
+            "opto4To": "Pico GP{{rx}} (Pin {{physical}}), UART RX",
+            "r2": "R2 (470Ω)",
+            "r2To": "Between H11L1 pin 4 and 3V3(OUT)",
+            "opto3": "H11L1 pin 3",
+            "opto3To": "Not connected"
+          }
+        },
+        "din-setup": {
+          "shortTitle": "Setup",
+          "title": "MIDI Input Setup",
+          "badge": "UART",
+          "description": "Pick the MIDI channel and RX pin, then add the MIDI input to the Pico.",
+          "intro": "With the receiver wired, pick the channel your kit sends on and the RX pin you wired H11L1 pin 4 to, then add the MIDI input.",
+          "channelTitle": "MIDI Channel",
+          "channelText": "Most e-drum kits send their drums on channel 10, the General MIDI drum channel, so that is the default. If your kit's manual or MIDI settings say it uses a different channel, pick that one. The Pico only listens on the chosen channel: the profile's MIDI slot only picks up the input once a message arrives on that channel, and the pad mappings only read notes on it.",
+          "notesTitle": "How Pads Are Matched",
+          "notesText": "Pads are matched by note number, using the General MIDI drum notes (for example 38 for the snare and 36 for the kick). Several notes map to each pad so most kits work straight away. If your kit sends different notes, the live test shows which notes arrive, and you can remap them on the Inputs page.",
+          "pinTitle": "RX Pin",
+          "pinText": "GP1 is the default because no other guide uses it. Any of the Pico's UART RX pins works, and only the RX pin is used: MIDI in never sends anything back, so no TX pin is needed.",
+          "whatTitle": "What Setup Does",
+          "whatList": [
+            "Drum Kit Profile: switches the profile to a Guitar Hero drum kit, unless it already emulates a Guitar Hero or Rock Band drum kit.",
+            "MIDI Input: adds a serial MIDI input on the chosen RX pin at 31250 baud (receive only, no TX pin).",
+            "MIDI Slot: gives the profile a MIDI slot on the chosen channel, and loads the default MIDI drum mappings.",
+            "Channel: moves the profile's MIDI slot and its MIDI mappings onto the chosen channel."
+          ],
+          "cardTitle": "Add the MIDI Input",
+          "cardDesc": "Pick the channel and RX pin, then add the MIDI input. Changing either later and pressing Update moves the input and its mappings.",
+          "channelLabel": "MIDI channel",
+          "pinLabel": "RX pin (H11L1 pin 4)",
+          "pinOption": "GP{{rx}} (Pin {{physical}}), UART{{block}}",
+          "pinConflict": "{{pins}} already used by another device. Pick a different RX pin.",
+          "uartInUse": "UART{{block}} is already used by another device. Pick an RX pin on the other UART.",
+          "addBtn": "Add MIDI Input",
+          "updateBtn": "Update MIDI Input",
+          "added": "MIDI input on GP{{rx}} (UART{{block}}), channel {{channel}}, pads mapped"
+        },
+        "din-test": {
+          "shortTitle": "Test & Save",
+          "title": "Live Test & Save",
+          "badge": "Save to Pico",
+          "description": "Watch the notes arrive, hit every pad, then save to the Pico.",
+          "configuredText": "Hit each pad on the kit and watch the notes arrive. Each hit shows its note number, channel and velocity, and whether a pad mapping reads it. When every pad registers, save the configuration to the Pico.",
+          "btnSave": "Save Drum Configuration to Pico Flash",
+          "btnSaved": "Saved to Controller",
+          "tipsTitle": "If Nothing Registers",
+          "tips": [
+            "Swapped Pins 4 and 5: If no notes arrive at all, socket pins 4 and 5 are the most common mistake, as the DIN numbering isn't in order. Swap the two wires and try again.",
+            "Optocoupler Orientation: Check H11L1 pin 1 is where the dot or notch is, and that the diode's banded end is on pin 1. A reversed diode carries the current instead of the LED, so nothing gets through.",
+            "Power and RX: Check H11L1 pin 6 is on 3V3(OUT), pin 5 on GND, R2 between pin 4 and 3V3(OUT), and pin 4 on the RX pin chosen in setup.",
+            "MIDI OUT, not IN: Make sure the cable runs from the kit's MIDI OUT (not MIDI IN or THRU) to the socket, and that the kit's MIDI output is turned on in its settings.",
+            "Wrong Channel: If notes arrive but the pads don't move, check the channel the notes arrive on matches the channel chosen in setup. Go back to setup and pick the kit's channel.",
+            "Unmapped Notes: If notes arrive on the right channel but a pad doesn't move, the kit sends a note the defaults don't use. Remap that pad to the note shown here on the Inputs page."
+          ],
+          "telemetryTitle": "MIDI ACTIVITY",
+          "activityDesc": "The latest notes the Pico has received, newest first.",
+          "picoNotConnected": "Pico not connected",
+          "notAdded": "MIDI input not added yet (see the setup step)",
+          "waiting": "No notes received yet. Hit a pad.",
+          "lastNote": "Last note {{note}} ({{name}}), channel {{channel}}, velocity {{velocity}}",
+          "wrongChannel": "Notes are arriving on channel {{got}}, but the MIDI input listens on channel {{channel}}. Go back to setup and pick channel {{got}}.",
+          "thNote": "Note",
+          "thChannel": "Channel",
+          "thVelocity": "Velocity",
+          "thMapped": "Mapped",
+          "mappedYes": "Yes",
+          "mappedNo": "No",
+          "clearBtn": "Clear",
+          "unknownNote": "not a default drum note",
+          "gm": {
+            "35": "Acoustic Bass Drum",
+            "36": "Bass Drum",
+            "38": "Snare",
+            "40": "Electric Snare",
+            "41": "Low Floor Tom",
+            "42": "Closed Hi-Hat",
+            "43": "High Floor Tom",
+            "44": "Pedal Hi-Hat",
+            "45": "Low Tom",
+            "46": "Open Hi-Hat",
+            "47": "Low-Mid Tom",
+            "48": "Hi-Mid Tom",
+            "49": "Crash Cymbal",
+            "50": "High Tom",
+            "51": "Ride Cymbal",
+            "57": "Crash Cymbal 2",
+            "59": "Ride Cymbal 2"
+          },
+          "padsTitle": "PADS",
+          "verifyPrompt": "Hit each pad and the kick pedal. Each bar shows the strongest reading from that pad's mappings, held briefly after a hit.",
+          "padNotes": "MIDI notes mapped: {{count}}",
+          "notMapped": "Not mapped",
+          "pad": {
+            "red": "Red",
+            "yellow": "Yellow",
+            "blue": "Blue",
+            "orange": "Orange",
+            "green": "Green",
+            "kick": "Kick Pedal",
+            "yellowCymbal": "Yellow Cymbal",
+            "blueCymbal": "Blue Cymbal",
+            "greenCymbal": "Green Cymbal"
+          }
+        }
+      }
+    },
     "dj-turntable": {
       "title": "DJ Hero Turntable Controller",
       "subtitle": "Optical Encoder Platter & Crossfader Conversion",
@@ -2918,13 +3110,11 @@
           "badge": "USB Host",
           "description": "Connect a USB female socket to VBUS, GND, and consecutive GP pins.",
           "intro": "The Raspberry Pi Pico supports acting as a USB Host, allowing you to plug in wired USB controllers, Xbox 360 wireless receivers, Rock Band USB instruments, or donor controllers for console security authentication.",
-          "cableCaption": "USB socket wiring: D+ and D- each go through a 27Ω series resistor (R1/R2) to consecutive Pico GPIOs; the 47pF capacitors (C1/C2) are optional",
+          "cableCaption": "USB socket wiring: D+ and D- go straight to consecutive Pico GPIOs, with no resistors or capacitors",
           "suppliesTitle": "Supplies Required",
           "supplies": [
             "Raspberry Pi Pico 1 or Pico 2",
             "USB Female Breakout Board or cut USB extension cable (keep the socket end)",
-            "2x 22Ω to 27Ω resistors (recommended, in series with D+ and D-)",
-            "Optional: 2x 47pF capacitors (from D+ and D- to GND)",
             "Soldering Iron & Wire"
           ],
           "pinoutTitle": "USB Pinout on Raspberry Pi Pico",
@@ -2948,9 +3138,8 @@
           "wiringSteps": [
             "Power (Red): Solder the Red wire to VBUS (Pin 40). This provides 5V to the connected USB controller.",
             "Ground (Black): Solder the Black wire to any GND (Pin 38).",
-            "D+ (Green): Connect the Green wire to GP2 (Pin 4) through a 22Ω to 27Ω series resistor (R2 in the diagram).",
-            "D- (White): Connect the White wire to GP3 (Pin 5) through a second 22Ω to 27Ω series resistor (R1). D- must always be on the GPIO directly after D+ (D+ + 1).",
-            "Optional: Add a 47pF capacitor from each data line to GND on the Pico side of the resistors (C1/C2). They are not required with short wires."
+            "D+ (Green): Connect the Green wire straight to GP2 (Pin 4).",
+            "D- (White): Connect the White wire straight to GP3 (Pin 5). D+ and D- just need to be on two consecutive GPIOs, in either order: if D- is on the lower pin, turn on \"D- First\" for the USB Host device on the Devices page."
           ],
           "driverConfigTitle": "USB Host Driver Configuration",
           "driverConfigDesc": "Adds a USB host port on GP2 (D+) / GP3 (D-) and a USB controller slot to the active profile so the plugged in controller drives it:",
@@ -3020,12 +3209,12 @@
           "methodChip": "Auth chip (I2C)",
           "stepsTitle": "Wiring Steps",
           "usbIntro": "The donor controller plugs into a USB Host port built from a USB socket wired to the Pico. If you've already built one with the USB Host guide, just enable it below.",
-          "usbCaption": "USB socket wiring: D+ and D- each go through a 27Ω series resistor (R1/R2) to consecutive Pico GPIOs; the 47pF capacitors (C1/C2) are optional",
+          "usbCaption": "USB socket wiring: D+ and D- go straight to consecutive Pico GPIOs, with no resistors or capacitors",
           "usbSteps": [
             "Power (Red): Solder the socket's VBUS wire to VBUS (Pin 40).",
             "Ground (Black): Solder the socket's GND wire to any GND (Pin 38).",
-            "D+ (Green): Connect to GP2 (Pin 4) through a 22Ω to 27Ω series resistor.",
-            "D- (White): Connect to GP3 (Pin 5) through a second 22Ω to 27Ω series resistor. D- must always be on the GPIO directly after D+.",
+            "D+ (Green): Connect straight to GP2 (Pin 4).",
+            "D- (White): Connect straight to GP3 (Pin 5). D+ and D- just need to be on two consecutive GPIOs, in either order: if D- is on the lower pin, turn on \"D- First\" for the USB Host device on the Devices page.",
             "Plug in the donor: Connect an official Xbox One / Series controller with a USB cable, or an Xbox Wireless Adapter with an official controller connected to it."
           ],
           "usbGuideLink": "Open the full USB Host guide",
@@ -3035,14 +3224,16 @@
           "usbEnableBtn": "Enable USB Host Port",
           "chipIntro": "The auth chip talks to the Pico over I2C, on the same I2C1 header pins the other guides use. It answers on its own address, so it can share these pins with a Wii extension, a Guitar Hero 5 neck or other I2C devices.",
           "chipSteps": [
-            "Remove the chip: Take the auth chip off an Xbox One controller board.",
-            "SDA: Wire the chip's SDA to GP18 (Pin 24).",
-            "SCL: Wire the chip's SCL to GP19 (Pin 25).",
-            "Power: Wire the chip's 3.3V to 3V3(OUT) (Pin 36), and its GND to any GND (Pin 38).",
-            "Reset (optional): Wire the chip's reset line to any free GPIO, then set that pin as Reset on the Xbox One Auth Chip card on the Devices page."
+            "Remove the chip: Take the auth chip off an Xbox One controller board. Pin 1 is marked by the dot (GND in the pinout above).",
+            "SDA: Wire the chip's SDA pin to GP18 (Pin 24).",
+            "CLK: Wire the chip's CLK pin (the I2C clock, SCL) to GP19 (Pin 25).",
+            "Power: Wire the chip's VCC pin to 3V3(OUT) (Pin 36), and its GND pin to any GND (Pin 38).",
+            "Reset (optional): Wire the chip's RST pin to any free GPIO, then set that pin as Reset on the Xbox One Auth Chip card on the Devices page.",
+            "Leave every NC pin unconnected."
           ],
           "chipWarningTitle": "Check the chip before powering it",
-          "chipWarning": "This guide doesn't cover finding the chip or its pins on each Xbox One controller revision. Double check SDA, SCL, power and ground before plugging the Pico in, and only power the chip from 3.3V.",
+          "chipWarning": "This guide doesn't cover where the chip sits on each Xbox One controller revision. Check the chip's marking and pin 1 dot against the pinout, double check SDA, CLK, VCC and GND before plugging the Pico in, and only power the chip from 3.3V.",
+          "chipPinoutCaption": "Xbox One auth chip pinout (top view, pin 1 at the dot): GND, SDA, NC, NC, NC down the left; VCC, RST, CLK, NC, NC down the right",
           "chipSetupTitle": "Auth Chip Device",
           "chipSetupDesc": "Adds an Xbox One Auth Chip device on I2C1. The reset pin is optional and can be set on the Devices page:",
           "thSignal": "Signal",
@@ -3075,7 +3266,7 @@
           ],
           "troubleTitle": "Troubleshooting",
           "troubleUsb": [
-            "Nothing detected: Check the USB Host wiring, and that D- is on the pin directly after D+.",
+            "Nothing detected: Check the USB Host wiring, that D+ and D- are on consecutive pins, and that \"D- First\" is on in the Devices page if D- is on the lower pin.",
             "Detected but auth fails: Use an official Microsoft controller. The Santroller docs say third-party controllers don't work for this.",
             "Plugged in late: If the donor is plugged in after the Xbox has started the controller, Santroller reconnects to the console so it can authenticate again."
           ],
@@ -3233,9 +3424,9 @@
             "VBUS (Red): Connect the socket's red wire to the Pico's VBUS (Pin 40).",
             "Ground (Black): Connect the socket's black wire to any Pico GND.",
             "D+ (Green): Connect the socket's green wire to {{dp}}.",
-            "D- (White): Connect the socket's white wire to {{dm}}. D- always goes on the GPIO directly after D+."
+            "D- (White): Connect the socket's white wire to {{dm}}. D+ and D- can be swapped as long as they stay on consecutive pins; if you swap them, turn on \"D- First\" for the USB Host device on the Devices page."
           ],
-          "usbCaption": "USB socket wiring (the USB Host guide's series resistors and capacitors apply here too)",
+          "usbCaption": "USB socket wiring: D+ and D- go straight to consecutive Pico GPIOs, with no resistors or capacitors",
           "usbNoPins": "No free pair of consecutive pins was found for D+ / D-. Free up two pins, or add a USB host port on the Devices page.",
           "setupTitle": "Console Output Setup",
           "setupDescWii": "Adds Wii extension emulation on {{sda}} (SDA) / {{scl}} (SCL), then adds a Wii Remote assignment list to the top of the active profile so the profile switches to it whenever the Wii Remote is talking.",
@@ -3324,7 +3515,6 @@
             "Raspberry Pi Pico 1 or Pico 2",
             "Xbox 360 RF module (Original 'Fat' model RF01/Rev H or Slim model)",
             "Soldering iron, flux, and fine wire (28-30 AWG)",
-            "2x 22Ω to 27Ω resistors (recommended, in series with USB D+ and D-, see the USB Host guide)",
             "Optional: 1x tactile button for physical hardware sync (if not using software sync)"
           ],
           "twoInterfacesTitle": "Two Interfaces on One Board",
@@ -3340,7 +3530,7 @@
           "thPurpose": "Purpose",
           "descPower": "Powers the RF transceiver chip and LEDs (strictly 3.3V)",
           "descGnd": "Common ground reference",
-          "descUsb": "Carries wireless controller data to the Pico's USB host port (D- must be on the GPIO after D+)",
+          "descUsb": "Carries wireless controller data to the Pico's USB host port (D+ and D- on two consecutive GPIOs)",
           "descSerialData": "Command data sent from the Pico to the module (one way)",
           "descSerialClock": "Clock driven by the module; the Pico shifts each command bit out on it",
           "descSync": "Optional sync button pin (active low to ground)"
@@ -3351,7 +3541,7 @@
           "badge": "Wiring",
           "description": "Step-by-step soldering instructions for your chosen module.",
           "usbNoteTitle": "USB D+ / D- Go to the Pico USB Host Port",
-          "usbNoteText": "The module's controller data arrives over USB, so its D+ and D- lines are wired like the socket in the USB Host Controller & Console Auth guide: D+ to GP2 and D- to GP3. The two pins must be consecutive with D- directly after D+ (D- = D+ + 1), and 22Ω to 27Ω series resistors are recommended. The final step adds the USB host port for you."
+          "usbNoteText": "The module's controller data arrives over USB, so its D+ and D- lines are wired like the socket in the USB Host Controller & Console Auth guide: D+ to GP2 and D- to GP3. The two pins must be consecutive, in either order (turn on \"D- First\" on the Devices page if D- is on the lower pin). No resistors or capacitors are needed. The final step adds the USB host port for you."
         },
         "rf-fat": {
           "shortTitle": "Fat Module",
@@ -3367,8 +3557,8 @@
           "wiringSteps": [
             "3.3V Power: Solder Top Pin 1 (or TP18) to the Pico Pin 36 (3V3 OUT).",
             "Ground: Solder Top Pin 4 or Bottom Pin 4 (or TP9 / TP10) to Pico Pin 38 (GND).",
-            "USB D+: Solder Top Pin 3 (or TP14) to Pico GP2 (Pin 4), the USB host D+ pin (ideally through a 22Ω to 27Ω resistor).",
-            "USB D-: Solder Top Pin 2 (or TP13) to Pico GP3 (Pin 5), the USB host D- pin. D- must be on the GPIO directly after D+ (see the USB Host guide).",
+            "USB D+: Solder Top Pin 3 (or TP14) to Pico GP2 (Pin 4), the USB host D+ pin.",
+            "USB D-: Solder Top Pin 2 (or TP13) to Pico GP3 (Pin 5), the USB host D- pin. D+ and D- just need to be on consecutive GPIOs, in either order (see the USB Host guide).",
             "Serial Data: Solder Bottom Pin 2 (or TP16) to an unused Pico GPIO (e.g. GP4).",
             "Serial Clock: Solder Bottom Pin 3 (or TP15) to an unused Pico GPIO (e.g. GP5).",
             "Sync Button (Optional): Solder Bottom Pin 1 to a GPIO if you want a physical sync button, or leave unconnected and use Santroller's built-in software sync button."
@@ -3391,8 +3581,8 @@
           "wiringSteps": [
             "3.3V Power: Solder bottom-row Pin 12 (Orange wire) to Pico Pin 36 (3V3 OUT).",
             "Ground: Solder the large mounting pad beside the connector (Black wire) to Pico Pin 38 (GND) and your USB shield/GND.",
-            "USB D+ (Green): Solder top-row Pin 6 (Green wire) to Pico GP2 (Pin 4), the USB host D+ pin (ideally through a 22Ω to 27Ω resistor).",
-            "USB D- (Grey/White): Solder top-row Pin 5 (Grey/White wire) to Pico GP3 (Pin 5), the USB host D- pin. D- must be on the GPIO directly after D+ (see the USB Host guide).",
+            "USB D+ (Green): Solder top-row Pin 6 (Green wire) to Pico GP2 (Pin 4), the USB host D+ pin.",
+            "USB D- (Grey/White): Solder top-row Pin 5 (Grey/White wire) to Pico GP3 (Pin 5), the USB host D- pin. D+ and D- just need to be on consecutive GPIOs, in either order (see the USB Host guide).",
             "Serial Data: Solder top-row Pin 2 (Pink wire) to Pico GP4.",
             "Serial Clock: Solder top-row Pin 3 (Cyan/Blue wire) to Pico GP5.",
             "Sync Button: Solder bottom-row Pin 13 (Yellow wire) to Pico GP6 (or an optional physical push-button to ground)."

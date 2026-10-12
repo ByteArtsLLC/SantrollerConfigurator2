@@ -308,7 +308,7 @@ export function XboxAuthWiringStep(props: GuideStepProps) {
       {method === 'usb' ? (
         <>
           <Text size="sm">{t(`${P}.auth-wiring.usbIntro`)}</Text>
-          <Image src="/guides/usb/usb.png" radius="md" alt="USB Host cable wiring" />
+          <Image src="/guides/usb/usb.svg" radius="md" alt="USB Host cable wiring" />
           <Text size="xs" c="dimmed" ta="center">
             {t(`${P}.auth-wiring.usbCaption`)}
           </Text>
@@ -332,6 +332,16 @@ export function XboxAuthWiringStep(props: GuideStepProps) {
       ) : (
         <>
           <Text size="sm">{t(`${P}.auth-wiring.chipIntro`)}</Text>
+          <Image
+            src="/guides/xoneauth/image.png"
+            radius="md"
+            maw={356}
+            mx="auto"
+            alt="Xbox One auth chip pinout"
+          />
+          <Text size="xs" c="dimmed" ta="center">
+            {t(`${P}.auth-wiring.chipPinoutCaption`)}
+          </Text>
           <Title order={4}>{t(`${P}.auth-wiring.stepsTitle`)}</Title>
           <GuideList
             type="ordered"

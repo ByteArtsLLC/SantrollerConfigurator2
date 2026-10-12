@@ -8,6 +8,7 @@ import { CONSOLE_OUTPUT_GUIDE } from './consoleout/consoleOutputGuide';
 import { DRUM_KIT_GUIDE } from './drums/drumGuide';
 import { DIRECT_PICO_GUITAR_GUIDE } from './guitar/guitarGuide';
 import { RGB_LED_GUIDE } from './leds/ledGuide';
+import { MIDI_DIN_GUIDE } from './mididin/midiDinGuide';
 import { DJ_TURNTABLE_GUIDE } from './turntable/turntableGuide';
 import { GuideCategory, GuideDefinition } from './types';
 import { USB_HOST_GUIDE } from './usb/usbHostGuide';
@@ -23,6 +24,7 @@ export const GUIDE_REGISTRY: Record<string, GuideDefinition> = {
   [DRUM_KIT_GUIDE.id]: DRUM_KIT_GUIDE,
   [BH_DRUM_GUIDE.id]: BH_DRUM_GUIDE,
   [WT_DRUM_GUIDE.id]: WT_DRUM_GUIDE,
+  [MIDI_DIN_GUIDE.id]: MIDI_DIN_GUIDE,
   [DJ_TURNTABLE_GUIDE.id]: DJ_TURNTABLE_GUIDE,
   [USB_HOST_GUIDE.id]: USB_HOST_GUIDE,
   [CONSOLE_OUTPUT_GUIDE.id]: CONSOLE_OUTPUT_GUIDE,

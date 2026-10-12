@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" font-family="Arial, Helvetica, sans-serif">
+  <rect width="760" height="440" fill="#ffffff"/>
+  <rect x="1" y="1" width="758" height="438" fill="none" stroke="#000" stroke-width="2"/>
+
+  <!-- USB socket -->
+  <rect x="60" y="70" width="130" height="150" rx="6" fill="#fff" stroke="#8b1a1a" stroke-width="2.5"/>
+  <text x="125" y="58" text-anchor="middle" font-size="18" fill="#1a237e">USB Socket</text>
+  <g font-size="18" text-anchor="end">
+    <text x="178" y="102" fill="#d32f2f">VBUS</text>
+    <text x="178" y="137">D-</text>
+    <text x="178" y="172">D+</text>
+    <text x="178" y="207">GND</text>
+  </g>
+  <g font-size="14" fill="#555">
+    <text x="196" y="90">1</text>
+    <text x="196" y="125">2</text>
+    <text x="196" y="160">3</text>
+    <text x="196" y="195">4</text>
+  </g>
+
+  <!-- Wires -->
+  <g stroke-width="3" fill="none">
+    <polyline points="190,97 330,97" stroke="#d32f2f"/>
+    <polyline points="190,132 520,132" stroke="#2e7d32"/>
+    <polyline points="190,167 520,167" stroke="#2e7d32"/>
+    <polyline points="190,202 330,202" stroke="#000"/>
+  </g>
+
+  <!-- Pico side labels -->
+  <g font-size="19">
+    <text x="340" y="103" fill="#d32f2f">Pico VBUS (Pin 40, +5V)</text>
+    <text x="530" y="138" fill="#1565c0">USB_D-</text>
+    <text x="530" y="173" fill="#1565c0">USB_D+</text>
+    <text x="340" y="208">Pico GND</text>
+  </g>
+
+  <!-- Notes -->
+  <g font-size="19" fill="#1565c0">
+    <text x="30" y="290">- Wire D+ and D- straight to the Pico, no resistors or capacitors needed</text>
+    <text x="30" y="322">- USB_D+ and USB_D- go on any two consecutive GPIOs, in either order</text>
+    <text x="30" y="354">- Example: D+ on GP2 and D- on GP3, or D- on GP2 and D+ on GP3</text>
+    <text x="30" y="386">- If D- is on the lower pin, turn on "D- First" on the Devices page</text>
+  </g>
+</svg>

@@ -19,7 +19,6 @@ export const XBOX360_RF_GUIDE: GuideDefinition = {
     'Raspberry Pi Pico 1 or Pico 2',
     "Xbox 360 RF module (Original 'Fat' model RF01/Rev H or Slim model)",
     'Soldering iron, flux, and fine wire (28-30 AWG)',
-    '2x 22Ω to 27Ω resistors (recommended, in series with USB D+ and D-, see the USB Host guide)',
     'Optional: 1x tactile button for physical hardware sync (if not using software sync)',
   ],
   steps: [

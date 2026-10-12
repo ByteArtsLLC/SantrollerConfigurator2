@@ -3,7 +3,7 @@ import { proto } from '@/components/SettingsContext/config';
 import { ConfigState, useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { assignDeviceToProfile, findDeviceStatus } from '../guideConfig';
 
-// PIO-USB needs D+ and D- on consecutive pins; with dmFirst = false D- is always D+ + 1
+// PIO-USB needs D+ and D- on consecutive pins, in either order (dmFirst); the guides wire D+ first
 export const USB_HOST_DP_PIN = 2;
 
 export function usbHostPins(device?: proto.IUsbHostDevice | null) {

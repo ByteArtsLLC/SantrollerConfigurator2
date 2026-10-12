@@ -482,7 +482,7 @@ export function ConsoleOutputWiringStep(props: GuideStepProps) {
             items={t(`${K}.console-wiring.usbSteps`, { returnObjects: true, ...usbLabels })}
           />
           <Stack gap={4}>
-            <Image src="/guides/usb/usb.png" radius="md" alt="USB socket wiring" />
+            <Image src="/guides/usb/usb.svg" radius="md" alt="USB socket wiring" />
             <Text size="xs" c="dimmed" ta="center">
               {t(`${K}.console-wiring.usbCaption`)}
             </Text>
