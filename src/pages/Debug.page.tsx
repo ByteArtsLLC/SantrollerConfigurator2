@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Code, Loader, Table, Text } from '@mantine/core';
+import { Button, Code, CopyButton, Group, Loader, Table, Text } from '@mantine/core';
 import { useMounted } from '@mantine/hooks';
 import { Layout } from '@/components/Layout/Layout';
 import { RequireDevice } from '@/components/RequireDevice/RequireDevice';
@@ -56,7 +56,16 @@ export function DebugPage() {
       <Layout>
         <RequireDevice>
           <Text>{t('debug.logs.title')}</Text>{' '}
-          <Button onClick={clearConsole}>{t('debug.logs.clear')}</Button>
+          <Group gap="xs">
+            <Button onClick={clearConsole}>{t('debug.logs.clear')}</Button>
+            <CopyButton value={consoleData}>
+              {({ copied, copy }) => (
+                <Button color={copied ? 'teal' : undefined} onClick={copy} disabled={!consoleData}>
+                  {copied ? t('debug.logs.copied') : t('debug.logs.copy')}
+                </Button>
+              )}
+            </CopyButton>
+          </Group>
           <Code block>{consoleData}</Code>
           <Text>{t('debug.midi.title')}</Text>{' '}
           <Button onClick={clearMidi}>{t('debug.midi.clear')}</Button>

@@ -2093,7 +2093,9 @@
     },
     "logs": {
       "title": "Debug logs",
-      "clear": "Clear logs"
+      "clear": "Clear logs",
+      "copy": "Copy logs",
+      "copied": "Copied"
     }
   },
   "guides": {
