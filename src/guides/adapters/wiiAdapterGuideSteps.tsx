@@ -186,7 +186,7 @@ export function WiiWiringStep(props: GuideStepProps) {
         </Stack>
         <Stack gap={4}>
           <Image
-            src="/guides/wii/wii-ext-pinout.png"
+            src="/guides/wii/wii-ext-pinout.jpg"
             radius="md"
             alt={t(`${IMAGE_ALT}.wiiExtPlugPinout`)}
           />

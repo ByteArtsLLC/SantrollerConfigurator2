@@ -204,7 +204,7 @@ function PlugImage({ target }: { target: ConsoleTarget }) {
       <Image
         src={
           target === 'wii'
-            ? '/guides/consoleout/wii-ext-plug-pinout.png'
+            ? '/guides/consoleout/wii-ext-plug-pinout.jpg'
             : '/guides/ps2/ps2-pinout.png'
         }
         radius="md"

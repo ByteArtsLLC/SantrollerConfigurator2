@@ -1,16 +1,19 @@
-# Releases the desktop app for Linux, Windows and macOS on every push to main, versioned by
-# scripts/version.mjs. Each one is built as a draft and only published once every platform built.
-name: Release desktop app
+# On every push to main: builds the configurator once, deploys it to GitHub Pages, and releases the
+# desktop app for Linux, Windows and macOS around that same build, versioned by
+# scripts/version.mjs. The desktop release is built as a draft and only published once every
+# platform built.
+name: Deploy and release
 
 on:
   push:
     branches: ['main']
   workflow_dispatch:
 
-permissions:
-  contents: write
+# Each job asks for what it needs
+permissions: {}
 
-# A newer push replaces a release that is still building, so an older one can't end up as latest
+# A newer push replaces a run that is still going, so an older build can't end up deployed or
+# released as latest
 concurrency:
   group: release
   cancel-in-progress: true
@@ -20,6 +23,8 @@ jobs:
   # builds just wrap them
   web:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.build.outputs.version }}
     steps:
@@ -36,9 +41,31 @@ jobs:
           name: dist
           path: dist
           if-no-files-found: error
+      - name: Upload for Pages
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  pages:
+    needs: web
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   desktop:
     needs: web
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
@@ -108,6 +135,8 @@ jobs:
   publish:
     needs: [web, desktop]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TAG: v${{ needs.web.outputs.version }}

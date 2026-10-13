@@ -88,7 +88,7 @@ export function Xbox360RfIntroStep(props: GuideStepProps) {
       {isFat ? (
         <Stack gap={4}>
           <Image
-            src="/guides/xbox360rf/fat-pinout.png"
+            src="/guides/xbox360rf/fat-pinout.jpg"
             radius="md"
             alt={t('guides.common.imageAlt.rfFatPinout')}
           />
@@ -99,7 +99,7 @@ export function Xbox360RfIntroStep(props: GuideStepProps) {
       ) : (
         <Stack gap={4}>
           <Image
-            src="/guides/xbox360rf/slim-scheme.png"
+            src="/guides/xbox360rf/slim-scheme.jpg"
             radius="md"
             alt={t('guides.common.imageAlt.rfSlimScheme')}
           />
@@ -280,7 +280,7 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
           <Text size="sm">{t('guides.xbox360-rf.steps.rf-fat.intro')}</Text>
 
           <Image
-            src="/guides/xbox360rf/fat-pinout.png"
+            src="/guides/xbox360rf/fat-pinout.jpg"
             radius="md"
             alt={t('guides.common.imageAlt.rfFatPinout')}
           />
@@ -312,7 +312,7 @@ export function Xbox360RfWiringStep(props: GuideStepProps) {
           <Text size="sm">{t('guides.xbox360-rf.steps.rf-slim.intro')}</Text>
 
           <Image
-            src="/guides/xbox360rf/slim-scheme.png"
+            src="/guides/xbox360rf/slim-scheme.jpg"
             radius="md"
             alt={t('guides.common.imageAlt.rfSlimScheme')}
           />

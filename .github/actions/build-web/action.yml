@@ -60,11 +60,54 @@ runs:
         echo "$TOOLS_DIR/pioasm/pioasm" >> $GITHUB_PATH
         echo "picotool_DIR=$TOOLS_DIR/picotool/picotool" >> $GITHUB_ENV
         echo "pioasm_DIR=$TOOLS_DIR/pioasm/pioasm" >> $GITHUB_ENV
+    # build-essential and make come with the runner, so only update the package lists if
+    # cabextract can't be installed without
     - name: Install build dependencies
       shell: bash
       run: |
-        sudo apt update
-        sudo apt install build-essential make cabextract
+        sudo apt-get install -y cabextract || { sudo apt-get update && sudo apt-get install -y cabextract; }
+    # The firmware builds against the SDK's master branch, so only download it again when master
+    # has moved. pico_sdk_import.cmake uses PICO_SDK_PATH instead of fetching it itself.
+    - name: Find the Pico SDK commit
+      id: sdk
+      shell: bash
+      run: echo "sha=$(git ls-remote https://github.com/raspberrypi/pico-sdk refs/heads/master | cut -f1)" >> "$GITHUB_OUTPUT"
+    - name: Cache the Pico SDK
+      id: sdk-cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/pico-sdk
+        key: pico-sdk-${{ steps.sdk.outputs.sha }}
+    - name: Download the Pico SDK
+      if: steps.sdk-cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        SHA: ${{ steps.sdk.outputs.sha }}
+      run: |
+        SDK="$RUNNER_TEMP/pico-sdk"
+        git init -q "$SDK"
+        git -C "$SDK" fetch -q --depth 1 https://github.com/raspberrypi/pico-sdk "$SHA"
+        git -C "$SDK" checkout -q FETCH_HEAD
+        git -C "$SDK" submodule update -q --init --depth 1
+        # the build doesn't need the history, and leaving it out keeps the cache smaller
+        find "$SDK" -name .git -prune -exec rm -rf {} +
+    - name: Use the Pico SDK
+      shell: bash
+      run: echo "PICO_SDK_PATH=$RUNNER_TEMP/pico-sdk" >> "$GITHUB_ENV"
+    # Most commits only touch a few files, so reuse what earlier runs compiled. The firmware's
+    # CMakeLists.txt compiles through ccache whenever it is installed.
+    - name: Set up ccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        key: firmware
+        max-size: 500M
+    - name: Configure ccache
+      shell: bash
+      run: |
+        # paths in the workspace are the same every run, but the compiler is installed fresh each
+        # time, so check what it is rather than when it was installed
+        echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+        echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
     - name: Set up Node
       uses: actions/setup-node@v6
       with:
@@ -76,6 +119,9 @@ runs:
     - name: Build
       shell: bash
       run: yarn build
+    - name: Show how much ccache saved
+      shell: bash
+      run: ccache --show-stats
     - name: Work out the version
       id: version
       shell: bash

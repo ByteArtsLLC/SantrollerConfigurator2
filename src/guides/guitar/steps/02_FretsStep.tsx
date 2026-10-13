@@ -362,7 +362,7 @@ export function FretsStep(props: GuideStepProps) {
           )}
 
           <Image
-            src="/guides/guitar/xplorer.png"
+            src="/guides/guitar/xplorer.jpg"
             radius="md"
             alt={t(`${IMAGE_ALT}.fretPcbTraces`)}
           />
@@ -777,7 +777,7 @@ export function FretsStep(props: GuideStepProps) {
               {t('guides.direct-pico-guitar.steps.frets.mpr121StepTraces')}
             </Text>
             <Image
-              src="/guides/guitar/wt_traces.png"
+              src="/guides/guitar/wt_traces.jpg"
               radius="md"
               alt={t(`${IMAGE_ALT}.wtSliderTraces`)}
             />
@@ -794,7 +794,7 @@ export function FretsStep(props: GuideStepProps) {
               {t('guides.direct-pico-guitar.steps.frets.mpr121StepVias')}
             </Text>
             <Image
-              src="/guides/guitar/wt_vias.png"
+              src="/guides/guitar/wt_vias.jpg"
               radius="md"
               alt={t(`${IMAGE_ALT}.wtSliderVias`)}
             />
