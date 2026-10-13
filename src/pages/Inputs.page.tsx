@@ -133,6 +133,18 @@ import {
 } from '@/devices/midi';
 import { AllPinsNamed, AnalogPinsNamed } from '@/devices/pico/pins';
 
+// Lets the browser skip layout and painting for cards that are off screen. A profile can have
+// dozens of mapping cards, which made scrolling lag in WebKitGTK (the Linux desktop app). `auto`
+// remembers each card's real size once it has been shown, the size here is only a first guess.
+const OFFSCREEN_MAPPING_CARD: React.CSSProperties = {
+  contentVisibility: 'auto',
+  containIntrinsicSize: 'auto 420px auto 600px',
+};
+const OFFSCREEN_RULE_CARD: React.CSSProperties = {
+  contentVisibility: 'auto',
+  containIntrinsicSize: 'auto 420px auto 800px',
+};
+
 const DRUM_HIT_DISPLAY_MS = 3000;
 function useDecayedValue(live: number, enabled?: boolean) {
   const [shown, setShown] = useState(0);
@@ -3752,7 +3764,16 @@ function SantrollerMapping({
           </Group>
         </Flex>
       </Modal>
-      <Card shadow="sm" padding="lg" radius="md" withBorder w="420px" maw="100%" h="100%">
+      <Card
+        shadow="sm"
+        padding="lg"
+        radius="md"
+        withBorder
+        w="420px"
+        maw="100%"
+        h="100%"
+        style={OFFSCREEN_MAPPING_CARD}
+      >
         <Group justify="space-between" align="center" mb="xs">
           <Group gap="xs">
             {!simpleMode && (
@@ -4964,7 +4985,16 @@ function SantrollerLed({
           </Group>
         </Flex>
       </Modal>
-      <Card shadow="sm" padding="lg" radius="md" withBorder w="420px" maw="100%" h="100%">
+      <Card
+        shadow="sm"
+        padding="lg"
+        radius="md"
+        withBorder
+        w="420px"
+        maw="100%"
+        h="100%"
+        style={OFFSCREEN_MAPPING_CARD}
+      >
         <Group justify="space-between" align="center" mb="xs">
           <Group gap="xs">
             {!simpleMode && (
@@ -7266,7 +7296,15 @@ function SantrollerAssignmentList({
           </Group>
         </Flex>
       </Modal>
-      <Card shadow="sm" padding="lg" radius="md" withBorder w="420px" maw="100%">
+      <Card
+        shadow="sm"
+        padding="lg"
+        radius="md"
+        withBorder
+        w="420px"
+        maw="100%"
+        style={OFFSCREEN_RULE_CARD}
+      >
         <Group justify="space-between" align="center" mb="xs">
           <Group gap="xs">
             <Title order={4}>{t('assignments.rule_title', { num: listIdx + 1 })}</Title>

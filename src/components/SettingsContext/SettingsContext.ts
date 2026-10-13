@@ -1328,71 +1328,53 @@ export const useConfigStore = create<ConfigState & Actions>()(
         return;
       }
       const eventList = proto.EventList.decodeDelimited(new Uint8Array(evt.data.buffer));
-      for (const deviceEvent of eventList.event) {
-        if (deviceEvent.midiDebug) {
-          set((state) => {
-            if (deviceEvent.midiDebug) {
-              state.midiData.push([...deviceEvent.midiDebug.data!]);
-              if (state.midiData.length > MAX_MIDI_DEBUG_EVENTS) {
-                state.midiData.splice(0, state.midiData.length - MAX_MIDI_DEBUG_EVENTS);
-              }
+      if (!eventList.event.length) {
+        return;
+      }
+      let btConnected = false;
+      // One store update per report: the device can send these every millisecond while live
+      // values change, and every update re-runs every selector on the page.
+      set((state) => {
+        for (const deviceEvent of eventList.event) {
+          if (deviceEvent.midiDebug) {
+            state.midiData.push([...deviceEvent.midiDebug.data!]);
+            if (state.midiData.length > MAX_MIDI_DEBUG_EVENTS) {
+              state.midiData.splice(0, state.midiData.length - MAX_MIDI_DEBUG_EVENTS);
             }
-          });
-        }
-        if (deviceEvent.cycle) {
-          set((state) => {
-            if (deviceEvent.cycle) {
-              if (deviceEvent.cycle.id in state.deviceStatus) {
-                state.deviceStatus[deviceEvent.cycle.id].cycleState = deviceEvent.cycle.state;
-              }
+          }
+          if (deviceEvent.cycle) {
+            if (deviceEvent.cycle.id in state.deviceStatus) {
+              state.deviceStatus[deviceEvent.cycle.id].cycleState = deviceEvent.cycle.state;
             }
-          });
-        }
-        if (deviceEvent.toggle) {
-          set((state) => {
-            if (deviceEvent.toggle) {
-              if (deviceEvent.toggle.id in state.deviceStatus) {
-                state.deviceStatus[deviceEvent.toggle.id].toggleState = deviceEvent.toggle.state;
-              }
+          }
+          if (deviceEvent.toggle) {
+            if (deviceEvent.toggle.id in state.deviceStatus) {
+              state.deviceStatus[deviceEvent.toggle.id].toggleState = deviceEvent.toggle.state;
             }
-          });
-        }
-        if (deviceEvent.console) {
-          set((state) => {
-            if (deviceEvent.console) {
-              state.console = (state.console + deviceEvent.console.data).slice(-MAX_CONSOLE_CHARS);
-            }
-          });
-        }
-        if (deviceEvent.reload) {
-          set((state) => {
+          }
+          if (deviceEvent.console) {
+            state.console = (state.console + deviceEvent.console.data).slice(-MAX_CONSOLE_CHARS);
+          }
+          if (deviceEvent.reload) {
             state.waitingForReload = true;
-          });
-        }
-        if (deviceEvent.ps2) {
-          set((state) => {
-            if (deviceEvent.ps2!.id in state.deviceStatus) {
-              state.deviceStatus[deviceEvent.ps2!.id].ps2CntType = deviceEvent.ps2!.type;
+          }
+          if (deviceEvent.ps2) {
+            if (deviceEvent.ps2.id in state.deviceStatus) {
+              state.deviceStatus[deviceEvent.ps2.id].ps2CntType = deviceEvent.ps2.type;
             }
-          });
-        }
-        if (deviceEvent.snes) {
-          set((state) => {
-            if (deviceEvent.snes!.id in state.deviceStatus) {
-              state.deviceStatus[deviceEvent.snes!.id].snesCntType = deviceEvent.snes!.type;
+          }
+          if (deviceEvent.snes) {
+            if (deviceEvent.snes.id in state.deviceStatus) {
+              state.deviceStatus[deviceEvent.snes.id].snesCntType = deviceEvent.snes.type;
             }
-          });
-        }
-        if (deviceEvent.joybus) {
-          set((state) => {
-            if (deviceEvent.joybus!.id in state.deviceStatus) {
-              state.deviceStatus[deviceEvent.joybus!.id].joybusCntType = deviceEvent.joybus!.type;
+          }
+          if (deviceEvent.joybus) {
+            if (deviceEvent.joybus.id in state.deviceStatus) {
+              state.deviceStatus[deviceEvent.joybus.id].joybusCntType = deviceEvent.joybus.type;
             }
-          });
-        }
-        if (deviceEvent.usb) {
-          set((state) => {
-            const event = deviceEvent.usb!;
+          }
+          if (deviceEvent.usb) {
+            const event = deviceEvent.usb;
             if (event.id in state.deviceStatus) {
               const usbDevices = state.deviceStatus[event.id].usbDevices;
               if (event.connected) {
@@ -1405,141 +1387,116 @@ export const useConfigStore = create<ConfigState & Actions>()(
                 }
               }
             }
-          });
-        }
-        if (deviceEvent.bt) {
-          set((state) => {
-            if (deviceEvent.bt!.id in state.deviceStatus) {
-              const id = deviceEvent.bt!.sourceId ?? 0;
-              if (deviceEvent.bt!.connected) {
-                state.deviceStatus[deviceEvent.bt!.id].btDevices[id] = deviceEvent.bt!;
-              } else {
-                delete state.deviceStatus[deviceEvent.bt!.id].btDevices[id];
-              }
-            }
-          });
-          if (deviceEvent.bt.connected) {
-            get().refreshBluetoothPairings();
           }
-        }
-        if (deviceEvent.wii) {
-          set((state) => {
-            if (deviceEvent.wii!.id in state.deviceStatus) {
-              state.deviceStatus[deviceEvent.wii!.id].wiiExtType = deviceEvent.wii!.extension;
-            }
-          });
-        }
-        if (deviceEvent.device) {
-          set((state) => {
-            if (deviceEvent.device!.id in state.deviceStatus) {
-              state.deviceStatus[deviceEvent.device!.id].connected = deviceEvent.device!.connected;
-              if (deviceEvent.device!.updating !== undefined) {
-                state.deviceStatus[deviceEvent.device!.id].updating =
-                  !!deviceEvent.device!.updating;
-              }
-              if (
-                deviceEvent.device!.progress !== undefined &&
-                deviceEvent.device!.progress !== null
-              ) {
-                state.deviceStatus[deviceEvent.device!.id].updateProgress =
-                  deviceEvent.device!.progress;
-              }
-              if (
-                deviceEvent.device!.battery !== undefined &&
-                deviceEvent.device!.battery !== null
-              ) {
-                state.deviceStatus[deviceEvent.device!.id].battery = deviceEvent.device!.battery;
-              }
-              state.deviceStatus[deviceEvent.device!.id].hostConnected =
-                deviceEvent.device!.hostConnected ?? undefined;
-              if (
-                deviceEvent.device!.rebooting !== undefined &&
-                deviceEvent.device!.rebooting !== null
-              ) {
-                state.deviceStatus[deviceEvent.device!.id].rebooting =
-                  !!deviceEvent.device!.rebooting;
+          if (deviceEvent.bt) {
+            if (deviceEvent.bt.id in state.deviceStatus) {
+              const id = deviceEvent.bt.sourceId ?? 0;
+              if (deviceEvent.bt.connected) {
+                state.deviceStatus[deviceEvent.bt.id].btDevices[id] = deviceEvent.bt;
+              } else {
+                delete state.deviceStatus[deviceEvent.bt.id].btDevices[id];
               }
             }
-          });
-        }
-        if (deviceEvent.crkdDrum) {
-          console.log(deviceEvent.crkdDrum);
-          set((state) => {
-            if (deviceEvent.crkdDrum!.id in state.deviceStatus) {
-              state.deviceStatus[deviceEvent.crkdDrum!.id].crkdDrumCalibration[
-                deviceEvent.crkdDrum!.type
-              ] = deviceEvent.crkdDrum!.data;
+            if (deviceEvent.bt.connected) {
+              btConnected = true;
             }
-          });
-        }
-        if (deviceEvent.button && get().polling) {
-          set((state) => {
+          }
+          if (deviceEvent.wii) {
+            if (deviceEvent.wii.id in state.deviceStatus) {
+              state.deviceStatus[deviceEvent.wii.id].wiiExtType = deviceEvent.wii.extension;
+            }
+          }
+          if (deviceEvent.device) {
+            const device = deviceEvent.device;
+            if (device.id in state.deviceStatus) {
+              const status = state.deviceStatus[device.id];
+              status.connected = device.connected;
+              if (device.updating !== undefined) {
+                status.updating = !!device.updating;
+              }
+              if (device.progress !== undefined && device.progress !== null) {
+                status.updateProgress = device.progress;
+              }
+              if (device.battery !== undefined && device.battery !== null) {
+                status.battery = device.battery;
+              }
+              status.hostConnected = device.hostConnected ?? undefined;
+              if (device.rebooting !== undefined && device.rebooting !== null) {
+                status.rebooting = !!device.rebooting;
+              }
+            }
+          }
+          if (deviceEvent.crkdDrum) {
+            console.log(deviceEvent.crkdDrum);
+            if (deviceEvent.crkdDrum.id in state.deviceStatus) {
+              state.deviceStatus[deviceEvent.crkdDrum.id].crkdDrumCalibration[
+                deviceEvent.crkdDrum.type
+              ] = deviceEvent.crkdDrum.data;
+            }
+          }
+          if (!state.polling) {
+            continue;
+          }
+          if (deviceEvent.button) {
             if (state.mappingStatus.length) {
               const mappings = state.mappingStatus[state.currentProfile ?? 0];
-              if (deviceEvent.button!.id in mappings) {
-                const mapping = mappings[deviceEvent.button!.id];
-                mapping.state = deviceEvent.button?.state ? 65535 : 0;
-                mapping.stateRaw = deviceEvent.button?.stateRaw ? 65535 : 0;
+              if (deviceEvent.button.id in mappings) {
+                const mapping = mappings[deviceEvent.button.id];
+                mapping.state = deviceEvent.button.state ? 65535 : 0;
+                mapping.stateRaw = deviceEvent.button.stateRaw ? 65535 : 0;
               }
             }
-          });
-        }
-        if (deviceEvent.axis && get().polling) {
-          set((state) => {
+          }
+          if (deviceEvent.axis) {
             if (state.mappingStatus.length) {
               const mappings = state.mappingStatus[state.currentProfile ?? 0];
-              if (deviceEvent.axis!.id in mappings) {
-                const mapping = mappings[deviceEvent.axis!.id];
-                mapping.state = deviceEvent.axis!.state!;
-                mapping.stateRaw = deviceEvent.axis!.stateRaw!;
+              if (deviceEvent.axis.id in mappings) {
+                const mapping = mappings[deviceEvent.axis.id];
+                mapping.state = deviceEvent.axis.state!;
+                mapping.stateRaw = deviceEvent.axis.stateRaw!;
               }
             }
-          });
-        }
-        if (deviceEvent.pin && get().polling) {
-          set((state) => {
-            state.detected = deviceEvent.pin!.pin;
+          }
+          if (deviceEvent.pin) {
+            state.detected = deviceEvent.pin.pin;
             state.detecting = false;
-          });
-        }
-        if (deviceEvent.trigger && get().polling) {
-          set((state) => {
+          }
+          if (deviceEvent.trigger) {
             if (state.activationStatus.length) {
               const mappings = state.activationStatus[state.currentProfile ?? 0];
               if (
-                deviceEvent.trigger!.listId in mappings &&
-                deviceEvent.trigger!.id in mappings[deviceEvent.trigger!.listId]
+                deviceEvent.trigger.listId in mappings &&
+                deviceEvent.trigger.id in mappings[deviceEvent.trigger.listId]
               ) {
-                const mapping = mappings[deviceEvent.trigger!.listId][deviceEvent.trigger!.id];
-                mapping.state = deviceEvent.trigger!.state!;
-                mapping.stateRaw = deviceEvent.trigger!.stateRaw!;
+                const mapping = mappings[deviceEvent.trigger.listId][deviceEvent.trigger.id];
+                mapping.state = deviceEvent.trigger.state!;
+                mapping.stateRaw = deviceEvent.trigger.stateRaw!;
               }
             }
-          });
-        }
-        if (deviceEvent.activationList && get().polling) {
-          set((state) => {
+          }
+          if (deviceEvent.activationList) {
             if (state.activationListStatus.length) {
               const statuses = state.activationListStatus[state.currentProfile ?? 0];
-              if (deviceEvent.activationList!.listId in statuses) {
-                statuses[deviceEvent.activationList!.listId].state =
-                  deviceEvent.activationList!.state!;
+              if (deviceEvent.activationList.listId in statuses) {
+                statuses[deviceEvent.activationList.listId].state =
+                  deviceEvent.activationList.state!;
               }
             }
-          });
-        }
-        if (deviceEvent.led && get().polling) {
-          set((state) => {
+          }
+          if (deviceEvent.led) {
             if (state.ledStatus.length) {
               const mappings = state.ledStatus[state.currentProfile ?? 0];
-              if (deviceEvent.led!.id in mappings) {
-                const mapping = mappings[deviceEvent.led!.id];
-                mapping.state = deviceEvent.led!.state!;
-                mapping.stateRaw = deviceEvent.led!.stateRaw!;
+              if (deviceEvent.led.id in mappings) {
+                const mapping = mappings[deviceEvent.led.id];
+                mapping.state = deviceEvent.led.state!;
+                mapping.stateRaw = deviceEvent.led.stateRaw!;
               }
             }
-          });
+          }
         }
+      });
+      if (btConnected) {
+        get().refreshBluetoothPairings();
       }
     },
     addProfile: () => {
