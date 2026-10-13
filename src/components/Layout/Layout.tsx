@@ -538,7 +538,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </NavLink>
             </>
           )}
-          {(!simpleMode || seller) && (
+          {/* The commercial tool works on a connected device, so there's nothing to show before one */}
+          {connected && (!simpleMode || seller) && (
             <NavLink
               disabled={updating}
               component={RouterNavLink}
