@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { IconBluetooth, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconBluetooth, IconCpu, IconPlus, IconTrash } from '@tabler/icons-react';
 import {
   Accordion,
   ActionIcon,
@@ -219,6 +219,8 @@ function DeviceCard({
 }) {
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
+  // Not every device has artwork yet, so those get a placeholder instead of a broken image
+  const [failedImage, setFailedImage] = useState<string>();
   const badge = useMemo(
     () =>
       connected ? (
@@ -264,7 +266,19 @@ function DeviceCard({
         </Flex>
         <Card.Section>
           <Center>
-            <Image src={image} height={160} fit="scale-down" alt={title} />
+            {failedImage === image ? (
+              <Center h={160}>
+                <IconCpu size={96} stroke={1} color="var(--mantine-color-dimmed)" />
+              </Center>
+            ) : (
+              <Image
+                src={image}
+                height={160}
+                fit="scale-down"
+                alt={title}
+                onError={() => setFailedImage(image)}
+              />
+            )}
           </Center>
         </Card.Section>
         <Flex mt="md" mb="xs" justify="center" align="center" gap="xs">

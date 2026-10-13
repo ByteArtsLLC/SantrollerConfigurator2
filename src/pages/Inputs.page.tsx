@@ -4480,12 +4480,12 @@ function SantrollerLed({
           proto.DrumManiaButtonType[mapping.mapping.dmButton ?? -1] ||
           proto.ProKeyboardButtonType[mapping.mapping.proKeyboardButton ?? -1];
 
-        const fixedLabel = FixLabel(mode, type, label, legendMode);
-        return `Icons/Input/${fixedLabel}.png`;
+        // FixIcon, not FixLabel: the label joins the folder and name with a dot, for translations
+        return `Icons/Input/${FixIcon(mode, type, label, legendMode)}.png`;
       }
     }
     return `Icons/Generic.png`;
-  }, [led, mode, mapping]);
+  }, [led, mode, type, legendMode, mapping]);
   let labels: string[] = [];
   const allLabels = Object.entries(guiDevices)
     .filter((x) => x[1].ledLabel?.deviceid === deviceId)
@@ -4681,7 +4681,14 @@ function SantrollerLed({
         </Card>
 
         <Center py="xs">
-          <Image src={img} height={70} w="auto" fit="contain" alt={t('inputs.led_icon')} />
+          <Image
+            src={img}
+            height={70}
+            w="auto"
+            fit="contain"
+            alt={t('inputs.led_icon')}
+            fallbackSrc="/Icons/Generic.png"
+          />
         </Center>
         {!simpleMode && (
           <>
