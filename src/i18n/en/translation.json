@@ -1435,6 +1435,8 @@
     "midiChannel": "MIDI Channel",
     "vendorId": "Vendor ID",
     "productId": "Product ID",
+    "connected_device": "Connected Device",
+    "connected_device_placeholder": "Pick a connected device to fill in its IDs",
     "rule_title": "Rule #{{num}}",
     "rule_summary_prefix": "Active when",
     "set_default_usb": "Set to USB Auto-Detect",

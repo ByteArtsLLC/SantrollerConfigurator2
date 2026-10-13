@@ -6629,6 +6629,96 @@ export function SantrollerAssignment({
   );
 }
 
+type ConnectedSpecificDevice = { vid: number; pid: number; subtype: proto.SubType; name: string };
+
+// Connected USB host / bluetooth devices, so a specific device can be picked instead of typing its VID / PID
+function useConnectedSpecificDevices(kind: 'usb' | 'bt'): ConnectedSpecificDevice[] {
+  const deviceStatus = useConfigStore((state) => state.deviceStatus);
+  return useMemo(() => {
+    const found = new Map<string, ConnectedSpecificDevice>();
+    for (const status of Object.values(deviceStatus)) {
+      const events: (proto.IUsbDeviceHotplugEvent | proto.IBtDeviceHotplugEvent)[] =
+        kind === 'usb'
+          ? Object.values(status.usbDevices ?? {}).filter((x) => !x.bluetoothAdapter)
+          : Object.values(status.btDevices ?? {});
+      for (const event of events) {
+        // Older firmware doesn't report the VID / PID
+        if (
+          event.vid === null ||
+          event.vid === undefined ||
+          event.pid === null ||
+          event.pid === undefined
+        ) {
+          continue;
+        }
+        const key = `${event.vid}:${event.pid}:${event.subtype}`;
+        if (!found.has(key)) {
+          found.set(key, {
+            vid: event.vid,
+            pid: event.pid,
+            subtype: event.subtype,
+            name: event.name,
+          });
+        }
+      }
+    }
+    return [...found.values()];
+  }, [deviceStatus, kind]);
+}
+
+function ConnectedDevicePicker({
+  kind,
+  current,
+  onPick,
+}: {
+  kind: 'usb' | 'bt';
+  current: proto.ISpecificUsbDevice | proto.ISpecificBluetoothDevice | null | undefined;
+  onPick: (device: { vid: number; pid: number; subtype?: proto.SubType }) => void;
+}) {
+  const { t } = useTranslation();
+  const devices = useConnectedSpecificDevices(kind);
+  if (devices.length === 0) {
+    return null;
+  }
+  const hex = (val: number) => val.toString(16).padStart(4, '0');
+  const keyOf = (x: ConnectedSpecificDevice) => `${x.vid}:${x.pid}:${x.subtype}`;
+  const selected = devices.find(
+    (x) =>
+      x.vid === current?.vid &&
+      x.pid === current?.pid &&
+      (current?.subtype === null || current?.subtype === undefined || current.subtype === x.subtype)
+  );
+  return (
+    <Select
+      size="xs"
+      label={t('assignments.connected_device', 'Connected Device')}
+      placeholder={t('assignments.connected_device_placeholder', 'Pick a connected device')}
+      value={selected ? keyOf(selected) : null}
+      data={devices.map((x) => {
+        const subtypeName = proto.SubType[x.subtype];
+        const type =
+          x.subtype !== proto.SubType.Unknown && subtypeName !== undefined
+            ? ` - ${t(`subType.${subtypeName}`, subtypeName)}`
+            : '';
+        return {
+          value: keyOf(x),
+          label: `${x.name || '-'}${type} (${hex(x.vid)}:${hex(x.pid)})`,
+        };
+      })}
+      onChange={(val) => {
+        const device = devices.find((x) => keyOf(x) === val);
+        if (device) {
+          onPick({
+            vid: device.vid,
+            pid: device.pid,
+            subtype: device.subtype !== proto.SubType.Unknown ? device.subtype : undefined,
+          });
+        }
+      }}
+    />
+  );
+}
+
 export function ControllerSourcesEditor({
   assignments,
   slotIds,
@@ -6745,6 +6835,22 @@ export function ControllerSourcesEditor({
               />
             )}
             {hType === 'usbDevice' && (
+              <ConnectedDevicePicker
+                kind="usb"
+                current={item.usbDevice}
+                onPick={({ vid, pid, subtype }) =>
+                  onUpdateSource(idx, {
+                    usbDevice: {
+                      ...item.usbDevice,
+                      vid,
+                      pid,
+                      subtype: subtype ?? item.usbDevice?.subtype,
+                    },
+                  })
+                }
+              />
+            )}
+            {hType === 'usbDevice' && (
               <Group grow>
                 <TextInput
                   size="xs"
@@ -6798,6 +6904,22 @@ export function ControllerSourcesEditor({
                 val={item.bluetoothType ?? proto.SubType.Gamepad}
                 label="subType"
                 dispatch={(bluetoothType) => onUpdateSource(idx, { bluetoothType })}
+              />
+            )}
+            {hType === 'bluetoothDevice' && (
+              <ConnectedDevicePicker
+                kind="bt"
+                current={item.bluetoothDevice}
+                onPick={({ vid, pid, subtype }) =>
+                  onUpdateSource(idx, {
+                    bluetoothDevice: {
+                      ...item.bluetoothDevice,
+                      vid,
+                      pid,
+                      subtype: subtype ?? item.bluetoothDevice?.subtype,
+                    },
+                  })
+                }
               />
             )}
             {hType === 'bluetoothDevice' && (
