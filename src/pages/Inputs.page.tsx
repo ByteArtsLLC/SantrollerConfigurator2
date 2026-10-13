@@ -2664,7 +2664,7 @@ function SantrollerInput({
       {input.shortcut &&
         input.shortcut.inputs?.map((innerInput, idx) => (
           <div key={idx}>
-            <Card shadow="sm" padding="lg" radius="md" withBorder w="380px" maw="100%" h="100%">
+            <Card padding="lg" radius="md" withBorder w="380px" maw="100%" h="100%">
               <Card.Section h="20px">
                 <div style={{ position: 'absolute', top: 0, right: 0 }}>
                   <ActionIcon
@@ -3765,7 +3765,6 @@ function SantrollerMapping({
         </Flex>
       </Modal>
       <Card
-        shadow="sm"
         padding="lg"
         radius="md"
         withBorder
@@ -4986,7 +4985,6 @@ function SantrollerLed({
         </Flex>
       </Modal>
       <Card
-        shadow="sm"
         padding="lg"
         radius="md"
         withBorder
@@ -6201,7 +6199,7 @@ export function SantrollerAssignment({
           </Group>
         </Flex>
       </Modal>
-      <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Card padding="lg" radius="md" withBorder>
         <Group justify="space-between" align="center" mb="xs">
           <Text size="sm" fw={600}>
             {label || t('pick_value')}
@@ -7418,15 +7416,7 @@ function SantrollerAssignmentList({
           </Group>
         </Flex>
       </Modal>
-      <Card
-        shadow="sm"
-        padding="lg"
-        radius="md"
-        withBorder
-        w="420px"
-        maw="100%"
-        style={OFFSCREEN_RULE_CARD}
-      >
+      <Card padding="lg" radius="md" withBorder w="420px" maw="100%" style={OFFSCREEN_RULE_CARD}>
         <Group justify="space-between" align="center" mb="xs">
           <Group gap="xs">
             <Title order={4}>{t('assignments.rule_title', { num: listIdx + 1 })}</Title>
