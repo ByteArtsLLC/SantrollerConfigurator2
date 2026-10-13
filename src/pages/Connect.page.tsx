@@ -1,4 +1,4 @@
-import { IconAlertTriangle, IconExclamationCircle } from '@tabler/icons-react';
+import { IconAlertTriangle, IconBrandDiscord, IconExclamationCircle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import {
@@ -275,6 +275,18 @@ export function ConnectPage() {
             </Alert>
           </>
         )}
+
+        <Space h="md" />
+        <Button
+          component="a"
+          href="https://discord.gg/CmdYpXKcEU"
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="default"
+          leftSection={<IconBrandDiscord size={18} />}
+        >
+          {t('connect.discord')}
+        </Button>
       </Layout>
     </>
   );
