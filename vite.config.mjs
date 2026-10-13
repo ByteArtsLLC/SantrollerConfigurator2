@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { splitVendorChunkPlugin } from 'vite'
 import basicSsl from '@vitejs/plugin-basic-ssl';
-import { execSync, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import { appVersion, commitHash } from './scripts/version.mjs';
 
 // Regenerate the protobuf modules when a .proto changes, so the dev server never runs with a
 // config.js that is missing fields (protobufjs silently drops fields it doesn't know when encoding)
@@ -47,15 +48,6 @@ function rebuildProtos() {
   };
 }
 
-// Baked into the bundle, so a browser still running a cached old build shows the old hash
-function configuratorVersion() {
-  try {
-    return execSync('git rev-parse --short=8 HEAD', { encoding: 'utf8' }).trim();
-  } catch {
-    return 'unknown';
-  }
-}
-
 // `vite --mode https` serves over https with a self signed certificate, as Web Bluetooth and WebHID
 // need a secure context when the page isn't on localhost (e.g. testing from a phone)
 export default defineConfig(({ mode }) => ({
@@ -66,7 +58,9 @@ export default defineConfig(({ mode }) => ({
   }), tsconfigPaths(), splitVendorChunkPlugin(), rebuildProtos(), ...(mode === 'https' ? [basicSsl()] : [])],
 
   define: {
-    __CONFIGURATOR_VERSION__: JSON.stringify(configuratorVersion()),
+    // Baked into the bundle, so a browser still running a cached old build shows the old version
+    __CONFIGURATOR_VERSION__: JSON.stringify(appVersion()),
+    __CONFIGURATOR_COMMIT__: JSON.stringify(commitHash()),
   },
   resolve: {
     alias: {
@@ -85,6 +79,9 @@ export default defineConfig(({ mode }) => ({
       // crawling it held up the watcher for minutes. Only its protos matter, for rebuildProtos().
       ignored: (file) => {
         const p = file.replaceAll('\\', '/');
+        if (p.includes('/src-tauri/')) {
+          return true;
+        }
         return p.includes('/Santroller/') && !p.includes('/Santroller/proto');
       },
     },

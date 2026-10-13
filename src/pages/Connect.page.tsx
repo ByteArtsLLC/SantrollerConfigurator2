@@ -14,10 +14,16 @@ import {
   Text,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import {
+  DesktopDownloadButton,
+  RELEASES_URL,
+} from '@/components/DesktopDownload/DesktopDownloadButton';
 import { Layout } from '@/components/Layout/Layout';
 import { translateLegacyWarning } from '@/components/Legacy/warnings';
 import { BluetoothConfigDevice } from '@/components/SettingsContext/BluetoothConfigDevice';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
+
+const isDesktop = 'isTauri' in window;
 
 export function ConnectPage() {
   const connect = useConfigStore((state) => state.connect);
@@ -32,6 +38,8 @@ export function ConnectPage() {
   const firmwareUpdate = useConfigStore((state) => state.firmwareUpdate);
   const connected = useConfigStore((state) => state.connected);
   const firmwareVersion = useConfigStore((state) => state.firmwareVersion);
+  const firmwareBuild = useConfigStore((state) => state.firmwareBuild);
+  const firmwareNewer = useConfigStore((state) => state.firmwareNewer);
   const hung = useConfigStore((state) => state.hung);
   const updating = useConfigStore((state) => state.updating);
   const updatePercentage = useConfigStore((state) => state.updatePercentage);
@@ -90,14 +98,20 @@ export function ConnectPage() {
             icon={<IconExclamationCircle />}
           >
             {t('connect.webHidNotSupported')}
+            <Space h="md" />
+            <DesktopDownloadButton />
           </Alert>
         )}
         <Text size="sm" c="dimmed">
-          {t('connect.configuratorVersion', { version: __CONFIGURATOR_VERSION__ })}
+          {t('connect.configuratorVersion', {
+            version: `${__CONFIGURATOR_VERSION__} (${__CONFIGURATOR_COMMIT__})`,
+          })}
         </Text>
         {connected && firmwareVersion && (
           <Text size="sm" c="dimmed">
-            {t('connect.firmwareVersion', { version: firmwareVersion })}
+            {t('connect.firmwareVersion', {
+              version: firmwareBuild ? `${firmwareBuild} (${firmwareVersion})` : firmwareVersion,
+            })}
           </Text>
         )}
         {connected && (
@@ -213,7 +227,26 @@ export function ConnectPage() {
           </>
         )}
 
-        {!latest && connected && !hung && (
+        {firmwareNewer && connected && !hung && (
+          <Alert
+            variant="light"
+            color="yellow"
+            title={t('connect.firmwareNewerTitle')}
+            icon={<IconExclamationCircle />}
+          >
+            {t('connect.firmwareNewer')}
+            {isDesktop && (
+              <>
+                <Space h="md" />
+                <Button component="a" href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
+                  {t('connect.getLatestConfigurator')}
+                </Button>
+              </>
+            )}
+          </Alert>
+        )}
+
+        {!latest && !firmwareNewer && connected && !hung && (
           <Alert
             variant="light"
             color="red"
@@ -276,6 +309,12 @@ export function ConnectPage() {
           </>
         )}
 
+        {navigator.hid && !isDesktop && (
+          <>
+            <Space h="md" />
+            <DesktopDownloadButton />
+          </>
+        )}
         <Space h="md" />
         <Button
           component="a"

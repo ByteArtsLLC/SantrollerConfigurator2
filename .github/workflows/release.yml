@@ -1,0 +1,125 @@
+# Releases the desktop app for Linux, Windows and macOS on every push to main, versioned by
+# scripts/version.mjs. Each one is built as a draft and only published once every platform built.
+name: Release desktop app
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# A newer push replaces a release that is still building, so an older one can't end up as latest
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  # The configurator and the firmware it ships only need building once, on linux, as the desktop
+  # builds just wrap them
+  web:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.build.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Build
+        id: build
+        uses: ./.github/actions/build-web
+      - name: Upload configurator
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          if-no-files-found: error
+
+  desktop:
+    needs: web
+    strategy:
+      matrix:
+        include:
+          # the oldest supported ubuntu, so the .deb and AppImage run on older distros too
+          - platform: ubuntu-22.04
+            args: ''
+          - platform: windows-latest
+            args: ''
+          - platform: macos-latest
+            args: '--target universal-apple-darwin'
+    runs-on: ${{ matrix.platform }}
+    env:
+      VERSION: ${{ needs.web.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      # The frontend comes from the web job, so there's nothing to build before bundling. Releases
+      # are signed for the updater, which local builds don't need.
+      - name: Configure the release
+        shell: bash
+        run: |
+          echo "{\"version\": \"$VERSION\", \"build\": {\"beforeBuildCommand\": \"\"}, \"bundle\": {\"createUpdaterArtifacts\": true}}" > src-tauri/tauri.release.conf.json
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libudev-dev
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: 'yarn'
+      - name: Install dependencies
+        run: yarn install --immutable
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: 'src-tauri -> target'
+      - name: Download configurator
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Build and upload
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # signs the updates, the app only installs ones signed with this key
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tauriScript: yarn tauri
+          # each platform adds itself to the release's latest.json, which the app checks for updates
+          includeUpdaterJson: true
+          tagName: v${{ env.VERSION }}
+          releaseName: 'Santroller Configurator ${{ env.VERSION }}'
+          releaseBody: 'Built from ${{ github.sha }}. See the assets below to download and install it.'
+          releaseCommitish: ${{ github.sha }}
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
+
+  publish:
+    needs: [web, desktop]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: v${{ needs.web.outputs.version }}
+    steps:
+      # The platforms all write to the same latest.json, so make sure none of them were lost before
+      # the app starts offering this release as an update
+      - name: Check the updater manifest
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern latest.json --dir manifest
+          for platform in linux-x86_64 windows-x86_64 darwin-x86_64 darwin-aarch64; do
+            jq -e --arg p "$platform" '.platforms[$p].signature | length > 0' manifest/latest.json > /dev/null \
+              || { echo "latest.json is missing $platform"; cat manifest/latest.json; exit 1; }
+          done
+      - name: Publish the release
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest

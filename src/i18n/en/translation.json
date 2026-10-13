@@ -1975,12 +1975,32 @@
     "saved": "Saved!",
     "failed": "Save failed"
   },
+  "update": {
+    "title": "Update available",
+    "desc": "Santroller Configurator {{version}} is available (you have {{current}}). It will restart to install the update.",
+    "unsaved": "You have unsaved changes. Save them before updating, or they will be lost.",
+    "failed": "The update couldn't be installed",
+    "install": "Update now",
+    "later": "Later"
+  },
+  "devicePicker": {
+    "title": "Choose a controller",
+    "waiting": "Looking for controllers. Plug one in to see it here.",
+    "unnamed": "Unknown controller",
+    "serial": "Serial number {{serial}}",
+    "cancel": "Cancel"
+  },
   "connect": {
     "connect": "Connect to a Santroller powered device",
     "connectBluetooth": "Connect to a Santroller powered device over Bluetooth",
     "setup": "Setup a new device",
     "discord": "Need help? Join the Discord",
-    "webHidNotSupported": "This browser does not support WebHID, therefore Santroller will not work.\nYou need to use a Chromium based browser, Firefox based browsers don't support WebHID.",
+    "downloadDesktop": {
+      "windows": "Download the desktop app for Windows",
+      "mac": "Download the desktop app for macOS",
+      "linux": "Download the desktop app for Linux"
+    },
+    "webHidNotSupported": "This browser does not support WebHID, therefore Santroller will not work.\nYou need to use a Chromium based browser (Firefox based browsers don't support WebHID), or the desktop app.",
     "browserNotSupported": "Browser Unsupported",
     "disconnect": "Disconnect from Santroller powered device",
     "configuratorVersion": "Configurator version: {{version}}",
@@ -1993,6 +2013,9 @@
     "legacyImportDismiss": "Dismiss",
     "hungTitle": "Controller not responding",
     "hung": "The Pico stopped responding to keepalive requests. It remains connected so you can open Debug and retrieve its logs. Disconnect it manually when you are done.",
+    "firmwareNewerTitle": "Controller firmware is newer than this configurator",
+    "firmwareNewer": "This controller was updated by a newer version of the configurator. Update the configurator before changing any settings, as this version may not understand everything the firmware does.",
+    "getLatestConfigurator": "Get the latest configurator",
     "outdatedTitle": "Controller firmware out of date",
     "outdated": "Firmware outdated! Click the button below to update!",
     "startUpdate": "Start Update",

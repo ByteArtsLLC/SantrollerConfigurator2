@@ -1,0 +1,76 @@
+# Builds the firmware the configurator ships with, and then the configurator itself, into dist/.
+# Expects the repo to be checked out with its submodules.
+name: Build configurator
+description: Build the firmware images and the web configurator
+
+outputs:
+  version:
+    description: The configurator's version, see scripts/version.mjs
+    value: ${{ steps.version.outputs.version }}
+
+inputs:
+  arm-toolchain-version:
+    default: '15.2.Rel1'
+  pico-sdk-tools-tag:
+    default: 'v2.3.1-0'
+  picotool-version:
+    default: '2.3.1'
+  pico-sdk-tools-version:
+    default: '2.3.1'
+
+runs:
+  using: composite
+  steps:
+    # The configurator's version and the firmware's build number count commits, which a shallow
+    # clone doesn't have. Only the firmware itself needs it, not its own submodules.
+    - name: Fetch the git history
+      shell: bash
+      run: |
+        if [ "$(git rev-parse --is-shallow-repository)" = true ]; then git fetch --unshallow --quiet; fi
+        if [ "$(git -C Santroller rev-parse --is-shallow-repository)" = true ]; then git -C Santroller fetch --unshallow --quiet; fi
+    - name: Change Mirror Priorities
+      shell: bash
+      run: |
+        sudo sed -i '/archive.ubuntu.com\/ubuntu\/\tpriority/ s/priority:2/priority:0/' /etc/apt/apt-mirrors.txt
+        sudo sed -i '/azure.archive.ubuntu.com\/ubuntu\/\tpriority/ s/priority:0/priority:1/' /etc/apt/apt-mirrors.txt
+        sudo sed -i '/security.ubuntu.com\/ubuntu\/\tpriority/ s/priority:3/priority:2/' /etc/apt/apt-mirrors.txt
+        sudo cat /etc/apt/apt-mirrors.txt
+    - name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
+      uses: carlosperate/arm-none-eabi-gcc-action@v1
+      with:
+        release: ${{ inputs.arm-toolchain-version }}
+    - name: Install Pico SDK Tools from pico-sdk-tools
+      shell: bash
+      env:
+        PICO_SDK_TOOLS_TAG: ${{ inputs.pico-sdk-tools-tag }}
+        PICOTOOL_VERSION: ${{ inputs.picotool-version }}
+        PICO_SDK_TOOLS_VERSION: ${{ inputs.pico-sdk-tools-version }}
+      run: |
+        TOOLS_DIR="$RUNNER_TEMP/pico-sdk-tools"
+        mkdir -p "$TOOLS_DIR/picotool" "$TOOLS_DIR/pioasm"
+        curl -sL "https://github.com/raspberrypi/pico-sdk-tools/releases/download/${PICO_SDK_TOOLS_TAG}/picotool-${PICOTOOL_VERSION}-x86_64-lin.tar.gz" | tar -xz -C "$TOOLS_DIR/picotool"
+        curl -sL "https://github.com/raspberrypi/pico-sdk-tools/releases/download/${PICO_SDK_TOOLS_TAG}/pico-sdk-tools-${PICO_SDK_TOOLS_VERSION}-x86_64-lin.tar.gz" | tar -xz -C "$TOOLS_DIR/pioasm"
+        echo "$TOOLS_DIR/picotool/picotool" >> $GITHUB_PATH
+        echo "$TOOLS_DIR/pioasm/pioasm" >> $GITHUB_PATH
+        echo "picotool_DIR=$TOOLS_DIR/picotool/picotool" >> $GITHUB_ENV
+        echo "pioasm_DIR=$TOOLS_DIR/pioasm/pioasm" >> $GITHUB_ENV
+    - name: Install build dependencies
+      shell: bash
+      run: |
+        sudo apt update
+        sudo apt install build-essential make cabextract
+    - name: Set up Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: lts/*
+        cache: 'yarn'
+    - name: Install dependencies
+      shell: bash
+      run: yarn
+    - name: Build
+      shell: bash
+      run: yarn build
+    - name: Work out the version
+      id: version
+      shell: bash
+      run: echo "version=$(node scripts/version.mjs)" >> "$GITHUB_OUTPUT"

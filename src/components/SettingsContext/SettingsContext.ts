@@ -30,6 +30,7 @@ import { legacyErrorReason, legacyWarning, LegacyWarning } from '@/components/Le
 import { CRC32 } from '@/CRC32.js';
 import { BluetoothConfigDevice } from './BluetoothConfigDevice';
 import { proto } from './config.js';
+import { parseVersionReport } from './firmwareVersion';
 import { KeepaliveTimer, startKeepaliveTimer, stopKeepaliveTimer } from './keepaliveTimer';
 import { truncateProfileName } from './profileName';
 
@@ -58,21 +59,32 @@ const FIRMWARE_APPLY_MS_PER_SECTOR = 110;
 const FIRMWARE_REBOOT_MS = 2_000;
 const FIRMWARE_APPLY_TIMEOUT_MS = 120_000;
 const FIRMWARE_APPLY_PROGRESS_INTERVAL_MS = 250;
-// The commit hash the firmware was built from, and whether it matches the one this tool ships
+// A file this tool ships next to the firmware, or undefined if it is missing
+async function fetchShipped(file: string) {
+  const response = await fetch(file);
+  return response.ok ? (await response.text()).trim() : undefined;
+}
+
+// Whether the firmware is the one this tool ships, or newer than it
 async function checkFirmwareVersion(device: HIDDevice) {
   let version: string | undefined;
+  let build: number | undefined;
   try {
-    const commitHash = await receiveFeatureReport(device, proto.ReportId.ReportIdGetVersion);
-    version = String.fromCharCode
-      .apply(null, Array.from(new Uint8Array(commitHash.buffer.slice(1))))
-      .replaceAll('\0', '')
-      .trim()
-      .substring(0, 8);
-    const latestVersion = (await (await fetch('commit.hash')).text()).trim().substring(0, 8);
-    return { version, latest: version === latestVersion };
+    ({ version, build } = parseVersionReport(
+      await receiveFeatureReport(device, proto.ReportId.ReportIdGetVersion)
+    ));
+    const [latestVersion, latestBuild] = await Promise.all([
+      fetchShipped('commit.hash'),
+      fetchShipped('commit.build'),
+    ]);
+    const shippedBuild = Number(latestBuild) || undefined;
+    const latest = version === latestVersion?.substring(0, 8);
+    // newer firmware than this tool has, so updating would go backwards
+    const newer = !latest && !!build && !!shippedBuild && build > shippedBuild;
+    return { version, build, latest, newer };
   } catch (e) {
     console.log(e);
-    return { version, latest: false };
+    return { version, build, latest: false, newer: false };
   }
 }
 let firmwareApplyTimer: ReturnType<typeof setInterval> | undefined;
@@ -415,7 +427,10 @@ export interface ConfigState {
   connected: boolean;
   hung: boolean;
   latest: boolean;
+  // The firmware is newer than the one this tool ships
+  firmwareNewer: boolean;
   firmwareVersion?: string;
+  firmwareBuild?: number;
   hidDevice?: HIDDevice;
   crc: number;
   // A save was skipped or cut off by the device dropping off USB, so reconnect has to send it
@@ -638,6 +653,7 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     seller: false,
     sellerCheck: false,
     latest: true,
+    firmwareNewer: false,
     detected: -1,
     crc: 0,
     pendingSave: false,
@@ -1689,14 +1705,19 @@ export const useConfigStore = create<ConfigState & Actions>()(
       stopFirmwareApplyProgress();
       // The bootloader rolls back if the new firmware doesn't start, and a bad flash would leave
       // the old version running, so make sure the version actually changed
-      const { version: firmwareVersion, latest: updateApplied } = finishingUpdate
+      const {
+        version: firmwareVersion,
+        build: firmwareBuild,
+        latest: updateApplied,
+      } = finishingUpdate
         ? await checkFirmwareVersion(device)
-        : { version: get().firmwareVersion, latest: false };
+        : { version: get().firmwareVersion, build: get().firmwareBuild, latest: false };
       set(
         (state) => ({
           ...state,
           hidDevice: device,
           firmwareVersion,
+          firmwareBuild,
           connected: true,
           hung: false,
           polling: true,
@@ -2598,7 +2619,12 @@ export const useConfigStore = create<ConfigState & Actions>()(
       }
       device.addEventListener('inputreport', get().onReport);
       try {
-        const { version: firmwareVersion, latest } = await checkFirmwareVersion(device);
+        const {
+          version: firmwareVersion,
+          build: firmwareBuild,
+          latest,
+          newer: firmwareNewer,
+        } = await checkFirmwareVersion(device);
         let activeProfiles: number[] = [];
         let payload: Uint8Array | undefined;
         try {
@@ -2656,7 +2682,9 @@ export const useConfigStore = create<ConfigState & Actions>()(
               crc: info.dataCrc,
               type: deviceType,
               latest,
+              firmwareNewer,
               firmwareVersion,
+              firmwareBuild,
               updateError: undefined,
               missingStaticFirmware: !!info.missingStaticFirmware,
               needsUf2Update: !!info.needsUf2Update,
@@ -2677,6 +2705,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               connected: true,
               hidDevice: device,
               firmwareVersion,
+              firmwareBuild,
               crc: 0,
             }),
             true
@@ -2909,7 +2938,10 @@ export async function buildUf2FromConfig(
   const link = document.createElement('a');
   link.download = 'santroller.uf2';
   link.href = blobUrl;
+  // in the page, so the desktop app sees the click too
+  document.body.appendChild(link);
   link.click();
+  link.remove();
 }
 export async function buildUf2FromJson(file: File | null, pico2: boolean) {
   try {
