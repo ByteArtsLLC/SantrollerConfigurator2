@@ -2199,6 +2199,12 @@ const USB_HOST_SUBTYPES_ENUM = createBiEnum(
   Object.fromEntries(USB_HOST_SUBTYPES.map((st) => [proto.SubType[st], st]))
 );
 
+// The Pro Guitars that can be told apart over MIDI, by the sysex they send
+const MIDI_PRO_GUITAR_SUBTYPES_ENUM = createBiEnum({
+  ProGuitarSquier: proto.SubType.ProGuitarSquier,
+  ProGuitarMustang: proto.SubType.ProGuitarMustang,
+});
+
 // The types of the configured devices. This only changes when a device is added or removed, while
 // deviceStatus changes whenever any device reports its status.
 function useDeviceTypes(): string[] {
@@ -5997,6 +6003,7 @@ const HostProfileAssignmentTypes: ProfileAssignmentTypes[] = [
   'bluetoothDevice',
   'bluetoothType',
   'midiChannel',
+  'midiProGuitar',
 ];
 const DeviceProfileAssignmentTypes: ProfileAssignmentTypes[] = [
   'ps2Emulation',
@@ -6309,6 +6316,9 @@ export function SantrollerAssignment({
                   midiChannel: 10,
                 });
                 break;
+              case 'midiProGuitar':
+                dispatch({ midiProGuitar: proto.SubType.ProGuitarSquier });
+                break;
             }
             assignmentTypeCombobox.closeDropdown();
           }}
@@ -6366,6 +6376,15 @@ export function SantrollerAssignment({
             min={1}
             max={17}
             onChange={(val) => dispatch({ midiChannel: parseInt(val.toString(), 10) ?? 1 })}
+          />
+        )}
+        {mapping.midiProGuitar && (
+          <DropdownBox
+            title="activation.midiProGuitar"
+            e={MIDI_PRO_GUITAR_SUBTYPES_ENUM}
+            val={mapping.midiProGuitar}
+            label="subType"
+            dispatch={(midiProGuitar) => dispatch({ midiProGuitar })}
           />
         )}
         {mapping.consoleType && (
@@ -7018,6 +7037,15 @@ export function ControllerSourcesEditor({
                 }
               />
             )}
+            {hType === 'midiProGuitar' && (
+              <DropdownBox
+                title="activation.midiProGuitar"
+                e={MIDI_PRO_GUITAR_SUBTYPES_ENUM}
+                val={item.midiProGuitar ?? proto.SubType.ProGuitarSquier}
+                label="subType"
+                dispatch={(midiProGuitar) => onUpdateSource(idx, { midiProGuitar })}
+              />
+            )}
           </Stack>
         </Card>
       ))}
@@ -7052,10 +7080,16 @@ export function ControllerSourcesEditor({
               </Menu.Item>
             </>
           )}
-          {(hasMidi || assignments.some((x) => x.midiChannel != null)) && (
-            <Menu.Item onClick={() => onAddSource('midiChannel')}>
-              {t('assignments.source.midiChannel')}
-            </Menu.Item>
+          {(hasMidi ||
+            assignments.some((x) => x.midiChannel != null || x.midiProGuitar != null)) && (
+            <>
+              <Menu.Item onClick={() => onAddSource('midiChannel')}>
+                {t('assignments.source.midiChannel')}
+              </Menu.Item>
+              <Menu.Item onClick={() => onAddSource('midiProGuitar')}>
+                {t('assignments.source.midiProGuitar')}
+              </Menu.Item>
+            </>
           )}
           {(hasWii || assignments.some((x) => x.wiiExt != null)) && (
             <Menu.Item onClick={() => onAddSource('wiiExt')}>
@@ -7182,6 +7216,9 @@ function SantrollerAssignmentList({
         break;
       case 'midiChannel':
         next.push({ midiChannel: 10 });
+        break;
+      case 'midiProGuitar':
+        next.push({ midiProGuitar: proto.SubType.ProGuitarSquier });
         break;
     }
     dispatch({ ...mapping, assignments: next });
@@ -7408,6 +7445,12 @@ function SantrollerAssignmentList({
         hostParts.push(t('assignments.source.bluetoothDevice'));
       } else if (item.midiChannel != null) {
         hostParts.push(t('assignments.summary.midiChannel', { channel: item.midiChannel }));
+      } else if (item.midiProGuitar != null) {
+        hostParts.push(
+          t('assignments.summary.midi', {
+            type: t(`subType.${proto.SubType[item.midiProGuitar]}`),
+          })
+        );
       }
     }
 

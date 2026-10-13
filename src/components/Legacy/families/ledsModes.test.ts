@@ -409,13 +409,13 @@ describe('LED bindings', () => {
     expect(ctx.warnings.some((w) => w.key === 'legacyImport.invertedOutputsSkipped')).toBe(true);
   });
 
-  it('skips Fortnite Festival mode LEDs', () => {
+  it('skips Fortnite Festival iOS mode LEDs', () => {
     const { ctx, leds } = run({
       ...rgbConfig,
       bindings: [
         led({
           type: C.LedCommandType_Mode,
-          param1: legacy.EmulationModeType.EmulationModeType_FnfLayer,
+          param1: legacy.EmulationModeType.EmulationModeType_FnfIos,
           ledIndex: bytes(1),
         }),
       ],
@@ -502,6 +502,67 @@ describe('console mode bindings', () => {
     ]);
     expect(ctx.warnings.some((w) => w.key === 'legacyImport.fortniteModesUnsupported')).toBe(true);
     expect(ctx.warnings.some((w) => JSON.stringify(w).includes('EmulationMode'))).toBe(false);
+  });
+
+  it('turns the Fortnite Festival keyboard mode into lists for a keyboard profile', () => {
+    const { settings, ctx } = run({
+      ledType: legacy.LedType.LedType_Ws2812Rgb,
+      ledCount: 2,
+      ledMosi: 3,
+      bindings: [
+        { serializedEmulationMode: { type: M.EmulationModeType_Ps3, input: gpio(5) } },
+        { serializedEmulationMode: { type: M.EmulationModeType_Fnf, input: gpio(9) } },
+        led({
+          type: legacy.LedCommandType.LedCommandType_Mode,
+          param1: M.EmulationModeType_Fnf,
+          ledIndex: bytes(2),
+          ledOn: ON,
+        }),
+      ],
+    });
+    // the festival mode isn't a console mode of the main profile
+    expect(settings.assignments.map((a) => a.assignments![0].consoleType?.forcedType)).toEqual([
+      proto.ConsoleMode.ModePs3,
+      undefined,
+    ]);
+    expect(settings.festival?.assignments).toEqual([
+      {
+        assignments: [
+          { consoleType: { ps4OrPs5Mode: false } },
+          { input: { input: { gpio: { pin: 9, pinMode: proto.PinMode.PullUp, analog: false } } } },
+        ],
+      },
+    ]);
+    // its mode LED is only in the festival profile, where it is always on
+    expect(ctx.leds).toHaveLength(0);
+    expect(settings.festival?.leds).toEqual([
+      {
+        device: expect.objectContaining({ rgb: expect.objectContaining({ activeLed: [1] }) }),
+        mapping: { staticMapping: {} },
+      },
+    ]);
+    expect(ctx.warnings.some((w) => w.key === 'legacyImport.fortniteModesUnsupported')).toBe(false);
+  });
+
+  it('turns the Fortnite Festival gameplay toggle into an any time trigger on a toggle', () => {
+    const { settings, ctx } = run({
+      bindings: [
+        { serializedEmulationMode: { type: M.EmulationModeType_FnfLayer, input: gpio(9) } },
+      ],
+    });
+    const toggle = deviceOf(ctx, 'toggle')!;
+    const pin9 = { gpio: { pin: 9, pinMode: proto.PinMode.PullUp, analog: false } };
+    expect(settings.festival?.assignments).toEqual([
+      {
+        assignments: [
+          { consoleType: { ps4OrPs5Mode: false } },
+          { inputAnyTime: { input: { toggle: { deviceid: toggle.deviceid, input: pin9 } } } },
+        ],
+      },
+    ]);
+    // the main profile is unchanged, the festival one goes before it
+    expect(settings.assignments).toHaveLength(1);
+    expect(ctx.warnings).toEqual([]);
   });
 
   it('copies the slot assignments into every list', () => {

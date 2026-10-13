@@ -3,7 +3,9 @@ import {
   IconAlertCircle,
   IconBuildingStore,
   IconCheck,
+  IconChevronDown,
   IconChevronRight,
+  IconChevronUp,
   IconCopy,
   IconCpu,
   IconDeviceFloppy,
@@ -64,6 +66,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const addProfile = useConfigStore((state) => state.addProfile);
   const cloneProfile = useConfigStore((state) => state.cloneProfile);
   const deleteProfile = useConfigStore((state) => state.deleteProfile);
+  const moveProfile = useConfigStore((state) => state.moveProfile);
   const toolInfo = useConfigStore((state) => state.toolInfo);
   const simpleMode = useConfigStore((state) => state.simpleMode);
   const configModified = useConfigStore((state) => state.configModified && state.connected);
@@ -132,6 +135,60 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const showSave = configModified || saveStatus !== 'idle';
   const targetProfile = profileToDelete !== null ? profiles[profileToDelete] : null;
+
+  // Buttons shown on each profile's nav row; the link itself navigates, so clicks must not reach it
+  const profileAction = (
+    title: string,
+    icon: React.ReactNode,
+    onClick: () => void,
+    color = 'gray',
+    disabled = false
+  ) => (
+    <ActionIcon
+      size="xs"
+      variant="subtle"
+      color={color}
+      title={title}
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        onClick();
+      }}
+    >
+      {icon}
+    </ActionIcon>
+  );
+  const profileActions = (i: number) => (
+    <>
+      {profiles.length > 1 && (
+        <>
+          {profileAction(
+            t('main.move_profile_up', 'Move up'),
+            <IconChevronUp size={13} />,
+            () => moveProfile(i, i - 1),
+            'gray',
+            i === 0
+          )}
+          {profileAction(
+            t('main.move_profile_down', 'Move down'),
+            <IconChevronDown size={13} />,
+            () => moveProfile(i, i + 1),
+            'gray',
+            i === profiles.length - 1
+          )}
+        </>
+      )}
+      {profileAction(t('main.clone_profile'), <IconCopy size={13} />, () => cloneProfile(i))}
+      {profiles.length > 1 &&
+        profileAction(
+          t('main.delete_profile'),
+          <IconTrash size={13} />,
+          () => setProfileToDelete(i),
+          'red'
+        )}
+    </>
+  );
 
   return (
     <>
@@ -412,38 +469,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                           {instanceCount === 1 && (
                             <Badge>{t('main.profile_active', 'Active')}</Badge>
                           )}
-                          {!simpleMode && (
-                            <>
-                              <ActionIcon
-                                size="xs"
-                                variant="subtle"
-                                color="gray"
-                                title={t('main.clone_profile')}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  cloneProfile(i);
-                                }}
-                              >
-                                <IconCopy size={13} />
-                              </ActionIcon>
-                              {profiles.length > 1 && (
-                                <ActionIcon
-                                  size="xs"
-                                  variant="subtle"
-                                  color="red"
-                                  title={t('main.delete_profile')}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    setProfileToDelete(i);
-                                  }}
-                                >
-                                  <IconTrash size={13} />
-                                </ActionIcon>
-                              )}
-                            </>
-                          )}
+                          {!simpleMode && profileActions(i)}
                         </Group>
                       </Group>
                     );
@@ -475,38 +501,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <span>{`${x.opts.name} (${instanceIdx + 1})`}</span>
                         <Group gap={4} wrap="nowrap">
                           <Badge>{t('main.profile_active', 'Active')}</Badge>
-                          {!simpleMode && (
-                            <>
-                              <ActionIcon
-                                size="xs"
-                                variant="subtle"
-                                color="gray"
-                                title={t('main.clone_profile')}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  cloneProfile(i);
-                                }}
-                              >
-                                <IconCopy size={13} />
-                              </ActionIcon>
-                              {profiles.length > 1 && (
-                                <ActionIcon
-                                  size="xs"
-                                  variant="subtle"
-                                  color="red"
-                                  title={t('main.delete_profile')}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    setProfileToDelete(i);
-                                  }}
-                                >
-                                  <IconTrash size={13} />
-                                </ActionIcon>
-                              )}
-                            </>
-                          )}
+                          {!simpleMode && profileActions(i)}
                         </Group>
                       </Group>
                     );

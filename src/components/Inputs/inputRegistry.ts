@@ -525,6 +525,9 @@ export const getHostSourceType = (item: proto.IProfileAssignmentInfo): string | 
   if (item.midiChannel != null) {
     return 'midiChannel';
   }
+  if (item.midiProGuitar != null) {
+    return 'midiProGuitar';
+  }
   return null;
 };
 
@@ -570,7 +573,7 @@ export function getSlotDeviceKind(item: proto.IProfileAssignmentInfo): string | 
   if (!source) {
     return null;
   }
-  return source === 'midiChannel'
+  return source === 'midiChannel' || source === 'midiProGuitar'
     ? 'midi'
     : source === 'wiiExt'
       ? 'wii'
@@ -593,6 +596,7 @@ export function getSlotSubtype(item: proto.IProfileAssignmentInfo): number {
     item.bluetoothDevice?.subtype ??
     item.ps2Cnt ??
     item.wiiExt ??
+    item.midiProGuitar ??
     SLOT_UNTYPED
   );
 }
@@ -667,18 +671,22 @@ export function getProfileSlotLabel(
       ? `subType.${proto.SubType[item.usbType]}`
       : item.bluetoothType != null
         ? `subType.${proto.SubType[item.bluetoothType]}`
-        : item.ps2Cnt != null
-          ? `ps2Cnt.${proto.PS2ControllerType[item.ps2Cnt]}`
-          : item.wiiExt != null
-            ? `wiiExt.${proto.WiiExtType[item.wiiExt]}`
-            : undefined;
+        : item.midiProGuitar != null
+          ? `subType.${proto.SubType[item.midiProGuitar]}`
+          : item.ps2Cnt != null
+            ? `ps2Cnt.${proto.PS2ControllerType[item.ps2Cnt]}`
+            : item.wiiExt != null
+              ? `wiiExt.${proto.WiiExtType[item.wiiExt]}`
+              : undefined;
   const typeLabel = type ? (t?.(type) ?? type.split('.').at(-1)) : undefined;
   const sourceLabelKey =
     typeLabel && source === 'usbType'
       ? 'assignments.source.usbTypeWithSubtype'
       : typeLabel && source === 'bluetoothType'
         ? 'assignments.source.bluetoothTypeWithSubtype'
-        : `assignments.source.${source}`;
+        : typeLabel && source === 'midiProGuitar'
+          ? 'assignments.source.midiProGuitarWithSubtype'
+          : `assignments.source.${source}`;
   const sourceLabel = t?.(sourceLabelKey) ?? t?.(`assignments.source.${source}`) ?? source;
   return `${t?.('assignments.slot') ?? 'Slot'} ${slotId}: ${sourceLabel}${typeLabel ? ` (${typeLabel})` : ''}`;
 }
@@ -726,6 +734,15 @@ export function getProfileSlots(profile?: proto.IProfile, t?: (key: string) => s
 }
 
 export function createSlotInput(slot: ProfileSlot, capabilities: InputCapabilities) {
+  if (slot.deviceKind === 'midi' && slot.items.some((item) => item.midiProGuitar != null)) {
+    return {
+      midi: {
+        deviceid: slot.slotId,
+        sourceType: proto.MidiInputSourceType.MidiInputSourceType_MIDI,
+        midiProGuitarButton: { button: proto.ProGuitarMidiButtonType.ProGuitarMidi_A },
+      },
+    };
+  }
   if (slot.deviceKind === 'midi') {
     return {
       midi: {

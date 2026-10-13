@@ -285,6 +285,8 @@
     },
     "clone_profile": "Clone Profile",
     "delete_profile": "Delete Profile",
+    "move_profile_up": "Move up (profiles are checked in order)",
+    "move_profile_down": "Move down (profiles are checked in order)",
     "profile_active": "Active"
   },
   "held": {
@@ -1481,7 +1483,9 @@
       "bluetoothType": "Bluetooth (By Type)",
       "bluetoothTypeWithSubtype": "Bluetooth",
       "bluetoothDevice": "Bluetooth (Specific Device)",
-      "midiChannel": "MIDI Channel"
+      "midiChannel": "MIDI Channel",
+      "midiProGuitar": "MIDI Pro Guitar",
+      "midiProGuitarWithSubtype": "MIDI"
     },
     "trigger": {
       "always": "No Extra Button Trigger (Default)",
@@ -1508,7 +1512,8 @@
       "wii": "Wii ({{type}})",
       "ps2": "PS2 ({{type}})",
       "bluetooth": "Bluetooth ({{type}})",
-      "midiChannel": "MIDI Ch {{channel}}"
+      "midiChannel": "MIDI Ch {{channel}}",
+      "midi": "MIDI ({{type}})"
     }
   },
   "toggle": {
@@ -1583,6 +1588,7 @@
     "input": "Input Based - At startup",
     "inputAnyTime": "Input Based - Anytime",
     "midiChannel": "MIDI Event",
+    "midiProGuitar": "MIDI Pro Guitar",
     "consoleType": "USB Device Emulation",
     "bluetooth": "Bluetooth Device Emulation",
     "ps2Emulation": "PS1/2 Controller Emulation",
@@ -1600,6 +1606,7 @@
     "input": "Match if an input is held when powering on this device",
     "inputAnyTime": "Match on input is pressed at any time",
     "midiChannel": "Match if a MIDI event is sent to this device over a specific MIDI channel",
+    "midiProGuitar": "Match when a Squier or Mustang Pro Guitar is connected to this device over MIDI",
     "consoleType": "Match when this device plugged into another via USB",
     "bluetooth": "Match when emulating a bluetooth device",
     "ps2Emulation": "Match when plugged into a PS1/PS2 via the PS controller port",
@@ -1616,7 +1623,8 @@
     "ps2Cnt": "PS2 Controller Type",
     "forcedType": "Device type",
     "bluetooth": "Bluetooth mode",
-    "bluetoothType": "Bluetooth controller type"
+    "bluetoothType": "Bluetooth controller type",
+    "midiProGuitar": "Pro Guitar type"
   },
   "consoleType": {
     "ConsoleWii_WiiU": "Wii / Wii U",
@@ -5311,7 +5319,7 @@
     "analogLedsSkipped": "LEDs on analog inputs used as buttons were skipped, as the new LEDs would fade instead of switching on and off.",
     "peripheralOutputsSkipped": "Outputs on the secondary Pico were skipped, they aren't supported yet.",
     "ps2OnPs3Unsupported": "PS2 on PS3 mode isn't supported anymore, so bindings and LEDs for it were skipped.",
-    "fortniteModesUnsupported": "Fortnite Festival modes aren't supported anymore, so bindings and LEDs for them were skipped.",
+    "fortniteModesUnsupported": "S1 handled Fortnite Festival using modes, while S2 handles it using profiles. The keyboard mode and gameplay toggle were imported as a keyboard profile, but the iOS mode can't easily be imported, so you will need to set that up yourself.",
     "invertedOutputsSkipped": "Inverted outputs for LED bindings were skipped, as they can't be inverted anymore.",
     "pollRate": "The poll rate limit wasn't imported, the new firmware always polls as fast as it can.",
     "sleepNoWakePin": "Sleep was skipped as it had no wake up pin, set it up again with one.",

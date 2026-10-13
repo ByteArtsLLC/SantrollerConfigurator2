@@ -30,6 +30,10 @@ interface PendingMode {
 interface State {
   commandLeds: legacy.ISerializedLed[];
   modes: PendingMode[];
+  // Inputs that started the Fortnite Festival keyboard mode
+  festival: proto.IInputActivationTrigger[];
+  // Inputs that toggled Fortnite Festival gameplay mode at any time
+  festivalToggles: proto.IInput[];
 }
 
 const states = new WeakMap<LegacyImportContext, State>();
@@ -37,7 +41,7 @@ const states = new WeakMap<LegacyImportContext, State>();
 function state(ctx: LegacyImportContext): State {
   let current = states.get(ctx);
   if (!current) {
-    current = { commandLeds: [], modes: [] };
+    current = { commandLeds: [], modes: [], festival: [], festivalToggles: [] };
     states.set(ctx, current);
   }
   return current;
@@ -368,6 +372,11 @@ const CONSOLE_MODES: Partial<Record<legacy.EmulationModeType, proto.ConsoleMode>
   [EM.EmulationModeType_Arcade]: CM.ModeGuitarHeroArcade,
 };
 
+// The keyboard Fortnite Festival mode and the gameplay mode toggle, which both become a keyboard
+// profile of its own
+const isFestivalKeyboard = (type: number) =>
+  type === EM.EmulationModeType_Fnf || type === EM.EmulationModeType_FnfLayer;
+
 function warnUnsupportedMode(ctx: LegacyImportContext, type: legacy.EmulationModeType) {
   if (type === EM.EmulationModeType_Ps2OnPs3) {
     ctx.warn('legacyImport.ps2OnPs3Unsupported');
@@ -437,6 +446,10 @@ function commandMapping(
     case LC.LedCommandType_BluetoothConnected:
       return { statusMapping: { type: proto.StatusLedType.StatusBluetoothConnected } };
     case LC.LedCommandType_Mode: {
+      if (isFestivalKeyboard(param1)) {
+        // Lit by the Fortnite Festival profile instead
+        return undefined;
+      }
       const mode = CONSOLE_MODES[param1 as legacy.EmulationModeType];
       if (mode == null) {
         warnUnsupportedMode(ctx, param1 as legacy.EmulationModeType);
@@ -450,12 +463,14 @@ function commandMapping(
   return undefined;
 }
 
+// Adds the LEDs for an LED binding to `leds`, lit by `mapping` (the binding's own by default)
 function convertCommandLed(
   ctx: LegacyImportContext,
   hw: LedHardware | undefined,
-  led: legacy.ISerializedLed
+  led: legacy.ISerializedLed,
+  leds: proto.ILed[] = ctx.leds,
+  mapping = commandMapping(ctx, led)
 ) {
-  const mapping = commandMapping(ctx, led);
   if (!mapping) {
     return;
   }
@@ -469,7 +484,7 @@ function convertCommandLed(
   if (hw?.kind === 'rgb') {
     const activeLed = ledIndices(led.ledIndex, hw.count);
     if (activeLed.length) {
-      ctx.leds.push({
+      leds.push({
         device: rgbDevice(hw, activeLed, led.ledOn, noOff ? 0 : led.ledOff, true),
         mapping,
       });
@@ -477,11 +492,11 @@ function convertCommandLed(
   } else if (hw?.kind === 'stp16') {
     const activeLed = ledIndices(led.ledIndex, hw.count);
     if (activeLed.length) {
-      ctx.leds.push({ device: { stp16: { deviceId: hw.deviceid, activeLed } }, mapping });
+      leds.push({ device: { stp16: { deviceId: hw.deviceid, activeLed } }, mapping });
     }
   }
   for (const pin of mpr121Pins(ctx, led.ledIndexMpr121)) {
-    ctx.leds.push({ device: { mpr121: { deviceId: mpr121Device(ctx), pin } }, mapping });
+    leds.push({ device: { mpr121: { deviceId: mpr121Device(ctx), pin } }, mapping });
   }
   const pin = led.pin ?? -1;
   if (led.outputEnabled && pin >= 0) {
@@ -495,7 +510,7 @@ function convertCommandLed(
         type === LC.LedCommandType_DjEuphoria ||
         type === LC.LedCommandType_StarPowerActive ||
         type === LC.LedCommandType_StarPowerInactive;
-      ctx.leds.push({ device: { gpio: { pin, analog } }, mapping });
+      leds.push({ device: { gpio: { pin, analog } }, mapping });
     }
   }
 }
@@ -519,7 +534,8 @@ registerOutputConverters({
     }
     const type = m!.type ?? EM.EmulationModeType_Xbox360;
     const mode = CONSOLE_MODES[type];
-    if (mode == null) {
+    const festival = isFestivalKeyboard(type);
+    if (mode == null && !festival) {
       warnUnsupportedMode(ctx, type);
       return;
     }
@@ -539,7 +555,15 @@ registerOutputConverters({
       trigger.trigger = proto.AnalogToDigitalTriggerType.JoyHigh;
       trigger.triggerValue = converted.isUint ? 32767 : INT16_OFFSET;
     }
-    st.modes.push({ mode, trigger });
+    if (type === EM.EmulationModeType_FnfLayer) {
+      // Toggled the festival layout on and off while running, so it reads a toggle on that input
+      const deviceid = ctx.addDevice('toggle', JSON.stringify(converted.input));
+      st.festivalToggles.push({ toggle: { deviceid, input: converted.input } });
+    } else if (festival) {
+      st.festival.push(trigger);
+    } else {
+      st.modes.push({ mode: mode!, trigger });
+    }
   },
 });
 
@@ -552,6 +576,9 @@ export interface LedsModesSettings {
   // an input at startup to force that mode), then the default list. Lists are tried in order and
   // the first one that matches is used, so the default list has to come last.
   assignments: proto.IProfileAssignment[];
+  // The Fortnite Festival keyboard mode, as a keyboard profile that goes before the main one: a
+  // list per mode binding, and the profile's LEDs
+  festival?: { assignments: proto.IProfileAssignment[]; leds: proto.ILed[] };
   // Goes on the config
   inactivity?: proto.IInactivityConfig;
 }
@@ -595,6 +622,16 @@ export function convertLedsModesSettings(ctx: LegacyImportContext): LedsModesSet
   for (const led of st.commandLeds) {
     convertCommandLed(ctx, hw, led);
   }
+  // The festival profile has the same LEDs, with its mode LEDs always on
+  const festivalLeds = [...ctx.leds];
+  const hasFestival = st.festival.length > 0 || st.festivalToggles.length > 0;
+  if (hasFestival) {
+    for (const led of st.commandLeds) {
+      if (led.type === LC.LedCommandType_Mode && isFestivalKeyboard(led.param1 ?? 0)) {
+        convertCommandLed(ctx, hw, led, festivalLeds, { staticMapping: {} });
+      }
+    }
+  }
 
   // Battery gauge
   if (old.hasMax1704X) {
@@ -628,6 +665,20 @@ export function convertLedsModesSettings(ctx: LegacyImportContext): LedsModesSet
     })),
     { assignments: [usb(), ...shared, ...ctx.assignments] },
   ];
+  // Keyboards don't need authenticating
+  const keyboardUsb = { consoleType: { ps4OrPs5Mode: false } };
+  const festivalList = (trigger: proto.IProfileAssignmentInfo) => ({
+    assignments: [keyboardUsb, ...shared, ...ctx.assignments, trigger],
+  });
+  const festival = hasFestival
+    ? {
+        assignments: [
+          ...st.festival.map((trigger) => festivalList({ input: trigger })),
+          ...st.festivalToggles.map((input) => festivalList({ inputAnyTime: { input } })),
+        ],
+        leds: festivalLeds,
+      }
+    : undefined;
 
   if ((old.pollRate ?? 0) > 0 && !old.queueBasedInputs) {
     ctx.warn('legacyImport.pollRate');
@@ -650,6 +701,7 @@ export function convertLedsModesSettings(ctx: LegacyImportContext): LedsModesSet
 
   return {
     assignments,
+    ...(festival ? { festival } : {}),
     ...(Object.keys(inactivity).length ? { inactivity } : {}),
   };
 }

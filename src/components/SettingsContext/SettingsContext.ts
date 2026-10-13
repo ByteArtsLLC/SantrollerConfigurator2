@@ -400,7 +400,8 @@ export function isDeviceAssigned(deviceType: string, profile?: proto.IProfile | 
   }
   if (deviceType === 'usbHost') {
     return allAssignments.some(
-      (x) => x.usbType != null || x.usbDevice != null || x.midiChannel != null
+      (x) =>
+        x.usbType != null || x.usbDevice != null || x.midiChannel != null || x.midiProGuitar != null
     );
   }
   if (deviceType === 'psx') {
@@ -410,7 +411,7 @@ export function isDeviceAssigned(deviceType: string, profile?: proto.IProfile | 
     return allAssignments.some((x) => x.wiiExt != null);
   }
   if (deviceType === 'midiSerial' || deviceType === 'bhDrum' || deviceType === 'worldTourDrum') {
-    return allAssignments.some((x) => x.midiChannel != null);
+    return allAssignments.some((x) => x.midiChannel != null || x.midiProGuitar != null);
   }
   return true;
 }
@@ -506,6 +507,7 @@ export interface Actions {
   addProfile: () => void;
   cloneProfile: (id: number) => void;
   deleteProfile: (id: number) => void;
+  moveProfile: (from: number, to: number) => void;
   updateConfig: (config: proto.IConfig) => void;
   deleteDevice: (id: string) => void;
   connect: () => void;
@@ -1114,6 +1116,41 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.ledStatus = state.config.profiles!.map((profile) =>
           Object.fromEntries(profile.leds!.map((x, i) => [i, new LedStatus(i, x)]))
         );
+      });
+      get().saveConfig();
+    },
+    moveProfile: (from: number, to: number) => {
+      set((state) => {
+        const profiles = state.config.profiles;
+        if (!profiles || from === to || !profiles[from] || !profiles[to]) {
+          return;
+        }
+        // Profiles are tried in order, so this changes which one wins when several match
+        const move = <T>(list: T[]) => {
+          const next = [...list];
+          next.splice(to, 0, ...next.splice(from, 1));
+          return next;
+        };
+        // Index after the move of whatever was at idx before it
+        const remap = (idx: number) => {
+          if (idx === from) {
+            return to;
+          }
+          if (from < idx && idx <= to) {
+            return idx - 1;
+          }
+          if (to <= idx && idx < from) {
+            return idx + 1;
+          }
+          return idx;
+        };
+        state.config = { ...state.config, profiles: move(profiles) };
+        state.mappingStatus = move(state.mappingStatus);
+        state.activationStatus = move(state.activationStatus);
+        state.activationListStatus = move(state.activationListStatus);
+        state.ledStatus = move(state.ledStatus);
+        state.currentProfile = remap(state.currentProfile);
+        state.lastProfile = remap(state.lastProfile);
       });
       get().saveConfig();
     },

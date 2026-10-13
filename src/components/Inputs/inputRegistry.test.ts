@@ -196,6 +196,32 @@ describe('MIDI slots', () => {
     });
   });
 
+  it('gives each MIDI Pro Guitar its own slot, and pro guitar inputs for new mappings', () => {
+    const proGuitarProfile: proto.IProfile = {
+      ...profile,
+      opts: { ...profile.opts!, deviceSlotIdVersion: 2 },
+      assignments: [
+        { assignments: [{ midiChannel: 4 }] },
+        { assignments: [{ midiProGuitar: proto.SubType.ProGuitarSquier }] },
+        { assignments: [{ midiProGuitar: proto.SubType.ProGuitarMustang }] },
+      ],
+    };
+    const slots = getProfileSlots(proGuitarProfile);
+    // Numbered by subtype, so the guitars come before the untyped MIDI channel
+    expect(slots.map((slot) => [slot.deviceKind, slot.slotId])).toEqual([
+      ['midi', 3],
+      ['midi', 2],
+      ['midi', 1],
+    ]);
+    expect(createSlotInput(slots[1], { axis: false, button: true })).toEqual({
+      midi: {
+        deviceid: 2,
+        sourceType: proto.MidiInputSourceType.MidiInputSourceType_MIDI,
+        midiProGuitarButton: { button: proto.ProGuitarMidiButtonType.ProGuitarMidi_A },
+      },
+    });
+  });
+
   it('includes the assigned USB subtype in its slot label', () => {
     const item = { usbType: proto.SubType.GuitarHeroGuitar };
 

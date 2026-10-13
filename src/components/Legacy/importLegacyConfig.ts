@@ -5,11 +5,13 @@ import {
 } from '@/components/Inputs/inputRegistry';
 import { getInputSlotKind, remapSlotChoices } from '@/components/Inputs/slotRemap';
 import { proto } from '@/components/SettingsContext/config';
+import { MAX_PROFILE_NAME_BYTES } from '@/components/SettingsContext/profileName';
 import { LegacyImportContext } from './context';
 import { convertHostMidiSettings } from './families/hostMidi';
 import { convertInstrumentPeripheralSettings } from './families/instrumentPeripherals';
 import { convertLedsModesSettings } from './families/ledsModes';
 import { convertWiiPs2Settings } from './families/wiiPs2';
+import { festivalMappings } from './festival';
 
 import './families';
 
@@ -137,6 +139,17 @@ function assignSlotIds(
   return remapSlotChoices(profile, choices);
 }
 
+// The name for the Fortnite Festival profile, shortening the main profile's name to fit
+function festivalProfileName(name: string) {
+  const suffix = ' (Festival)';
+  const size = (text: string) => new TextEncoder().encode(text).length;
+  let base = name;
+  while (base && size(base) + size(suffix) > MAX_PROFILE_NAME_BYTES) {
+    base = [...base].slice(0, -1).join('');
+  }
+  return `${base.trimEnd()}${suffix}`;
+}
+
 // Converts a Santroller 1 .picoconfig file into a new config
 export function importLegacyConfig(data: Uint8Array, name = 'Imported'): LegacyImportResult {
   const old = legacy.SerializedConfiguration.decode(data);
@@ -187,10 +200,11 @@ export function importLegacyConfig(data: Uint8Array, name = 'Imported'): LegacyI
       ctx.mappings.some((m) => readsLocalInput(m.input))
     )
   );
+  const profileName = old.variant || name;
   const profile = assignSlotIds(ctx, lists, {
     opts: {
       uid: 1,
-      name: old.variant || name,
+      name: profileName,
       deviceToEmulate: subType,
       deviceSlotIdVersion: 2,
       faceButtonMappingMode: old.swapSwitchFaceButtons
@@ -211,9 +225,39 @@ export function importLegacyConfig(data: Uint8Array, name = 'Imported'): LegacyI
     leds: ctx.leds,
   });
 
+  // The Fortnite Festival keyboard mode became a keyboard profile, held at startup like the other
+  // console modes. Profiles are tried in order and the main one always matches, so it goes first.
+  const profiles = [profile];
+  if (settings.festival) {
+    const mappings = festivalMappings(ctx.mappings, subType);
+    const festivalLists = ctx.expandSlotAlternatives(
+      expandOptionalSlots(
+        ctx,
+        settings.festival.assignments,
+        mappings.some((m) => readsLocalInput(m.input))
+      )
+    );
+    profiles.unshift(
+      assignSlotIds(ctx, festivalLists, {
+        opts: {
+          uid: 2,
+          name: festivalProfileName(profileName),
+          deviceToEmulate: proto.SubType.KeyboardMouse,
+          deviceSlotIdVersion: 2,
+          faceButtonMappingMode: proto.FaceButtonMappingMode.LegendBased,
+          queueInputs: old.queueBasedInputs,
+          combinedStrumDebounce: old.combinedStrumDebounce,
+        },
+        assignments: festivalLists,
+        mappings,
+        leds: settings.festival.leds,
+      })
+    );
+  }
+
   const config = proto.Config.fromObject({
     devices: ctx.devices,
-    profiles: [profile],
+    profiles,
     guiConfig: [],
     ...(settings.inactivity ? { inactivity: settings.inactivity } : {}),
   });
@@ -324,7 +368,8 @@ export function importLegacyConfigs(
     const ids = new Map<number, number>();
     for (const device of config.devices ?? []) {
       const key = JSON.stringify({ ...device, deviceid: undefined });
-      let id = deviceKeys.get(key);
+      // A toggle holds a state, so each file's toggles stay their own
+      let id = device.toggle ? undefined : deviceKeys.get(key);
       if (id == null) {
         id = devices.length + 1;
         deviceKeys.set(key, id);
@@ -332,8 +377,10 @@ export function importLegacyConfigs(
       }
       ids.set(device.deviceid, id);
     }
-    const profile = remapProfileDeviceIds(config.profiles![0], (id) => ids.get(id) ?? id);
-    profiles.push({ ...profile, opts: { ...profile.opts!, uid: profiles.length + 1 } });
+    for (const imported of config.profiles ?? []) {
+      const profile = remapProfileDeviceIds(imported, (id) => ids.get(id) ?? id);
+      profiles.push({ ...profile, opts: { ...profile.opts!, uid: profiles.length + 1 } });
+    }
     // Warnings are prefixed with the file they're about when there are several
     const withFile = (warning: LegacyWarning) =>
       files.length > 1

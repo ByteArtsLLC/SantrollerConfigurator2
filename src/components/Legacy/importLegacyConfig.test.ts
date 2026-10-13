@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 import { proto } from '@/components/SettingsContext/config';
+import { CODE_TO_HID } from '@/devices/keyboard';
 import { importLegacyConfig, importLegacyConfigs } from './importLegacyConfig';
 import { legacy } from './legacy';
 
@@ -10,7 +11,8 @@ const fixture = (name: string) => readFileSync(join(__dirname, '__fixtures__', n
 describe('importLegacyConfig', () => {
   it('imports a Rock Band guitar with shared solo fret pins', () => {
     const { config, warnings } = importLegacyConfig(fixture('reampedsunburst.picoconfig'));
-    const profile = config.profiles[0];
+    // the Fortnite Festival keyboard mode is its own profile, tried first
+    const [festival, profile] = config.profiles;
     expect(profile.opts.deviceToEmulate).toBe(proto.SubType.RockBandGuitar);
     const byOutput = (output: proto.IOutput) =>
       profile.mappings.filter(
@@ -48,8 +50,40 @@ describe('importLegacyConfig', () => {
     const [pickup] = byOutput({ rbAxis: proto.RockBandGuitarAxisType.RockBandGuitar_Pickup });
     expect(pickup.pickupThresholds).toEqual([14659, 27076, 40701, 56567]);
 
-    // the old Fortnite Festival toggle on GP7 has no new equivalent
-    expect(warnings.some((w) => w.key === 'legacyImport.fortniteModesUnsupported')).toBe(true);
+    // holding GP7 at startup used to start the Fortnite Festival keyboard mode
+    expect(festival.opts).toMatchObject({
+      name: 'Imported (Festival)',
+      deviceToEmulate: proto.SubType.KeyboardMouse,
+    });
+    expect(
+      festival.assignments.map((list) => list.assignments.map((x) => x.input?.input?.gpio?.pin))
+    ).toEqual([[undefined, 7]]);
+    const keys = (pin: number) =>
+      festival.mappings.filter((m) => m.input?.gpio?.pin === pin).map((m) => m.mapping?.keycode);
+    // frets (with their solo frets sharing pins), strum, d-pad and start / select
+    for (const [pin, key] of [
+      [14, 'Digit1'],
+      [11, 'Digit2'],
+      [12, 'Digit3'],
+      [13, 'Digit4'],
+      [10, 'Digit5'],
+      [21, 'ShiftRight'],
+      [20, 'ControlRight'],
+      [17, 'ArrowLeft'],
+      [22, 'ArrowRight'],
+      [16, 'Escape'],
+      [15, 'PageDown'],
+    ] as const) {
+      expect(keys(pin)).toEqual([CODE_TO_HID[key]]);
+    }
+    // the whammy (calibrated backwards) is held from half way
+    const [slash] = festival.mappings.filter((m) => m.input?.gpio?.pin === 26);
+    expect(slash).toMatchObject({
+      mapping: { keycode: CODE_TO_HID.Slash },
+      trigger: proto.AnalogToDigitalTriggerType.JoyLow,
+      triggerValue: Math.round((65520 + 18512) / 2),
+    });
+    expect(warnings.some((w) => w.key === 'legacyImport.fortniteModesUnsupported')).toBe(false);
   });
 
   it('imports a USB keyboard layout with a PS3 pressure binding', () => {
@@ -197,6 +231,45 @@ describe('importLegacyConfigs', () => {
         (p) => p.mappings.find((m) => m.input?.usbButton)?.input?.usbButton?.deviceid
       )
     ).toEqual([1, 1]);
+  });
+
+  it('keeps the Fortnite Festival toggle of each file separate', () => {
+    const encodeToggle = () =>
+      legacy.SerializedConfiguration.encode(
+        legacy.SerializedConfiguration.create({
+          bindings: [
+            {
+              serializedEmulationMode: {
+                type: legacy.EmulationModeType.EmulationModeType_FnfLayer,
+                input: {
+                  serializedDirectInput: {
+                    pin: 9,
+                    pinMode: legacy.DevicePinMode.DevicePinMode_PullUp,
+                  },
+                },
+              },
+            },
+          ],
+        })
+      ).finish();
+    const { config } = importLegacyConfigs([
+      { data: encodeToggle(), name: 'first' },
+      { data: encodeToggle(), name: 'second' },
+    ]);
+    // each file's festival profile goes before its main one
+    expect(config.profiles.map((p) => p.opts.name)).toEqual([
+      'first (Festival)',
+      'first',
+      'second (Festival)',
+      'second',
+    ]);
+    const toggles = config.profiles
+      .flatMap((p) => p.assignments.flatMap((list) => list.assignments))
+      .map((x) => x.inputAnyTime?.input?.toggle?.deviceid)
+      .filter((id) => id != null);
+    expect(toggles).toHaveLength(2);
+    expect(new Set(toggles).size).toBe(2);
+    expect(config.devices.filter((d) => d.toggle)).toHaveLength(2);
   });
 
   it('names the file that could not be read', () => {
