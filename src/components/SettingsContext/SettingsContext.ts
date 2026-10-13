@@ -128,6 +128,17 @@ function withHidTimeout<T>(operation: Promise<T>, description: string): Promise<
 }
 
 // For logging what a report actually contained
+// Whether a stored bluetooth TLV entry is a bond for this address, the same way the firmware's
+// BtTlvStorage::delete_tags_for_mac matches them (BTL: classic link keys, BTD: LE device db entries)
+function isBondForMac(entry: proto.IBluetoothTlvEntry, mac: Uint8Array): boolean {
+  const prefix = ((entry.tag ?? 0) & 0xffffff00) >>> 0;
+  const value = entry.value ?? new Uint8Array();
+  const tagPrefix = (c: string) => ((0x42 << 24) | (0x54 << 16) | (c.charCodeAt(0) << 8)) >>> 0;
+  const matchesAt = (offset: number) =>
+    value.length >= offset + 6 && mac.every((byte, i) => value[offset + i] === byte);
+  return (prefix === tagPrefix('L') && matchesAt(4)) || (prefix === tagPrefix('D') && matchesAt(8));
+}
+
 function hexBytes(bytes: Uint8Array): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(' ');
 }
@@ -487,7 +498,7 @@ export interface ConfigState {
 export interface Actions {
   scanBluetooth: () => Promise<void>;
   refreshBluetoothPairings: () => Promise<void>;
-  removeBluetoothPairing: (id: number) => void;
+  removeBluetoothPairing: (id: number) => Promise<void>;
   checkLogin: () => void;
   setSyncMode: (mode: boolean) => void;
   updateLabel: (config: proto.IGuiConfig, id: number) => void;
@@ -2138,11 +2149,42 @@ export const useConfigStore = create<ConfigState & Actions>()(
       }));
       return { config, aux };
     },
-    removeBluetoothPairing: (id: number) => {
+    removeBluetoothPairing: async (id: number) => {
+      const mac = get().bluetoothStates.find((x) => x.id === id)?.macAddress;
+      // Drop it here straight away, keys and all, so a save sent in the meantime can't bring it back
       set((state) => {
         state.bluetoothStates = state.bluetoothStates.filter((x) => x.id !== id);
-        state.configModified = true;
+        if (mac) {
+          state.tlvEntries = state.tlvEntries.filter((entry) => !isBondForMac(entry, mac));
+        }
       });
+      const state = get();
+      if (!state.hidDevice || !state.connected) {
+        // Nothing to tell, so it goes out with the rest of the config
+        set((state) => {
+          state.configModified = true;
+        });
+        return;
+      }
+      // The device forgets it (connection, bond and pairing) and saves that itself, so this doesn't
+      // wait for the next save or take the rest of the unsaved config with it
+      try {
+        const cmdBuffer = proto.Command.encode(
+          proto.Command.create({
+            unpairBluetooth: proto.UnpairBluetoothCommand.create({ id }),
+          })
+        )
+          .ldelim()
+          .finish();
+        const outBuffer = new ArrayBuffer(63);
+        new Uint8Array(outBuffer).set(cmdBuffer);
+        await state.hidDevice.sendFeatureReport(proto.ReportId.ReportIdCommand, outBuffer);
+      } catch (e) {
+        console.error('Failed to send unpair command', e);
+        return;
+      }
+      await delay(250);
+      await get().refreshBluetoothPairings();
     },
     scanBluetooth: async () => {
       const state = get();
