@@ -1994,6 +1994,7 @@
     "connect": "Connect to a Santroller powered device",
     "connectBluetooth": "Connect to a Santroller powered device over Bluetooth",
     "setup": "Setup a new device",
+    "santroller1": "Still using Santroller 1? Open the Santroller 1 site",
     "discord": "Need help? Join the Discord",
     "downloadDesktop": {
       "windows": "Download the desktop app for Windows",

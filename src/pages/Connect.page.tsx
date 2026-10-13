@@ -1,4 +1,9 @@
-import { IconAlertTriangle, IconBrandDiscord, IconExclamationCircle } from '@tabler/icons-react';
+import {
+  IconAlertTriangle,
+  IconBrandDiscord,
+  IconExclamationCircle,
+  IconHistory,
+} from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import {
@@ -315,6 +320,18 @@ export function ConnectPage() {
             <DesktopDownloadButton />
           </>
         )}
+        {/* for anyone who hasn't moved their controllers over yet */}
+        <Space h="md" />
+        <Button
+          component="a"
+          href="https://s1.santroller.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="default"
+          leftSection={<IconHistory size={18} />}
+        >
+          {t('connect.santroller1')}
+        </Button>
         <Space h="md" />
         <Button
           component="a"
