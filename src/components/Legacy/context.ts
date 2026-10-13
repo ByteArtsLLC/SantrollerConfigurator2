@@ -99,6 +99,13 @@ export class LegacyImportContext {
   combined?: CombinedSource;
   // The device each binding inside a combined output read from, recorded as they are converted
   readonly combinedSources = new WeakMap<legacy.ISerializedOutput, CombinedSource>();
+  // The binding being converted, and the axis mapping each binding made, so a binding's LEDs can follow
+  // the same calibration as its axis. trigger: calibrated from min (rather than around the centre).
+  currentBinding?: legacy.ISerializedOutput;
+  readonly axisMappings = new WeakMap<
+    legacy.ISerializedOutput,
+    { mapping: proto.IMapping; trigger: boolean }
+  >();
   // Further inputs a binding's mapping is copied onto once everything is converted, for old inputs
   // that read several devices at once (eg MIDI from every source)
   readonly extraInputs = new WeakMap<proto.IInput, proto.IInput[]>();

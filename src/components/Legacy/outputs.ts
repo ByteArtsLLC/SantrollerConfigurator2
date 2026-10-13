@@ -178,6 +178,9 @@ export function addAxisMapping(
     mapping.deadzone = Math.round((deadzone ?? 0) * scale);
   }
   ctx.mappings.push(mapping);
+  if (ctx.currentBinding && !ctx.axisMappings.has(ctx.currentBinding)) {
+    ctx.axisMappings.set(ctx.currentBinding, { mapping, trigger });
+  }
   return mapping;
 }
 
@@ -797,7 +800,10 @@ export function convertOutput(
     ctx.warn('legacyImport.bindingTypeUnsupported', { type: kind.replace(/^serialized/, '') });
     return;
   }
+  const previous = ctx.currentBinding;
+  ctx.currentBinding = output;
   converter(ctx, output);
+  ctx.currentBinding = previous;
 }
 
 // Converts the bindings inside a combined output, with combined inputs reading from `source`

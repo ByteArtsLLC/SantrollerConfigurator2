@@ -218,6 +218,47 @@ describe('importLegacyConfig', () => {
   });
 });
 
+describe('LEDs on axes', () => {
+  it('follows the axis when the new input is scaled differently', () => {
+    // the platter velocity is half the old one's scale, so the LED range has to be scaled as well
+    const data = legacy.SerializedConfiguration.encode(
+      legacy.SerializedConfiguration.create({
+        deviceType: legacy.DeviceControllerType.DeviceControllerType_Turntable,
+        ledType: legacy.LedType.LedType_Ws2812Rgb,
+        ledMosi: 9,
+        ledCount: 4,
+        bindings: [
+          {
+            serializedDjCombinedOutput: {
+              sda: 18,
+              scl: 19,
+              outputs: [
+                {
+                  serializedDjAxis: {
+                    type: legacy.DjAxisType.DjAxisType_LeftTableVelocity,
+                    min: -16000,
+                    max: 16000,
+                    ledIndex: new Uint8Array([1]),
+                    input: {
+                      serializedDjInputCombined: {
+                        type: legacy.DjInputType.DjInputType_LeftTurntable,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      })
+    ).finish();
+    const profile = importLegacyConfig(data).config.profiles[0];
+    const axis = profile.mappings.find((m) => m.mapping?.djhAxis != null)!;
+    expect(axis).toMatchObject({ min: 24768, max: 40768 });
+    expect(profile.leds[0].mapping?.inputMapping).toMatchObject({ min: 24768, max: 40768 });
+  });
+});
+
 describe('importLegacyConfigs', () => {
   const SB = legacy.StandardButtonType;
   // A USB host on GP2 and an MPR121 on the given pins, with a button on each

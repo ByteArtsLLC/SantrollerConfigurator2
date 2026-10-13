@@ -204,6 +204,26 @@ describe('binding LEDs', () => {
     expect(leds[1].mapping.inputMapping).toMatchObject({ min: 12768, max: 52768 });
   });
 
+  it('starts a trigger LED past its deadzone, like the old axis output did', () => {
+    const trigger = (min: number, max: number, led: number) => ({
+      serializedControllerAxis: {
+        input: analogPin(26),
+        type: legacy.StandardAxisType.StandardAxisType_LeftTrigger,
+        min,
+        max,
+        deadzone: 2000,
+        ledIndex: bytes(led),
+      },
+    });
+    const { leds } = run({
+      ...rgbConfig,
+      bindings: [trigger(1000, 60000, 1), trigger(60000, 1000, 2)],
+    });
+    expect(leds[0].mapping.inputMapping).toMatchObject({ min: 3000, max: 60000 });
+    // calibrated backwards, the deadzone is below min
+    expect(leds[1].mapping.inputMapping).toMatchObject({ min: 58000, max: 1000 });
+  });
+
   it('skips LEDs on analog inputs used as buttons', () => {
     const { ctx, leds } = run({
       ...rgbConfig,

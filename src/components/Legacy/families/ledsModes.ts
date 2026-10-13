@@ -220,6 +220,7 @@ function drivesLeds(
 // The LED value range for a binding's input, or undefined if the new LEDs can't follow it
 function inputRange(
   ctx: LegacyImportContext,
+  binding: legacy.ISerializedOutput,
   kind: LegacyOutputKind,
   fields: BindingLedFields,
   converted: ConvertedInput
@@ -232,7 +233,16 @@ function inputRange(
   if (!converted.analog || converted.digitalToAnalog) {
     return [0, 65535];
   }
-  // The old LEDs followed the axis after calibration, so use the same range the axis does
+  // The old LEDs followed the axis after calibration, so use the same range the axis does. Taking it
+  // from the axis mapping keeps any rescaling of the input the same as the axis.
+  const axis = ctx.axisMappings.get(binding);
+  if (axis && axis.mapping.min != null && axis.mapping.max != null) {
+    const { min, max, deadzone } = axis.mapping;
+    // A trigger stayed at 0 until it was past its deadzone, and so did its LEDs
+    const dead = axis.trigger ? (deadzone ?? 0) : 0;
+    const start = Math.max(0, Math.min(65535, min + (max >= min ? dead : -dead)));
+    return start === max ? [0, 65535] : [start, max];
+  }
   const offset = converted.isUint ? 0 : INT16_OFFSET;
   const clamp = (v: number) => Math.max(0, Math.min(65535, v + offset));
   const min = clamp(fields.min ?? (converted.isUint ? 0 : -32767));
@@ -277,7 +287,7 @@ function convertBindingLeds(
     return;
   }
   const converted = convertInput(ctx, fields.input);
-  const range = converted && inputRange(ctx, kind, fields, converted);
+  const range = converted && inputRange(ctx, binding, kind, fields, converted);
   if (!converted || !range) {
     return;
   }
