@@ -729,7 +729,7 @@
     "title": "Getting started",
     "text": "Put your Raspberry Pi Pico or Pico 2 into bootloader mode by holding BOOTSEL and connecting it to your pc, then download the following UF2 and drag it into the USB Drive named either RPI-RP2 for Pico 1 or RP2350 for Pico 2 that shows up. Once programmed, click Connect to Santroller and connect to the device.",
     "santroller1Title": "Coming from Santroller 1?",
-    "santroller1": "If your Pico is already running Santroller 1, you don't need to hold BOOTSEL. Connect to it in Santroller 1 and click \"Revert Device to Arduino\", which puts the Pico into bootloader mode so the RPI-RP2 or RP2350 drive shows up."
+    "santroller1": "If your Pico is already running Santroller 1, you don't need to hold BOOTSEL. Connect to it in Santroller 1 and click \"Revert Device to Arduino\", which puts the Pico into bootloader mode so the RPI-RP2 or RP2350 drive shows up. If you want to bring your config with you, make sure you export your presets from Santroller 1, you can import the .picoconfig files into Santroller 2."
   },
   "gpio": {
     "mode": {
