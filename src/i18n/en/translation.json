@@ -5271,8 +5271,8 @@
     "ps2Types": {
       "Dualshock2": "DualShock 2",
       "Dualshock": "DualShock",
-      "FlightStick": "flight stick",
-      "Digital": "digital controller",
+      "FlightStick": "Flight stick",
+      "Digital": "Digital controller",
       "Guitar": "Guitar Hero guitar",
       "NegCon": "NeGcon",
       "JogCon": "JogCon",
