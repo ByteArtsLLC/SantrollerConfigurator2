@@ -25,6 +25,7 @@ import {
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 import {
   Accordion,
   ActionIcon,
@@ -2198,6 +2199,85 @@ const USB_HOST_SUBTYPES_ENUM = createBiEnum(
   Object.fromEntries(USB_HOST_SUBTYPES.map((st) => [proto.SubType[st], st]))
 );
 
+// The types of the configured devices. This only changes when a device is added or removed, while
+// deviceStatus changes whenever any device reports its status.
+function useDeviceTypes(): string[] {
+  return useConfigStore(
+    useShallow((state) => Object.values(state.deviceStatus).map((status) => status.type))
+  );
+}
+
+// The device dropdown's options. Only rendered while the dropdown is open, so it's the only part of
+// an input that has to follow every device's status.
+function ConnectedDeviceOptions() {
+  const { t } = useTranslation();
+  const deviceStatus = useConfigStore((state) => state.deviceStatus);
+  return (
+    <>
+      {Object.values(deviceStatus)
+        .filter(
+          (status) =>
+            status.type !== 'peripheral' &&
+            isInputDeviceKind(status.type) &&
+            !requiresAssignment(status.type)
+        )
+        .map((item) => {
+          const parent = item.parentId ? deviceStatus[item.parentId] : undefined;
+          const parentAddr = parent?.device.peripheral?.address
+            ? `0x${parent.device.peripheral.address.toString(16)}`
+            : undefined;
+          return (
+            <Combobox.Option value={item.id} key={item.id}>
+              <Group justify="space-between" wrap="nowrap" w="100%">
+                <Group gap="2">
+                  <Text fz="sm" span>
+                    {t(`devices.${item.type}`)}
+                  </Text>
+
+                  <Text fz="xs" span opacity="0.7">
+                    ({DeviceStatus.label(item)})
+                    {parentAddr && ` ${t('devices.peripheral_suffix', { address: parentAddr })}`}
+                  </Text>
+                </Group>
+              </Group>
+            </Combobox.Option>
+          );
+        })}
+      {Object.values(deviceStatus)
+        .filter((status) => status.type === 'peripheral')
+        .map((item) => {
+          const addr = item.device.peripheral?.address
+            ? `0x${item.device.peripheral.address.toString(16)}`
+            : '0x75';
+          return (
+            <Fragment key={item.id}>
+              <Combobox.Option value={`peripheral_analog:${item.id}`}>
+                <Group gap="2">
+                  <Text fz="sm" span>
+                    {t('devices.gpio')}
+                  </Text>
+                  <Text fz="xs" span opacity="0.7">
+                    {t('devices.gpio_analog')} {t('devices.peripheral_suffix', { address: addr })}
+                  </Text>
+                </Group>
+              </Combobox.Option>
+              <Combobox.Option value={`peripheral_digital:${item.id}`}>
+                <Group gap="2">
+                  <Text fz="sm" span>
+                    {t('devices.gpio')}
+                  </Text>
+                  <Text fz="xs" span opacity="0.7">
+                    {t('devices.gpio_digital')} {t('devices.peripheral_suffix', { address: addr })}
+                  </Text>
+                </Group>
+              </Combobox.Option>
+            </Fragment>
+          );
+        })}
+    </>
+  );
+}
+
 function SantrollerInput({
   input,
   axis,
@@ -2227,7 +2307,6 @@ function SantrollerInput({
 }) {
   const deviceId = getInputDeviceId(input) ?? -1;
   const { t } = useTranslation();
-  const deviceStatus = useConfigStore((state) => state.deviceStatus);
   const detectPins = useConfigStore.getState().detectPins;
   const detected = useConfigStore.getState().detected;
   const detectedMapping = useConfigStore.getState().detectedMapping;
@@ -2235,7 +2314,6 @@ function SantrollerInput({
   const detectedActivation = useConfigStore.getState().detectedActivation;
   const detectedLed = useConfigStore.getState().detectedLed;
   const detecting = useConfigStore((state) => state.detecting);
-  const deviceStatusForId = useConfigStore((state) => state.deviceStatus[deviceId]);
   const simpleMode = useConfigStore((state) => state.simpleMode);
   const currentProfile = useConfigStore((state) => state.currentProfile);
   const profile = useConfigStore((state) => state.config.profiles?.[currentProfile]);
@@ -2256,18 +2334,37 @@ function SantrollerInput({
   );
 
   const profileSlots = useMemo(() => getProfileSlots(profile, t), [profile, t]);
-  const hasUnassignedDevice = useMemo(
-    () =>
-      Object.values(deviceStatus).some(
-        (status) => requiresAssignment(status.type) && !isDeviceAssigned(status.type, profile)
-      ),
-    [deviceStatus, profile]
+  // Every mapping on the page has one of these, so only select what this input uses. Selecting all of
+  // deviceStatus re-rendered every input whenever any device's status changed, which stalled the
+  // page for seconds while the device reported its status after connecting.
+  const hasUnassignedDevice = useConfigStore((state) =>
+    Object.values(state.deviceStatus).some(
+      (status) => requiresAssignment(status.type) && !isDeviceAssigned(status.type, profile)
+    )
+  );
+  const hasSlotDevice = useConfigStore((state) =>
+    Object.values(state.deviceStatus).some((status) => requiresAssignment(status.type))
   );
   const matchingSlot = useMemo(
     () => getProfileSlotForInput(input, profileSlots),
     [profileSlots, input]
   );
-  const device = matchingSlot ? undefined : deviceStatusForId;
+  const device = useConfigStore((state) =>
+    matchingSlot ? undefined : state.deviceStatus[deviceId]
+  );
+  const parentDevice = useConfigStore((state) => {
+    const parentId = matchingSlot ? undefined : state.deviceStatus[deviceId]?.parentId;
+    return parentId ? state.deviceStatus[parentId] : undefined;
+  });
+  const peripheralDevice = useConfigStore((state) =>
+    input.peripheral ? state.deviceStatus[input.peripheral.deviceid?.toString() ?? ''] : undefined
+  );
+  const cycleState = useConfigStore((state) =>
+    input.cycle ? state.deviceStatus[input.cycle.deviceid]?.cycleState : undefined
+  );
+  const toggleState = useConfigStore((state) =>
+    input.toggle ? state.deviceStatus[input.toggle.deviceid]?.toggleState : undefined
+  );
   // Prefer the controller types the slot is assigned to, fall back to whatever is plugged in
   const ps2InputFilters = useMemo(() => {
     const slotTypes = (matchingSlot?.items ?? [])
@@ -2329,9 +2426,8 @@ function SantrollerInput({
       </Group>
     );
   } else if (input.peripheral) {
-    const dev = deviceStatus[input.peripheral.deviceid?.toString() ?? ''];
-    const addr = dev?.device.peripheral?.address
-      ? `0x${dev.device.peripheral.address.toString(16)}`
+    const addr = peripheralDevice?.device.peripheral?.address
+      ? `0x${peripheralDevice.device.peripheral.address.toString(16)}`
       : '0x75';
     deviceValue = (
       <Group gap="2">
@@ -2371,34 +2467,30 @@ function SantrollerInput({
           </Text>
         </Group>
       );
+    } else if (device) {
+      const parentAddr = parentDevice?.device.peripheral?.address
+        ? `0x${parentDevice.device.peripheral.address.toString(16)}`
+        : undefined;
+      deviceValue = (
+        <Group gap="2">
+          <Text fz="sm" span>
+            {t(`devices.${device.type}`)}
+          </Text>
+          <Text fz="xs" span opacity="0.7">
+            ({DeviceStatus.label(device)})
+            {parentAddr && ` ${t('devices.peripheral_suffix', { address: parentAddr })}`}
+          </Text>
+        </Group>
+      );
     } else {
-      const dev = deviceStatus[deviceId.toString()];
-      if (dev) {
-        const parent = dev.parentId ? deviceStatus[dev.parentId] : undefined;
-        const parentAddr = parent?.device.peripheral?.address
-          ? `0x${parent.device.peripheral.address.toString(16)}`
-          : undefined;
+      const isSlotInput =
+        input.usbAxis || input.usbButton || input.btAxis || input.btButton || input.midi;
+      if (isSlotInput) {
         deviceValue = (
-          <Group gap="2">
-            <Text fz="sm" span>
-              {t(`devices.${dev.type}`)}
-            </Text>
-            <Text fz="xs" span opacity="0.7">
-              ({DeviceStatus.label(dev)})
-              {parentAddr && ` ${t('devices.peripheral_suffix', { address: parentAddr })}`}
-            </Text>
-          </Group>
+          <Text fz="sm" span>
+            {t('assignments.slot', 'Slot')} {deviceId}
+          </Text>
         );
-      } else {
-        const isSlotInput =
-          input.usbAxis || input.usbButton || input.btAxis || input.btButton || input.midi;
-        if (isSlotInput) {
-          deviceValue = (
-            <Text fz="sm" span>
-              {t('assignments.slot', 'Slot')} {deviceId}
-            </Text>
-          );
-        }
       }
     }
   }
@@ -2474,6 +2566,7 @@ function SantrollerInput({
             }
             if (isNumberLike(val)) {
               const deviceid = parseInt(val, 10);
+              const { deviceStatus } = useConfigStore.getState();
               const targetDevice = deviceStatus[deviceid];
               if (targetDevice && !isDeviceAssigned(targetDevice.type, profile)) {
                 return;
@@ -2509,69 +2602,7 @@ function SantrollerInput({
 
           <Combobox.Dropdown mah="300px" style={{ overflow: 'auto' }}>
             <Combobox.Options>
-              {Object.values(deviceStatus)
-                .filter(
-                  (status) =>
-                    status.type !== 'peripheral' &&
-                    isInputDeviceKind(status.type) &&
-                    !requiresAssignment(status.type)
-                )
-                .map((item) => {
-                  const parent = item.parentId ? deviceStatus[item.parentId] : undefined;
-                  const parentAddr = parent?.device.peripheral?.address
-                    ? `0x${parent.device.peripheral.address.toString(16)}`
-                    : undefined;
-                  return (
-                    <Combobox.Option value={item.id} key={item.id}>
-                      <Group justify="space-between" wrap="nowrap" w="100%">
-                        <Group gap="2">
-                          <Text fz="sm" span>
-                            {t(`devices.${item.type}`)}
-                          </Text>
-
-                          <Text fz="xs" span opacity="0.7">
-                            ({DeviceStatus.label(item)})
-                            {parentAddr &&
-                              ` ${t('devices.peripheral_suffix', { address: parentAddr })}`}
-                          </Text>
-                        </Group>
-                      </Group>
-                    </Combobox.Option>
-                  );
-                })}
-              {Object.values(deviceStatus)
-                .filter((status) => status.type === 'peripheral')
-                .map((item) => {
-                  const addr = item.device.peripheral?.address
-                    ? `0x${item.device.peripheral.address.toString(16)}`
-                    : '0x75';
-                  return (
-                    <Fragment key={item.id}>
-                      <Combobox.Option value={`peripheral_analog:${item.id}`}>
-                        <Group gap="2">
-                          <Text fz="sm" span>
-                            {t('devices.gpio')}
-                          </Text>
-                          <Text fz="xs" span opacity="0.7">
-                            {t('devices.gpio_analog')}{' '}
-                            {t('devices.peripheral_suffix', { address: addr })}
-                          </Text>
-                        </Group>
-                      </Combobox.Option>
-                      <Combobox.Option value={`peripheral_digital:${item.id}`}>
-                        <Group gap="2">
-                          <Text fz="sm" span>
-                            {t('devices.gpio')}
-                          </Text>
-                          <Text fz="xs" span opacity="0.7">
-                            {t('devices.gpio_digital')}{' '}
-                            {t('devices.peripheral_suffix', { address: addr })}
-                          </Text>
-                        </Group>
-                      </Combobox.Option>
-                    </Fragment>
-                  );
-                })}
+              <ConnectedDeviceOptions />
               {profileSlots.map((slot) => (
                 <Combobox.Option value={`slot:${slot.key}`} key={`slot:${slot.key}`}>
                   <Group justify="space-between" wrap="nowrap" w="100%">
@@ -2581,22 +2612,21 @@ function SantrollerInput({
                   </Group>
                 </Combobox.Option>
               ))}
-              {profileSlots.length === 0 &&
-                Object.values(deviceStatus).some((s) => requiresAssignment(s.type)) && (
-                  <Combobox.Option value="no_slots" disabled>
-                    <Group justify="space-between" wrap="nowrap" w="100%">
-                      <Text fz="sm" c="dimmed" span>
-                        {t(
-                          'assignments.no_slots_assigned',
-                          'No controller sources assigned in Profile'
-                        )}
-                      </Text>
-                      <Badge size="xs" color="red" variant="light">
-                        {t('assignments.not_assigned')}
-                      </Badge>
-                    </Group>
-                  </Combobox.Option>
-                )}
+              {profileSlots.length === 0 && hasSlotDevice && (
+                <Combobox.Option value="no_slots" disabled>
+                  <Group justify="space-between" wrap="nowrap" w="100%">
+                    <Text fz="sm" c="dimmed" span>
+                      {t(
+                        'assignments.no_slots_assigned',
+                        'No controller sources assigned in Profile'
+                      )}
+                    </Text>
+                    <Badge size="xs" color="red" variant="light">
+                      {t('assignments.not_assigned')}
+                    </Badge>
+                  </Group>
+                </Combobox.Option>
+              )}
               <Combobox.Option value="gpio_analog">
                 <Group gap="2">
                   <Text fz="sm" span>
@@ -2664,7 +2694,7 @@ function SantrollerInput({
       {input.shortcut &&
         input.shortcut.inputs?.map((innerInput, idx) => (
           <div key={idx}>
-            <Card padding="lg" radius="md" withBorder w="380px" maw="100%" h="100%">
+            <Card shadow="sm" padding="lg" radius="md" withBorder w="380px" maw="100%" h="100%">
               <Card.Section h="20px">
                 <div style={{ position: 'absolute', top: 0, right: 0 }}>
                   <ActionIcon
@@ -2801,11 +2831,7 @@ function SantrollerInput({
         <>
           <SegmentedControl
             data={device?.device.cycle?.values?.map((x) => x.toString()) ?? []}
-            value={
-              device?.device.cycle?.values?.[
-                deviceStatus[input.cycle.deviceid].cycleState
-              ]?.toString() ?? ''
-            }
+            value={device?.device.cycle?.values?.[cycleState ?? -1]?.toString() ?? ''}
           />
           <Switch
             label={t('cycle.forward_input')}
@@ -2879,10 +2905,7 @@ function SantrollerInput({
       )}
       {input.toggle && (
         <>
-          <Switch
-            label={t('toggle.state')}
-            checked={deviceStatus[input.toggle.deviceid].toggleState}
-          />
+          <Switch label={t('toggle.state')} checked={!!toggleState} />
           {input.toggle.input && (
             <SantrollerInput
               axis={!!axis}
@@ -3765,6 +3788,7 @@ function SantrollerMapping({
         </Flex>
       </Modal>
       <Card
+        shadow="sm"
         padding="lg"
         radius="md"
         withBorder
@@ -4751,6 +4775,31 @@ function GameFeedbackLedEditor({
 // Electrodes the MPR121 can use as GPIO
 const MPR121_GPIO_PINS = [4, 5, 6, 7, 8, 9, 10, 11];
 
+// The LED device dropdown's options, so only the open dropdown follows every device's status
+function LedDeviceOptions() {
+  const { t } = useTranslation();
+  const deviceStatus = useConfigStore((state) => state.deviceStatus);
+  return (
+    <>
+      {Object.values(deviceStatus)
+        .filter((item) => isLed(item) || item.type === 'mpr121')
+        .map((item) => (
+          <Combobox.Option value={item.id} key={item.id}>
+            <Group gap="2">
+              <Text fz="sm" span>
+                {t(`devices.${item.type}`)}
+              </Text>
+
+              <Text fz="xs" span opacity="0.7">
+                ({DeviceStatus.label(item)})
+              </Text>
+            </Group>
+          </Combobox.Option>
+        ))}
+    </>
+  );
+}
+
 function SantrollerLed({
   led,
   profileIdx,
@@ -4801,7 +4850,6 @@ function SantrollerLed({
   }
   const guiDevices = useConfigStore((state) => state.guiDevices);
   const simpleMode = useConfigStore((state) => state.simpleMode);
-  const deviceStatus = useConfigStore((state) => state.deviceStatus);
   const device = useConfigStore((state) => state.deviceStatus[deviceId]);
   const mapping = useConfigStore(
     (state) =>
@@ -4985,6 +5033,7 @@ function SantrollerLed({
         </Flex>
       </Modal>
       <Card
+        shadow="sm"
         padding="lg"
         radius="md"
         withBorder
@@ -5064,7 +5113,7 @@ function SantrollerLed({
                 onOptionSubmit={(val) => {
                   deviceCombobox.closeDropdown();
                   if (isNumberLike(val)) {
-                    switch (deviceStatus[parseInt(val, 10)].type) {
+                    switch (useConfigStore.getState().deviceStatus[parseInt(val, 10)].type) {
                       case 'ws2812':
                       case 'apa102':
                         dispatch({
@@ -5169,21 +5218,7 @@ function SantrollerLed({
 
                 <Combobox.Dropdown mah="300px" style={{ overflow: 'auto' }}>
                   <Combobox.Options>
-                    {Object.values(deviceStatus)
-                      .filter((item) => isLed(item) || item.type === 'mpr121')
-                      .map((item) => (
-                        <Combobox.Option value={item.id} key={item.id}>
-                          <Group gap="2">
-                            <Text fz="sm" span>
-                              {t(`devices.${item.type}`)}
-                            </Text>
-
-                            <Text fz="xs" span opacity="0.7">
-                              ({DeviceStatus.label(item)})
-                            </Text>
-                          </Group>
-                        </Combobox.Option>
-                      ))}
+                    <LedDeviceOptions />
                     <Combobox.Option value="gpio_analog">
                       <Group gap="2">
                         <Text fz="sm" span>
@@ -6199,7 +6234,7 @@ export function SantrollerAssignment({
           </Group>
         </Flex>
       </Modal>
-      <Card padding="lg" radius="md" withBorder>
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
         <Group justify="space-between" align="center" mb="xs">
           <Text size="sm" fw={600}>
             {label || t('pick_value')}
@@ -6631,10 +6666,11 @@ type ConnectedSpecificDevice = { vid: number; pid: number; subtype: proto.SubTyp
 
 // Connected USB host / bluetooth devices, so a specific device can be picked instead of typing its VID / PID
 function useConnectedSpecificDevices(kind: 'usb' | 'bt'): ConnectedSpecificDevice[] {
-  const deviceStatus = useConfigStore((state) => state.deviceStatus);
-  return useMemo(() => {
+  // Selected as JSON, so this only re-renders when the list itself changes and not on every status
+  // update from every device
+  const json = useConfigStore((state) => {
     const found = new Map<string, ConnectedSpecificDevice>();
-    for (const status of Object.values(deviceStatus)) {
+    for (const status of Object.values(state.deviceStatus)) {
       const events: (proto.IUsbDeviceHotplugEvent | proto.IBtDeviceHotplugEvent)[] =
         kind === 'usb'
           ? Object.values(status.usbDevices ?? {}).filter((x) => !x.bluetoothAdapter)
@@ -6660,8 +6696,9 @@ function useConnectedSpecificDevices(kind: 'usb' | 'bt'): ConnectedSpecificDevic
         }
       }
     }
-    return [...found.values()];
-  }, [deviceStatus, kind]);
+    return JSON.stringify([...found.values()]);
+  });
+  return useMemo(() => JSON.parse(json) as ConnectedSpecificDevice[], [json]);
 }
 
 function ConnectedDevicePicker({
@@ -7094,22 +7131,22 @@ function SantrollerAssignmentList({
     (state) => state.activationListStatus[profileIdx]?.[listIdx]?.state ?? false
   );
 
-  const deviceStatus = useConfigStore((state) => state.deviceStatus);
-  const hasBluetooth = Object.values(deviceStatus).some((d) => d.type === 'bt');
-  const hasWiiEmu = Object.values(deviceStatus).some((d) => d.type === 'wiiEmulation');
-  const hasPsxEmu = Object.values(deviceStatus).some((d) => d.type === 'psxEmulation');
-  const hasJoybusEmu = Object.values(deviceStatus).some((d) => d.type === 'joybusEmulation');
-  const hasSnesEmu = Object.values(deviceStatus).some((d) => d.type === 'snesEmulation');
-  const hasWii = Object.values(deviceStatus).some((d) => d.type === 'wii');
-  const hasPsx = Object.values(deviceStatus).some((d) => d.type === 'psx');
-  const hasUsbHost = Object.values(deviceStatus).some((d) => d.type === 'usbHost');
-  const hasMidi = Object.values(deviceStatus).some(
-    (d) =>
-      d.type === 'midiSerial' ||
-      d.type === 'usbHost' ||
-      d.type === 'wii' ||
-      d.type === 'bhDrum' ||
-      d.type === 'worldTourDrum'
+  const deviceTypes = useDeviceTypes();
+  const hasBluetooth = deviceTypes.includes('bt');
+  const hasWiiEmu = deviceTypes.includes('wiiEmulation');
+  const hasPsxEmu = deviceTypes.includes('psxEmulation');
+  const hasJoybusEmu = deviceTypes.includes('joybusEmulation');
+  const hasSnesEmu = deviceTypes.includes('snesEmulation');
+  const hasWii = deviceTypes.includes('wii');
+  const hasPsx = deviceTypes.includes('psx');
+  const hasUsbHost = deviceTypes.includes('usbHost');
+  const hasMidi = deviceTypes.some(
+    (type) =>
+      type === 'midiSerial' ||
+      type === 'usbHost' ||
+      type === 'wii' ||
+      type === 'bhDrum' ||
+      type === 'worldTourDrum'
   );
 
   const updateEmulation = (newEmul: proto.IProfileAssignmentInfo) => {
@@ -7416,7 +7453,15 @@ function SantrollerAssignmentList({
           </Group>
         </Flex>
       </Modal>
-      <Card padding="lg" radius="md" withBorder w="420px" maw="100%" style={OFFSCREEN_RULE_CARD}>
+      <Card
+        shadow="sm"
+        padding="lg"
+        radius="md"
+        withBorder
+        w="420px"
+        maw="100%"
+        style={OFFSCREEN_RULE_CARD}
+      >
         <Group justify="space-between" align="center" mb="xs">
           <Group gap="xs">
             <Title order={4}>{t('assignments.rule_title', { num: listIdx + 1 })}</Title>
@@ -7932,23 +7977,23 @@ function BlankProfileWizard({
   updateProfile: (profile: proto.IProfile, index: number) => void;
 }) {
   const { t } = useTranslation();
-  const deviceStatus = useConfigStore((state) => state.deviceStatus);
+  const deviceTypes = useDeviceTypes();
 
-  const hasBluetooth = Object.values(deviceStatus).some((d) => d.type === 'bt');
-  const hasWiiEmu = Object.values(deviceStatus).some((d) => d.type === 'wiiEmulation');
-  const hasPsxEmu = Object.values(deviceStatus).some((d) => d.type === 'psxEmulation');
-  const hasJoybusEmu = Object.values(deviceStatus).some((d) => d.type === 'joybusEmulation');
-  const hasSnesEmu = Object.values(deviceStatus).some((d) => d.type === 'snesEmulation');
-  const hasWii = Object.values(deviceStatus).some((d) => d.type === 'wii');
-  const hasPsx = Object.values(deviceStatus).some((d) => d.type === 'psx');
-  const hasUsbHost = Object.values(deviceStatus).some((d) => d.type === 'usbHost');
-  const hasMidi = Object.values(deviceStatus).some(
-    (d) =>
-      d.type === 'midiSerial' ||
-      d.type === 'usbHost' ||
-      d.type === 'wii' ||
-      d.type === 'bhDrum' ||
-      d.type === 'worldTourDrum'
+  const hasBluetooth = deviceTypes.includes('bt');
+  const hasWiiEmu = deviceTypes.includes('wiiEmulation');
+  const hasPsxEmu = deviceTypes.includes('psxEmulation');
+  const hasJoybusEmu = deviceTypes.includes('joybusEmulation');
+  const hasSnesEmu = deviceTypes.includes('snesEmulation');
+  const hasWii = deviceTypes.includes('wii');
+  const hasPsx = deviceTypes.includes('psx');
+  const hasUsbHost = deviceTypes.includes('usbHost');
+  const hasMidi = deviceTypes.some(
+    (type) =>
+      type === 'midiSerial' ||
+      type === 'usbHost' ||
+      type === 'wii' ||
+      type === 'bhDrum' ||
+      type === 'worldTourDrum'
   );
 
   const initialRule = profile.assignments?.[0]?.assignments ?? [];
@@ -8075,6 +8120,7 @@ function BlankProfileWizard({
   ];
 
   const handleApply = () => {
+    const { deviceStatus } = useConfigStore.getState();
     const finalAssignments: proto.IProfileAssignmentInfo[] = [];
 
     // Emulation
@@ -8411,6 +8457,49 @@ function BlankProfileWizard({
   );
 }
 
+// Buttons to load the defaults for each device. Device labels show live status, so this is its own
+// component to keep status updates from re-rendering the whole profile.
+function DeviceDefaultsButtons({
+  profile,
+  onPick,
+}: {
+  profile: proto.IProfile;
+  onPick: (device: DeviceStatus) => void;
+}) {
+  const { t } = useTranslation();
+  const deviceStatus = useConfigStore((state) => state.deviceStatus);
+  return (
+    <>
+      {Object.values(deviceStatus)
+        .filter((item) => hasDefaults(item) && requiresAssignment(item.type))
+        .filter((item) => !isDeviceAssigned(item.type, profile))
+        .map((item) => (
+          <Button
+            value={item.id}
+            key={`unassigned-${item.id}`}
+            disabled
+            title={t('assignments.device_not_assigned')}
+          >
+            {t('defaults_dialog.for', {
+              device: t(`devices.${item.type}`),
+              status: DeviceStatus.label(item),
+            })}
+          </Button>
+        ))}
+      {Object.values(deviceStatus)
+        .filter((item) => hasDefaults(item) && !requiresAssignment(item.type))
+        .map((item) => (
+          <Button value={item.id} key={`nonslot-${item.id}`} onClick={() => onPick(item)}>
+            {t('defaults_dialog.for', {
+              device: t(`devices.${item.type}`),
+              status: DeviceStatus.label(item),
+            })}
+          </Button>
+        ))}
+    </>
+  );
+}
+
 function Profile({ profileIdx }: { profileIdx: number }) {
   const errorIcon = <IconExclamationCircle />;
   const [opened, { open, close }] = useDisclosure(false);
@@ -8428,7 +8517,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
   const loadDefaults = useConfigStore((state) => state.loadDefaults);
   const setSyncMode = useConfigStore((state) => state.setSyncMode);
   const [legendMode, setLegendMode] = useState<LegendMode>(readStoredLegendMode);
-  const deviceStatus = useConfigStore((state) => state.deviceStatus);
+  const deviceTypes = useDeviceTypes();
   const [defaultTarget, setDefaultTarget] = useState<DeviceStatus | ProfileSlot | undefined>(
     undefined
   );
@@ -8441,9 +8530,9 @@ function Profile({ profileIdx }: { profileIdx: number }) {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor)
   );
-  const hasBluetooth = Object.values(deviceStatus).some((d) => d.type === 'bt');
-  const hasWii = Object.values(deviceStatus).some((d) => d.type === 'wii');
-  const hasPsx = Object.values(deviceStatus).some((d) => d.type === 'psx');
+  const hasBluetooth = deviceTypes.includes('bt');
+  const hasWii = deviceTypes.includes('wii');
+  const hasPsx = deviceTypes.includes('psx');
   useEffect(() => {
     localStorage.setItem('legendMode', LegendMode[legendMode]);
   }, [legendMode]);
@@ -9302,39 +9391,13 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                       </Button>
                     );
                   })}
-                  {Object.values(deviceStatus)
-                    .filter((item) => hasDefaults(item) && requiresAssignment(item.type))
-                    .filter((item) => !isDeviceAssigned(item.type, profile))
-                    .map((item) => (
-                      <Button
-                        value={item.id}
-                        key={`unassigned-${item.id}`}
-                        disabled
-                        title={t('assignments.device_not_assigned')}
-                      >
-                        {t('defaults_dialog.for', {
-                          device: t(`devices.${item.type}`),
-                          status: DeviceStatus.label(item),
-                        })}
-                      </Button>
-                    ))}
-                  {Object.values(deviceStatus)
-                    .filter((item) => hasDefaults(item) && !requiresAssignment(item.type))
-                    .map((item) => (
-                      <Button
-                        value={item.id}
-                        key={`nonslot-${item.id}`}
-                        onClick={() => {
-                          setDefaultTarget(item);
-                          open();
-                        }}
-                      >
-                        {t('defaults_dialog.for', {
-                          device: t(`devices.${item.type}`),
-                          status: DeviceStatus.label(item),
-                        })}
-                      </Button>
-                    ))}
+                  <DeviceDefaultsButtons
+                    profile={profile}
+                    onPick={(item) => {
+                      setDefaultTarget(item);
+                      open();
+                    }}
+                  />
                   <Button variant="filled" onClick={open2}>
                     {t('clear_all_button')}
                   </Button>
