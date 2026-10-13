@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { splitVendorChunkPlugin } from 'vite'
 import basicSsl from '@vitejs/plugin-basic-ssl';
-import { spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 
 // Regenerate the protobuf modules when a .proto changes, so the dev server never runs with a
 // config.js that is missing fields (protobufjs silently drops fields it doesn't know when encoding)
@@ -47,6 +47,15 @@ function rebuildProtos() {
   };
 }
 
+// Baked into the bundle, so a browser still running a cached old build shows the old hash
+function configuratorVersion() {
+  try {
+    return execSync('git rev-parse --short=8 HEAD', { encoding: 'utf8' }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
 // `vite --mode https` serves over https with a self signed certificate, as Web Bluetooth and WebHID
 // need a secure context when the page isn't on localhost (e.g. testing from a phone)
 export default defineConfig(({ mode }) => ({
@@ -56,6 +65,9 @@ export default defineConfig(({ mode }) => ({
     },
   }), tsconfigPaths(), splitVendorChunkPlugin(), rebuildProtos(), ...(mode === 'https' ? [basicSsl()] : [])],
 
+  define: {
+    __CONFIGURATOR_VERSION__: JSON.stringify(configuratorVersion()),
+  },
   resolve: {
     alias: {
       // /esm/icons/index.mjs only exports the icons statically, so no separate chunks are created

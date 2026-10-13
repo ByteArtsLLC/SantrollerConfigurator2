@@ -31,6 +31,7 @@ export function ConnectPage() {
   const clearLegacyImportWarnings = useConfigStore((state) => state.clearLegacyImportWarnings);
   const firmwareUpdate = useConfigStore((state) => state.firmwareUpdate);
   const connected = useConfigStore((state) => state.connected);
+  const firmwareVersion = useConfigStore((state) => state.firmwareVersion);
   const hung = useConfigStore((state) => state.hung);
   const updating = useConfigStore((state) => state.updating);
   const updatePercentage = useConfigStore((state) => state.updatePercentage);
@@ -90,6 +91,14 @@ export function ConnectPage() {
           >
             {t('connect.webHidNotSupported')}
           </Alert>
+        )}
+        <Text size="sm" c="dimmed">
+          {t('connect.configuratorVersion', { version: __CONFIGURATOR_VERSION__ })}
+        </Text>
+        {connected && firmwareVersion && (
+          <Text size="sm" c="dimmed">
+            {t('connect.firmwareVersion', { version: firmwareVersion })}
+          </Text>
         )}
         {connected && (
           <>

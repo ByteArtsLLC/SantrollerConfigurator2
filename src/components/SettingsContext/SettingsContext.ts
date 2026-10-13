@@ -58,18 +58,21 @@ const FIRMWARE_APPLY_MS_PER_SECTOR = 110;
 const FIRMWARE_REBOOT_MS = 2_000;
 const FIRMWARE_APPLY_TIMEOUT_MS = 120_000;
 const FIRMWARE_APPLY_PROGRESS_INTERVAL_MS = 250;
-async function isLatestFirmware(device: HIDDevice) {
+// The commit hash the firmware was built from, and whether it matches the one this tool ships
+async function checkFirmwareVersion(device: HIDDevice) {
+  let version: string | undefined;
   try {
     const commitHash = await receiveFeatureReport(device, proto.ReportId.ReportIdGetVersion);
-    const deviceVersion = String.fromCharCode
+    version = String.fromCharCode
       .apply(null, Array.from(new Uint8Array(commitHash.buffer.slice(1))))
+      .replaceAll('\0', '')
       .trim()
       .substring(0, 8);
     const latestVersion = (await (await fetch('commit.hash')).text()).trim().substring(0, 8);
-    return deviceVersion === latestVersion;
+    return { version, latest: version === latestVersion };
   } catch (e) {
     console.log(e);
-    return false;
+    return { version, latest: false };
   }
 }
 let firmwareApplyTimer: ReturnType<typeof setInterval> | undefined;
@@ -403,6 +406,7 @@ export interface ConfigState {
   connected: boolean;
   hung: boolean;
   latest: boolean;
+  firmwareVersion?: string;
   hidDevice?: HIDDevice;
   crc: number;
   // A save was skipped or cut off by the device dropping off USB, so reconnect has to send it
@@ -1647,11 +1651,14 @@ export const useConfigStore = create<ConfigState & Actions>()(
       stopFirmwareApplyProgress();
       // The bootloader rolls back if the new firmware doesn't start, and a bad flash would leave
       // the old version running, so make sure the version actually changed
-      const updateApplied = finishingUpdate && (await isLatestFirmware(device));
+      const { version: firmwareVersion, latest: updateApplied } = finishingUpdate
+        ? await checkFirmwareVersion(device)
+        : { version: get().firmwareVersion, latest: false };
       set(
         (state) => ({
           ...state,
           hidDevice: device,
+          firmwareVersion,
           connected: true,
           hung: false,
           polling: true,
@@ -2551,7 +2558,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       }
       device.addEventListener('inputreport', get().onReport);
       try {
-        const latest = await isLatestFirmware(device);
+        const { version: firmwareVersion, latest } = await checkFirmwareVersion(device);
         let activeProfiles: number[] = [];
         let payload: Uint8Array | undefined;
         try {
@@ -2609,6 +2616,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               crc: info.dataCrc,
               type: deviceType,
               latest,
+              firmwareVersion,
               updateError: undefined,
               missingStaticFirmware: !!info.missingStaticFirmware,
               needsUf2Update: !!info.needsUf2Update,
@@ -2628,6 +2636,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               ...old,
               connected: true,
               hidDevice: device,
+              firmwareVersion,
               crc: 0,
             }),
             true
