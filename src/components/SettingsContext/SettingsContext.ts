@@ -405,6 +405,8 @@ export interface ConfigState {
   latest: boolean;
   hidDevice?: HIDDevice;
   crc: number;
+  // A save was skipped or cut off by the device dropping off USB, so reconnect has to send it
+  pendingSave: boolean;
   waitingForReload: boolean;
   writing: boolean;
   polling: boolean;
@@ -621,6 +623,7 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     latest: true,
     detected: -1,
     crc: 0,
+    pendingSave: false,
     lastUpdate: 0,
     writing: false,
     polling: false,
@@ -1711,6 +1714,11 @@ export const useConfigStore = create<ConfigState & Actions>()(
         }),
         true
       );
+      // Anything changed while the device was re-enumerating, or a save it cut off, hasn't reached
+      // it yet. Only then, as resending otherwise would overwrite aux the device changed itself
+      if (get().pendingSave) {
+        await get().saveConfig();
+      }
     },
     bootloader: async () => {
       const dev = get().hidDevice;
@@ -1725,7 +1733,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       }),
     exportConfig: () => {
       const state = get();
-      if (state.hidDevice === null || !state.connected) {
+      if (!state.hidDevice || !state.connected) {
         return;
       }
       const { config, aux } = get().buildConfig();
@@ -1751,6 +1759,12 @@ export const useConfigStore = create<ConfigState & Actions>()(
           (old) => ({
             ...old,
             ...InitState(config, aux),
+            // A save still sending its chunks would interleave with ours, so let it finish first
+            writing: old.writing,
+            writeTimeout: old.writeTimeout,
+            // Sending it only changes the live config, flash still has the old one until it's saved
+            savedConfig: old.savedConfig,
+            configModified: true,
             connected: true,
             keepaliveTimeout: timeout,
           }),
@@ -1797,6 +1811,12 @@ export const useConfigStore = create<ConfigState & Actions>()(
         (old) => ({
           ...old,
           ...InitState(result.config, result.aux),
+          // A save still sending its chunks would interleave with ours, so let it finish first
+          writing: old.writing,
+          writeTimeout: old.writeTimeout,
+          // Sending it only changes the live config, flash still has the old one until it's saved
+          savedConfig: old.savedConfig,
+          configModified: true,
           connected: true,
           keepaliveTimeout: timeout,
           legacyImportWarnings: result.warnings,
@@ -1818,7 +1838,14 @@ export const useConfigStore = create<ConfigState & Actions>()(
     },
     saveConfig: async () => {
       const state = get();
-      if (state.hidDevice === null || !state.connected) {
+      // hidDevice is gone while the device re-enumerates after a reload, reconnect sends this
+      // config once it is back
+      if (!state.hidDevice || !state.connected) {
+        if (state.connected) {
+          set((state) => {
+            state.pendingSave = true;
+          });
+        }
         return;
       }
       // debounce writes so we don't trash the flash on the pico
@@ -1884,6 +1911,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
           state.polling = true;
           // so the next save sends it again instead of thinking the device already has it
           state.crc = 0;
+          state.pendingSave = true;
         });
         return;
       }
@@ -1891,6 +1919,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.writing = false;
         state.polling = true;
         state.waitingForReload = true;
+        state.pendingSave = false;
       });
     },
     buildConfigBuffer: () => {
