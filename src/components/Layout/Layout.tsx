@@ -30,6 +30,7 @@ import {
 import { useShallow } from 'zustand/react/shallow';
 import {
   ActionIcon,
+  Alert,
   AppShell,
   Badge,
   Burger,
@@ -52,6 +53,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [opened, { toggle, close: closeNavbar }] = useDisclosure();
   const connected = useConfigStore((state) => state.connected);
   const hung = useConfigStore((state) => state.hung);
+  const reloadLost = useConfigStore((state) => state.reloadLost && !state.connected);
   const updating = useConfigStore((state) => state.updating);
   const pollInputs = useConfigStore((state) => state.pollInputs);
   const activeProfile = useConfigStore((state) => state.currentProfile);
@@ -553,7 +555,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
             />
           )}
         </AppShell.Navbar>
-        <AppShell.Main>{children}</AppShell.Main>
+        <AppShell.Main>
+          {reloadLost && (
+            <>
+              <Alert
+                variant="light"
+                color="yellow"
+                title={t('connect.reloadLostTitle')}
+                icon={<IconAlertCircle />}
+                withCloseButton
+                onClose={() => useConfigStore.setState({ reloadLost: false })}
+              >
+                {t('connect.reloadLost')}
+              </Alert>
+              <Space h="md" />
+            </>
+          )}
+          {children}
+        </AppShell.Main>
       </AppShell>
     </>
   );

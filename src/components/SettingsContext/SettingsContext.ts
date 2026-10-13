@@ -76,6 +76,15 @@ async function checkFirmwareVersion(device: HIDDevice) {
   }
 }
 let firmwareApplyTimer: ReturnType<typeof setInterval> | undefined;
+// How long to wait for the controller to come back after it reloads
+const RELOAD_RECONNECT_TIMEOUT_MS = 10000;
+let reloadReconnectTimer: ReturnType<typeof setTimeout> | undefined;
+function stopReloadReconnectTimer() {
+  if (reloadReconnectTimer) {
+    clearTimeout(reloadReconnectTimer);
+    reloadReconnectTimer = undefined;
+  }
+}
 function stopFirmwareApplyProgress() {
   if (firmwareApplyTimer) {
     clearInterval(firmwareApplyTimer);
@@ -412,6 +421,9 @@ export interface ConfigState {
   // A save was skipped or cut off by the device dropping off USB, so reconnect has to send it
   pendingSave: boolean;
   waitingForReload: boolean;
+  // The controller reloaded but never came back with its config interface, e.g. a profile
+  // switched it into a mode like PS3 that doesn't have one
+  reloadLost: boolean;
   writing: boolean;
   polling: boolean;
   refreshingBluetooth: boolean;
@@ -617,6 +629,7 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     updatePercentage: 0,
     configModified: false,
     waitingForReload: false,
+    reloadLost: false,
     updating: false,
     applyingUpdate: false,
     connected: false,
@@ -1635,6 +1648,8 @@ export const useConfigStore = create<ConfigState & Actions>()(
         }
         dev?.close();
       }
+      // Firmware updates have their own timeout, as they take a lot longer to come back
+      const awaitingReload = state.waitingForReload && !state.updating;
       set((state) => {
         state.keepaliveTimeout = undefined;
         state.connected = state.waitingForReload;
@@ -1642,8 +1657,31 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.updating = false;
         state.hidDevice = undefined;
       });
+      // The controller may come back in a mode without the config interface (like a profile that
+      // forces PS3 mode), which we never see, so stop waiting for it eventually
+      if (awaitingReload) {
+        stopReloadReconnectTimer();
+        const isBluetooth = dev instanceof BluetoothConfigDevice;
+        reloadReconnectTimer = setTimeout(
+          () => {
+            reloadReconnectTimer = undefined;
+            if (get().hidDevice || !get().waitingForReload) {
+              return;
+            }
+            set((state) => {
+              state.waitingForReload = false;
+              state.connected = false;
+              state.reloadLost = true;
+            });
+          },
+          isBluetooth
+            ? BLUETOOTH_RECONNECT_ATTEMPTS * BLUETOOTH_RECONNECT_DELAY_MS
+            : RELOAD_RECONNECT_TIMEOUT_MS
+        );
+      }
     },
     reconnect: async (device: HIDDevice) => {
+      stopReloadReconnectTimer();
       if (!device.opened) {
         await device.open();
       }
@@ -1663,6 +1701,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
           hung: false,
           polling: true,
           waitingForReload: false,
+          reloadLost: false,
           ...(finishingUpdate
             ? {
                 updating: false,
@@ -2553,6 +2592,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       await get().connectDevice(bluetoothDevice as unknown as HIDDevice);
     },
     connectDevice: async (device: HIDDevice) => {
+      stopReloadReconnectTimer();
       if (!device.opened) {
         await device.open();
       }
@@ -2771,9 +2811,11 @@ if (navigator.hid) {
   navigator.hid.addEventListener('connect', connect);
 }
 
-// make sure we disconnect from the device when using HMR in development
+// make sure we disconnect from the device when using HMR in development. Only when this module is
+// replaced, as any other update would remove the listeners without this module adding them back
 if (import.meta.hot) {
-  import.meta.hot.on('vite:beforeUpdate', () => {
+  import.meta.hot.dispose(() => {
+    stopReloadReconnectTimer();
     useConfigStore.setState((old) => ({ ...old, waitingForReload: false }));
     useConfigStore.getState().disconnect();
     navigator.hid.removeEventListener('disconnect', disconnect);
