@@ -485,7 +485,7 @@ export function convertInstrumentPeripheralSettings(ctx: LegacyImportContext) {
   // The old firmware sent the Mustang neck straight to the pro guitar report
   if (
     old.hasMustangNeckInput &&
-    (ctx.subType === ST.ProGuitarMustang || ctx.subType === ST.ProGuitarSquire)
+    (ctx.subType === ST.ProGuitarMustang || ctx.subType === ST.ProGuitarSquier)
   ) {
     const deviceid = ctx.addDevice('protarNeck', 'main', (dev) => {
       setSpi(dev.spi, old.mustangNeckMosi, old.mustangNeckMiso, old.mustangNeckSck);

@@ -612,7 +612,7 @@ export function getGpioDefaults(subType: proto.SubType): proto.IMapping[] {
       ];
 
     case proto.SubType.ProGuitarMustang:
-    case proto.SubType.ProGuitarSquire:
+    case proto.SubType.ProGuitarSquier:
       return [
         gpioAxis({ proAxis: proto.ProGuitarAxisType.ProGuitar_LowEFret }, 0),
         gpioAxis({ proAxis: proto.ProGuitarAxisType.ProGuitar_AFret }, 0),
@@ -2596,7 +2596,7 @@ export function getCrazyGuitarNeckDefaults(
 // 5.6. Protar Neck Defaults (`protarNeck`)
 // ---------------------------------------------------------------------------
 export function getProtarNeckDefaults(subType: proto.SubType, deviceId: number): proto.IMapping[] {
-  if (subType === proto.SubType.ProGuitarMustang || subType === proto.SubType.ProGuitarSquire) {
+  if (subType === proto.SubType.ProGuitarMustang || subType === proto.SubType.ProGuitarSquier) {
     return [
       protarNeckAxis(proto.ProGuitarNeckAxisType.ProGuitarNeckLowEFret, deviceId, {
         proAxis: proto.ProGuitarAxisType.ProGuitar_LowEFret,
@@ -2902,7 +2902,7 @@ export function getMidiDrumDefaults(subType: proto.SubType, deviceId: number): p
     ];
   }
 
-  if (subType === proto.SubType.ProGuitarMustang || subType === proto.SubType.ProGuitarSquire) {
+  if (subType === proto.SubType.ProGuitarMustang || subType === proto.SubType.ProGuitarSquier) {
     return [
       // Fret axes
       midiProGuitarAxis(proto.ProGuitarAxisType.ProGuitar_LowEFret, deviceId, {
@@ -3132,7 +3132,7 @@ function outputRoles(
     case proto.SubType.PowerGigGuitar:
       return RB_GUITAR_ROLES;
     case proto.SubType.ProGuitarMustang:
-    case proto.SubType.ProGuitarSquire:
+    case proto.SubType.ProGuitarSquier:
       return PRO_GUITAR_ROLES;
     case proto.SubType.Gamepad:
       return GAMEPAD_ROLES;
@@ -3292,7 +3292,7 @@ export const USB_HOST_SUBTYPES: proto.SubType[] = [
   proto.SubType.LiveGuitar,
   proto.SubType.DjHeroTurntable,
   proto.SubType.ProGuitarMustang,
-  proto.SubType.ProGuitarSquire,
+  proto.SubType.ProGuitarSquier,
   proto.SubType.ProKeys,
   proto.SubType.Dancepad,
   proto.SubType.Taiko,
@@ -3308,7 +3308,7 @@ export const USB_HOST_INPUT_SUBTYPES: proto.SubType[] = [
   proto.SubType.LiveGuitar,
   proto.SubType.DjHeroTurntable,
   proto.SubType.ProGuitarMustang,
-  proto.SubType.ProGuitarSquire,
+  proto.SubType.ProGuitarSquier,
   proto.SubType.ProKeys,
   proto.SubType.Dancepad,
   proto.SubType.Taiko,

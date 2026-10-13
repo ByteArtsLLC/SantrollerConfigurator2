@@ -189,7 +189,7 @@ function fretOutput(host: proto.SubType, index: number, solo: boolean): proto.IO
           ],
       };
     case ST.ProGuitarMustang:
-    case ST.ProGuitarSquire:
+    case ST.ProGuitarSquier:
       return {
         proButton:
           proto.ProGuitarButtonType[
@@ -255,7 +255,7 @@ function guitarAxis(
         ? undefined
         : { ghlAxis: proto.GuitarHeroLiveGuitarAxisType[`GuitarHeroLiveGuitar_${axis}`] };
     case ST.ProGuitarMustang:
-    case ST.ProGuitarSquire:
+    case ST.ProGuitarSquier:
       return axis === 'Tilt' ? { proAxis: proto.ProGuitarAxisType.ProGuitar_Tilt } : undefined;
     default:
       return undefined;
@@ -300,7 +300,7 @@ export function hostOutput(
       : skipped;
   }
   if (type in PRO_GUITAR_AXES) {
-    if (host !== ST.ProGuitarMustang && host !== ST.ProGuitarSquire) {
+    if (host !== ST.ProGuitarMustang && host !== ST.ProGuitarSquier) {
       return skipped;
     }
     return {

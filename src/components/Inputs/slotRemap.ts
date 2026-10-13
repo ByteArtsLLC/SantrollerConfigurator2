@@ -247,7 +247,7 @@ export function remapEditedSlotIds(prev: proto.IProfile, next: proto.IProfile): 
 }
 
 const normalSubtype = (type: number) =>
-  type === proto.SubType.ProGuitarSquire ? proto.SubType.ProGuitarMustang : type;
+  type === proto.SubType.ProGuitarSquier ? proto.SubType.ProGuitarMustang : type;
 
 // Whether a slot of this subtype has what the input reads. Gamepad buttons and axes are read from
 // every type of controller but a keyboard, and the rest only exist on their own type.

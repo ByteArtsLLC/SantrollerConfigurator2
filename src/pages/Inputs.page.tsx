@@ -779,7 +779,7 @@ function OutputBox({
       );
       break;
     case proto.SubType.ProGuitarMustang:
-    case proto.SubType.ProGuitarSquire:
+    case proto.SubType.ProGuitarSquier:
       return (
         <DropdownOutputBox
           {...actionProps}
@@ -1218,7 +1218,7 @@ const RPCS3_PASSTHROUGH_SUBTYPES: proto.SubType[] = [
   proto.SubType.StageKit,
   proto.SubType.ProKeys,
   proto.SubType.ProGuitarMustang,
-  proto.SubType.ProGuitarSquire,
+  proto.SubType.ProGuitarSquier,
 ];
 
 // How long an action's input has to be held by default, so a stray press can't trigger it

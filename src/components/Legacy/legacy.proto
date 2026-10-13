@@ -49,7 +49,7 @@ enum DeviceControllerType {
   DeviceControllerType_StageKit = 9;
   DeviceControllerType_ProKeys = 16;
   DeviceControllerType_ProGuitarMustang = 17;
-  DeviceControllerType_ProGuitarSquire = 18;
+  DeviceControllerType_ProGuitarSquier = 18;
   DeviceControllerType_KeyboardMouse = 19;
   DeviceControllerType_Taiko = 24;
 }

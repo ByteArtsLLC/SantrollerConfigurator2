@@ -308,7 +308,7 @@ export function guitarButtonOutput(
           ],
       };
     case ST.ProGuitarMustang:
-    case ST.ProGuitarSquire:
+    case ST.ProGuitarSquier:
       return {
         proButton:
           proto.ProGuitarButtonType[
@@ -346,7 +346,7 @@ function guitarAxisOutput(
         case ST.RockBandGuitar:
           return { rbAxis: proto.RockBandGuitarAxisType.RockBandGuitar_Tilt };
         case ST.ProGuitarMustang:
-        case ST.ProGuitarSquire:
+        case ST.ProGuitarSquier:
           return { proAxis: proto.ProGuitarAxisType.ProGuitar_Tilt };
         default:
           return { gamepadAxis: proto.GamepadAxisType.Gamepad_RightStickY };
