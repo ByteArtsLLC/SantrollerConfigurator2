@@ -404,6 +404,257 @@ function PickupNotches({
   );
 }
 
+// A 0 - 65535 value as a slider and number input, with an optional "use current" button
+function ValueRow({
+  label,
+  description,
+  value,
+  onChange,
+  current,
+}: {
+  label: string;
+  description?: string;
+  value: number;
+  onChange: (value: number) => void;
+  current?: () => number;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <Text size="sm" fw={700}>
+        {label}
+      </Text>
+      {description && (
+        <Text size="xs" c="dimmed">
+          {description}
+        </Text>
+      )}
+      <Group>
+        <Slider flex={1} value={value} min={0} max={65535} onChange={onChange} />
+        <NumberInput
+          value={value}
+          min={0}
+          max={65535}
+          onChange={(e) => onChange(parseInt(e.toString(), 10) || 0)}
+          w={100}
+        />
+      </Group>
+      {current && (
+        <Group>
+          <Button onClick={() => onChange(current())}>{t('pin_use_current')}</Button>
+        </Group>
+      )}
+      <Space h="sm" />
+    </>
+  );
+}
+
+// Filters for an analog input's raw value. High pass and zero point drift settle on a rest
+// point, which only axes have, so buttons just get the smoothing filters.
+function AnalogFilters({
+  mapping,
+  dispatch,
+  axis,
+}: {
+  mapping: proto.IMapping;
+  dispatch: (mapping: proto.IMapping) => void;
+  axis: boolean;
+}) {
+  const { t } = useTranslation();
+  const filter = mapping.filter ?? {};
+  const update = (changes: proto.IAnalogFilter) => {
+    const next = { ...filter, ...changes };
+    const empty =
+      next.lowPassCutoff == null &&
+      next.highPassCutoff == null &&
+      !next.responsive &&
+      next.zpdWindow == null;
+    dispatch({ ...mapping, filter: empty ? null : next });
+  };
+  return (
+    <Accordion>
+      <Accordion.Item value="filters">
+        <Accordion.Control>{t('filter.title')}</Accordion.Control>
+        <Accordion.Panel>
+          <Switch
+            label={t('filter.lowPass.label')}
+            description={t('filter.lowPass.description')}
+            checked={filter.lowPassCutoff != null}
+            onChange={(event) => update({ lowPassCutoff: event.currentTarget.checked ? 50 : null })}
+          />
+          {filter.lowPassCutoff != null && (
+            <NumberInput
+              mt="xs"
+              label={t('filter.cutoff')}
+              decimalScale={2}
+              min={0.01}
+              step={1}
+              value={filter.lowPassCutoff}
+              onChange={(val) => update({ lowPassCutoff: Number(val) || 0.01 })}
+            />
+          )}
+          <Space h="md" />
+          <Switch
+            label={t('filter.responsive.label')}
+            description={t('filter.responsive.description')}
+            checked={!!filter.responsive}
+            onChange={(event) =>
+              update(
+                event.currentTarget.checked
+                  ? { responsive: true }
+                  : { responsive: null, responsiveSnap: null, responsiveActivityThreshold: null }
+              )
+            }
+          />
+          {filter.responsive && (
+            <>
+              <NumberInput
+                mt="xs"
+                label={t('filter.responsive.snap.label')}
+                description={t('filter.responsive.snap.description')}
+                decimalScale={4}
+                min={0}
+                max={1}
+                step={0.001}
+                value={filter.responsiveSnap ?? 0.01}
+                onChange={(val) => update({ responsiveSnap: Number(val) })}
+              />
+              <NumberInput
+                mt="xs"
+                label={t('filter.responsive.threshold.label')}
+                description={t('filter.responsive.threshold.description')}
+                decimalScale={2}
+                min={0}
+                step={0.5}
+                value={filter.responsiveActivityThreshold ?? 4}
+                onChange={(val) => update({ responsiveActivityThreshold: Number(val) })}
+              />
+            </>
+          )}
+          {axis && (
+            <>
+              <Space h="md" />
+              <Switch
+                label={t('filter.highPass.label')}
+                description={t('filter.highPass.description')}
+                checked={filter.highPassCutoff != null}
+                onChange={(event) =>
+                  update({ highPassCutoff: event.currentTarget.checked ? 0.1 : null })
+                }
+              />
+              {filter.highPassCutoff != null && (
+                <NumberInput
+                  mt="xs"
+                  label={t('filter.cutoff')}
+                  decimalScale={2}
+                  min={0.01}
+                  step={0.05}
+                  value={filter.highPassCutoff}
+                  onChange={(val) => update({ highPassCutoff: Number(val) || 0.01 })}
+                />
+              )}
+              <Space h="md" />
+              <Switch
+                label={t('filter.zpd.label')}
+                description={t('filter.zpd.description')}
+                checked={filter.zpdWindow != null}
+                onChange={(event) =>
+                  update({ zpdWindow: event.currentTarget.checked ? 1000 : null })
+                }
+              />
+              {filter.zpdWindow != null && (
+                <NumberInput
+                  mt="xs"
+                  label={t('filter.zpd.window')}
+                  min={1}
+                  max={65535}
+                  value={filter.zpdWindow}
+                  onChange={(val) => update({ zpdWindow: parseInt(val.toString(), 10) || 1 })}
+                />
+              )}
+            </>
+          )}
+        </Accordion.Panel>
+      </Accordion.Item>
+    </Accordion>
+  );
+}
+
+// Rapid trigger works on calibrated travel, so it brings its own min / max / deadzone, and
+// uses triggerValue as the actuation point within that travel
+function RapidTriggerSettings({
+  mapping,
+  mappingIdx,
+  profileIdx,
+  dispatch,
+}: {
+  mapping: proto.IMapping;
+  mappingIdx: number;
+  profileIdx: number;
+  dispatch: (mapping: proto.IMapping) => void;
+}) {
+  const { t } = useTranslation();
+  const rapid = mapping.rapidTrigger!;
+  const current = () =>
+    useConfigStore.getState().mappingStatus[profileIdx]?.[mappingIdx]?.stateRaw ?? 0;
+  const setRapid = (changes: Partial<proto.IRapidTrigger>) =>
+    dispatch({ ...mapping, rapidTrigger: { ...rapid, ...changes } });
+  return (
+    <>
+      <StateSlider
+        mappingIdx={mappingIdx}
+        profileIdx={profileIdx}
+        center={0}
+        min={mapping.min ?? 0}
+        max={mapping.max ?? 65535}
+        deadzone={0}
+        raw
+      />
+      <ValueRow
+        label={t('rapidTrigger.min')}
+        value={mapping.min ?? 0}
+        onChange={(min) => dispatch({ ...mapping, min })}
+        current={current}
+      />
+      <ValueRow
+        label={t('rapidTrigger.max')}
+        value={mapping.max ?? 65535}
+        onChange={(max) => dispatch({ ...mapping, max })}
+        current={current}
+      />
+      <ValueRow
+        label={t('calibration.deadzone')}
+        value={mapping.deadzone ?? 0}
+        onChange={(deadzone) => dispatch({ ...mapping, deadzone })}
+      />
+      <ValueRow
+        label={t('rapidTrigger.actuation.label')}
+        description={t('rapidTrigger.actuation.description')}
+        value={mapping.triggerValue ?? 32767}
+        onChange={(triggerValue) => dispatch({ ...mapping, triggerValue })}
+      />
+      <ValueRow
+        label={t('rapidTrigger.down.label')}
+        description={t('rapidTrigger.down.description')}
+        value={rapid.downSensitivity ?? 0}
+        onChange={(downSensitivity) => setRapid({ downSensitivity })}
+      />
+      <ValueRow
+        label={t('rapidTrigger.up.label')}
+        description={t('rapidTrigger.up.description')}
+        value={rapid.upSensitivity ?? 0}
+        onChange={(upSensitivity) => setRapid({ upSensitivity })}
+      />
+      <Switch
+        label={t('rapidTrigger.continuous.label')}
+        description={t('rapidTrigger.continuous.description')}
+        checked={!!rapid.continuous}
+        onChange={(event) => setRapid({ continuous: event.currentTarget.checked })}
+      />
+    </>
+  );
+}
+
 function StateSlider({
   profileIdx,
   mappingIdx,
@@ -3725,142 +3976,180 @@ function SantrollerMapping({
               <Accordion.Item value="main">
                 <Accordion.Control>{t('calibration.buttonMapping')}</Accordion.Control>
                 <Accordion.Panel>
-                  <>
-                    {!simpleMode && (
-                      <DropdownBox
-                        title="trigger_type.label"
-                        e={proto.AnalogToDigitalTriggerType}
-                        val={mapping.trigger ?? proto.AnalogToDigitalTriggerType.JoyHigh}
-                        label="trigger_type"
-                        dispatch={(trigger) => dispatch({ ...mapping, trigger })}
-                      />
-                    )}
-
-                    {(mapping.trigger ?? proto.AnalogToDigitalTriggerType.JoyHigh) ===
-                      proto.AnalogToDigitalTriggerType.JoyHigh && (
-                      <StateSlider
-                        mappingIdx={mappingIdx}
-                        profileIdx={profileIdx}
-                        center={32767}
-                        min={mapping.triggerValue ?? 32767}
-                        max={65535}
-                        deadzone={mapping.deadzone!}
-                        raw
-                        zeroBased={drum}
-                      />
-                    )}
-                    {mapping.trigger === proto.AnalogToDigitalTriggerType.JoyLow && (
-                      <StateSlider
-                        mappingIdx={mappingIdx}
-                        profileIdx={profileIdx}
-                        center={32767}
-                        min={0}
-                        max={mapping.triggerValue ?? 32767}
-                        deadzone={mapping.deadzone!}
-                        raw
-                        zeroBased={drum}
-                      />
-                    )}
-                    {mapping.trigger === proto.AnalogToDigitalTriggerType.Range && (
-                      <StateSlider
-                        mappingIdx={mappingIdx}
-                        profileIdx={profileIdx}
-                        center={32767}
-                        min={mapping.triggerValue ?? 32767}
-                        max={mapping.maxTriggerValue ?? 65535}
-                        deadzone={mapping.deadzone!}
-                        raw
-                        zeroBased={drum}
-                      />
-                    )}
-                    {(mapping.trigger === proto.AnalogToDigitalTriggerType.Range && (
-                      <Text size="sm" fw={700}>
-                        {t('trigger.min')}
-                      </Text>
-                    )) || (
-                      <Text size="sm" fw={700}>
-                        {t('trigger.trigger')}
-                      </Text>
-                    )}
-                    <Group>
-                      <Slider
-                        flex={1}
-                        value={mapping.triggerValue ?? 32767}
-                        min={0}
-                        max={65535}
-                        onChange={(val) => dispatch({ ...mapping, triggerValue: val })}
-                      />
-                      <NumberInput
-                        value={mapping.triggerValue ?? 32767}
-                        min={0}
-                        max={65535}
-                        onChange={(e) =>
-                          dispatch({ ...mapping, triggerValue: parseInt(e.toString(), 10) || 0 })
-                        }
-                        w={100}
-                      />
-                    </Group>
-                    <Group>
-                      <Button
-                        onClick={() => {
+                  {!simpleMode && (
+                    <>
+                      <Switch
+                        label={t('rapidTrigger.label')}
+                        description={t('rapidTrigger.description')}
+                        checked={!!mapping.rapidTrigger}
+                        onChange={(event) =>
                           dispatch({
                             ...mapping,
-                            triggerValue:
-                              useConfigStore.getState().mappingStatus[profileIdx]?.[mappingIdx]
-                                ?.stateRaw ?? 0,
-                          });
-                        }}
-                      >
-                        {t('pin_use_current')}
-                      </Button>
-                    </Group>
-                    {mapping.trigger === proto.AnalogToDigitalTriggerType.Range && (
-                      <>
-                        <Text size="sm" fw={700}>
-                          {t('trigger.max')}
-                        </Text>
-                        <Group>
-                          <Slider
-                            flex={1}
-                            value={mapping.maxTriggerValue ?? 65535}
-                            min={0}
-                            max={65535}
-                            onChange={(val) => dispatch({ ...mapping, maxTriggerValue: val })}
-                          />
+                            rapidTrigger: event.currentTarget.checked
+                              ? { downSensitivity: 3000, upSensitivity: 3000 }
+                              : null,
+                            // travel needs a range to calibrate against
+                            ...(event.currentTarget.checked && mapping.min === mapping.max
+                              ? { min: 0, max: 65535 }
+                              : {}),
+                          })
+                        }
+                      />
+                      <Space h="md" />
+                    </>
+                  )}
+                  {mapping.rapidTrigger ? (
+                    <RapidTriggerSettings
+                      mapping={mapping}
+                      mappingIdx={mappingIdx}
+                      profileIdx={profileIdx}
+                      dispatch={dispatch}
+                    />
+                  ) : (
+                    <>
+                      {!simpleMode && (
+                        <DropdownBox
+                          title="trigger_type.label"
+                          e={proto.AnalogToDigitalTriggerType}
+                          val={mapping.trigger ?? proto.AnalogToDigitalTriggerType.JoyHigh}
+                          label="trigger_type"
+                          dispatch={(trigger) => dispatch({ ...mapping, trigger })}
+                        />
+                      )}
 
-                          <NumberInput
-                            value={mapping.maxTriggerValue ?? 65535}
-                            min={0}
-                            max={65535}
-                            onChange={(e) =>
-                              dispatch({
-                                ...mapping,
-                                maxTriggerValue: parseInt(e.toString(), 10) || 0,
-                              })
-                            }
-                            w={100}
-                          />
-                        </Group>
-                        <Group>
-                          <Button
-                            onClick={() => {
-                              dispatch({
-                                ...mapping,
-                                maxTriggerValue:
-                                  useConfigStore.getState().mappingStatus[profileIdx]?.[mappingIdx]
-                                    ?.stateRaw ?? 0,
-                              });
-                            }}
-                          >
-                            {t('pin_use_current')}
-                          </Button>
-                        </Group>
-                      </>
-                    )}
-                  </>
+                      {(mapping.trigger ?? proto.AnalogToDigitalTriggerType.JoyHigh) ===
+                        proto.AnalogToDigitalTriggerType.JoyHigh && (
+                        <StateSlider
+                          mappingIdx={mappingIdx}
+                          profileIdx={profileIdx}
+                          center={32767}
+                          min={mapping.triggerValue ?? 32767}
+                          max={65535}
+                          deadzone={mapping.deadzone!}
+                          raw
+                          zeroBased={drum}
+                        />
+                      )}
+                      {mapping.trigger === proto.AnalogToDigitalTriggerType.JoyLow && (
+                        <StateSlider
+                          mappingIdx={mappingIdx}
+                          profileIdx={profileIdx}
+                          center={32767}
+                          min={0}
+                          max={mapping.triggerValue ?? 32767}
+                          deadzone={mapping.deadzone!}
+                          raw
+                          zeroBased={drum}
+                        />
+                      )}
+                      {mapping.trigger === proto.AnalogToDigitalTriggerType.Range && (
+                        <StateSlider
+                          mappingIdx={mappingIdx}
+                          profileIdx={profileIdx}
+                          center={32767}
+                          min={mapping.triggerValue ?? 32767}
+                          max={mapping.maxTriggerValue ?? 65535}
+                          deadzone={mapping.deadzone!}
+                          raw
+                          zeroBased={drum}
+                        />
+                      )}
+                      {(mapping.trigger === proto.AnalogToDigitalTriggerType.Range && (
+                        <Text size="sm" fw={700}>
+                          {t('trigger.min')}
+                        </Text>
+                      )) || (
+                        <Text size="sm" fw={700}>
+                          {t('trigger.trigger')}
+                        </Text>
+                      )}
+                      <Group>
+                        <Slider
+                          flex={1}
+                          value={mapping.triggerValue ?? 32767}
+                          min={0}
+                          max={65535}
+                          onChange={(val) => dispatch({ ...mapping, triggerValue: val })}
+                        />
+                        <NumberInput
+                          value={mapping.triggerValue ?? 32767}
+                          min={0}
+                          max={65535}
+                          onChange={(e) =>
+                            dispatch({ ...mapping, triggerValue: parseInt(e.toString(), 10) || 0 })
+                          }
+                          w={100}
+                        />
+                      </Group>
+                      <Group>
+                        <Button
+                          onClick={() => {
+                            dispatch({
+                              ...mapping,
+                              triggerValue:
+                                useConfigStore.getState().mappingStatus[profileIdx]?.[mappingIdx]
+                                  ?.stateRaw ?? 0,
+                            });
+                          }}
+                        >
+                          {t('pin_use_current')}
+                        </Button>
+                      </Group>
+                      {mapping.trigger === proto.AnalogToDigitalTriggerType.Range && (
+                        <>
+                          <Text size="sm" fw={700}>
+                            {t('trigger.max')}
+                          </Text>
+                          <Group>
+                            <Slider
+                              flex={1}
+                              value={mapping.maxTriggerValue ?? 65535}
+                              min={0}
+                              max={65535}
+                              onChange={(val) => dispatch({ ...mapping, maxTriggerValue: val })}
+                            />
+
+                            <NumberInput
+                              value={mapping.maxTriggerValue ?? 65535}
+                              min={0}
+                              max={65535}
+                              onChange={(e) =>
+                                dispatch({
+                                  ...mapping,
+                                  maxTriggerValue: parseInt(e.toString(), 10) || 0,
+                                })
+                              }
+                              w={100}
+                            />
+                          </Group>
+                          <Group>
+                            <Button
+                              onClick={() => {
+                                dispatch({
+                                  ...mapping,
+                                  maxTriggerValue:
+                                    useConfigStore.getState().mappingStatus[profileIdx]?.[
+                                      mappingIdx
+                                    ]?.stateRaw ?? 0,
+                                });
+                              }}
+                            >
+                              {t('pin_use_current')}
+                            </Button>
+                          </Group>
+                        </>
+                      )}
+                    </>
+                  )}
                 </Accordion.Panel>
               </Accordion.Item>
             </Accordion>
+          </>
+        )}
+        {button && analogInput && !crkdDrum && !simpleMode && (
+          <>
+            <Space h="md" />
+            <AnalogFilters mapping={mapping} dispatch={dispatch} axis={false} />
           </>
         )}
         {axis && !analogInput && !simpleMode && (
@@ -4299,6 +4588,12 @@ function SantrollerMapping({
                 </Accordion.Panel>
               </Accordion.Item>
             </Accordion>
+            {!crkdDrum && !simpleMode && (
+              <>
+                <Space h="md" />
+                <AnalogFilters mapping={mapping} dispatch={dispatch} axis />
+              </>
+            )}
           </>
         )}
       </Card>

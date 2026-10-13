@@ -5341,5 +5341,56 @@
   "profileDefaults": {
     "name": "Device",
     "copyName": "{{name}} (Copy)"
+  },
+  "filter": {
+    "title": "Filters",
+    "cutoff": "Cutoff (Hz)",
+    "lowPass": {
+      "label": "Low pass",
+      "description": "Smooths out noise faster than the cutoff. Lower cutoffs are smoother, but react more slowly."
+    },
+    "responsive": {
+      "label": "Responsive smoothing",
+      "description": "Smooths small movements heavily while letting large ones through straight away, like ResponsiveAnalogRead.",
+      "snap": {
+        "label": "Snap",
+        "description": "How quickly it catches up to larger movements (0 - 1). Lower is smoother."
+      },
+      "threshold": {
+        "label": "Activity threshold",
+        "description": "Stops moving while the input only changes by this much, in 10 bit steps (64 raw units each). 0 never stops."
+      }
+    },
+    "highPass": {
+      "label": "High pass",
+      "description": "Removes slow drift slower than the cutoff, so only movement comes through. The axis settles back to its rest point when held still."
+    },
+    "zpd": {
+      "label": "Zero point drift compensation",
+      "description": "While the input is near its rest point, slowly follow it, so a hall effect sensor that drifts stays centred.",
+      "window": "Window (raw units around the rest point)"
+    }
+  },
+  "rapidTrigger": {
+    "label": "Rapid trigger",
+    "description": "Press and release on movement instead of at a fixed point, for hall effect buttons. Calibrate min as released and max as fully pressed.",
+    "min": "Released",
+    "max": "Fully pressed",
+    "actuation": {
+      "label": "Actuation point",
+      "description": "How far the button has to be pressed (of its calibrated travel) before rapid trigger starts."
+    },
+    "down": {
+      "label": "Press sensitivity",
+      "description": "How far it has to move back down after releasing to press again."
+    },
+    "up": {
+      "label": "Release sensitivity",
+      "description": "How far it has to move back up after pressing to release."
+    },
+    "continuous": {
+      "label": "Continuous",
+      "description": "Keep rapid trigger going until the button is fully released, instead of stopping once it goes back above the actuation point."
+    }
   }
 }
