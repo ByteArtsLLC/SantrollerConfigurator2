@@ -22,6 +22,10 @@ use tauri_plugin_opener::OpenerExt;
 const BUFFER_SIZE: usize = 4096;
 // How long the worker waits for an input report before it checks for commands again
 const READ_TIMEOUT_MS: i32 = 1;
+// Only Santroller devices are listed. On Windows, hidapi asks every device it lists for its
+// strings, which makes some mice and keyboards stutter when the list is refreshed every second.
+const SANTROLLER_VID: u16 = 0x1209;
+const SANTROLLER_PID: u16 = 0x2882;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -83,6 +87,7 @@ fn with_api<T>(
 ) -> Result<T, String> {
     let mut api = state.api.lock().map_err(|e| e.to_string())?;
     if api.is_none() {
+        HidApi::disable_device_discovery();
         *api = Some(HidApi::new().map_err(|e| e.to_string())?);
     }
     f(api.as_mut().unwrap())
@@ -159,7 +164,8 @@ fn run_worker(app: AppHandle, path: String, id: u64, device: HidDevice, commands
 #[tauri::command]
 fn hid_list(state: State<'_, HidState>) -> Result<Vec<HidDeviceInfo>, String> {
     with_api(&state, |api| {
-        api.refresh_devices().map_err(|e| e.to_string())?;
+        api.reset_devices().map_err(|e| e.to_string())?;
+        api.add_devices(SANTROLLER_VID, SANTROLLER_PID).map_err(|e| e.to_string())?;
         Ok(api
             .device_list()
             .map(|device| HidDeviceInfo {
