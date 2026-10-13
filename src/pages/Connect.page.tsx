@@ -3,6 +3,7 @@ import {
   IconBrandDiscord,
   IconExclamationCircle,
   IconHistory,
+  IconRefresh,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -27,6 +28,7 @@ import { Layout } from '@/components/Layout/Layout';
 import { translateLegacyWarning } from '@/components/Legacy/warnings';
 import { BluetoothConfigDevice } from '@/components/SettingsContext/BluetoothConfigDevice';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
+import { requestUpdateCheck, useUpdateCheck } from '@/desktop/updateCheckStore';
 
 const isDesktop = 'isTauri' in window;
 
@@ -56,6 +58,7 @@ export function ConnectPage() {
   const needsUf2Update = useConfigStore((state) => state.needsUf2Update);
   const [advancedModalOpened, { open: openAdvancedModal, close: closeAdvancedModal }] =
     useDisclosure(false);
+  const updateCheckStatus = useUpdateCheck((state) => state.status);
   const { t } = useTranslation();
   const bluetoothSupported = BluetoothConfigDevice.isSupported();
   return (
@@ -107,11 +110,37 @@ export function ConnectPage() {
             <DesktopDownloadButton />
           </Alert>
         )}
-        <Text size="sm" c="dimmed">
-          {t('connect.configuratorVersion', {
-            version: `${__CONFIGURATOR_VERSION__} (${__CONFIGURATOR_COMMIT__})`,
-          })}
-        </Text>
+        <Group gap="xs">
+          <Text size="sm" c="dimmed">
+            {t('connect.configuratorVersion', {
+              version: `${__CONFIGURATOR_VERSION__} (${__CONFIGURATOR_COMMIT__})`,
+            })}
+          </Text>
+          {/* the website is always the latest version, only the desktop app needs updating */}
+          {isDesktop && (
+            <>
+              <Button
+                size="compact-xs"
+                variant="default"
+                leftSection={<IconRefresh size={14} />}
+                loading={updateCheckStatus === 'checking'}
+                onClick={requestUpdateCheck}
+              >
+                {t('connect.checkForUpdates')}
+              </Button>
+              {updateCheckStatus === 'upToDate' && (
+                <Text size="sm" c="dimmed">
+                  {t('connect.upToDate')}
+                </Text>
+              )}
+              {updateCheckStatus === 'failed' && (
+                <Text size="sm" c="red">
+                  {t('connect.updateCheckFailed')}
+                </Text>
+              )}
+            </>
+          )}
+        </Group>
         {connected && firmwareVersion && (
           <Text size="sm" c="dimmed">
             {t('connect.firmwareVersion', {
@@ -199,6 +228,19 @@ export function ConnectPage() {
           >
             {t('connect.hung')}
           </Alert>
+        )}
+        {!connected && (
+          <>
+            <Space h="md" />
+            <Alert
+              variant="light"
+              color="yellow"
+              title={t('connect.oldFirmwareTitle')}
+              icon={<IconAlertTriangle />}
+            >
+              {t('connect.oldFirmware')}
+            </Alert>
+          </>
         )}
         <Space h="md" />
         {navigator.hid && !connected && (

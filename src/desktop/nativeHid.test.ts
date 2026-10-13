@@ -17,7 +17,13 @@ let listed: ReturnType<typeof santroller>[] = [];
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(async (command: string) => (command === 'hid_list' ? listed : undefined)),
 }));
-vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn(async () => () => {}) }));
+const listeners = new Map<string, (event: { payload: unknown }) => void>();
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: vi.fn(async (event: string, handler: (event: { payload: unknown }) => void) => {
+    listeners.set(event, handler);
+    return () => {};
+  }),
+}));
 
 const filters = [{ vendorId: 0x1209, productId: 0x2882, usagePage: 0xff00 }];
 
@@ -56,5 +62,28 @@ describe('NativeHid.requestDevice', () => {
     await vi.waitFor(() => expect(useDevicePicker.getState().request).toBeDefined());
     closeDevicePicker();
     expect(await result).toEqual([]);
+  });
+});
+
+describe('NativeHid hotplug', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    listed = [];
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('keeps looking after a device is plugged in until its HID interface shows up', async () => {
+    const hid = new NativeHid();
+    await hid.initialize();
+    const connected = vi.fn();
+    hid.addEventListener('connect', connected);
+    listeners.get('hid-changed')!({ payload: null });
+    await vi.advanceTimersByTimeAsync(600);
+    expect(connected).not.toHaveBeenCalled();
+    listed = [santroller('a', 'AAAA')];
+    await vi.advanceTimersByTimeAsync(300);
+    expect(connected).toHaveBeenCalledOnce();
   });
 });

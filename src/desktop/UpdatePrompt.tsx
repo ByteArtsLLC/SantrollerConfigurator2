@@ -5,6 +5,7 @@ import { check, Update } from '@tauri-apps/plugin-updater';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Flex, Group, Modal, Progress, Space, Text } from '@mantine/core';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
+import { useUpdateCheck } from './updateCheckStore';
 
 // Every push to main is released, so look again now and then for people who leave it open
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
@@ -34,6 +35,26 @@ export default function UpdatePrompt() {
     const timer = setInterval(look, CHECK_INTERVAL_MS);
     return () => clearInterval(timer);
   }, []);
+
+  // Asked for by hand, so show the update again even if it was put off, and say when there isn't one
+  const requests = useUpdateCheck((state) => state.requests);
+  useEffect(() => {
+    if (!requests) {
+      return;
+    }
+    check()
+      .then((found) => {
+        useUpdateCheck.setState({ status: found ? 'idle' : 'upToDate' });
+        if (found) {
+          setDismissed(undefined);
+          setUpdate(found);
+        }
+      })
+      .catch((e) => {
+        console.error('Failed to check for updates', e);
+        useUpdateCheck.setState({ status: 'failed' });
+      });
+  }, [requests]);
 
   const install = async () => {
     if (!update) {

@@ -5,14 +5,16 @@ use std::{
     ffi::CString,
     path::PathBuf,
     sync::{
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc::{self, Receiver, Sender, TryRecvError},
         Mutex,
     },
     thread,
 };
 
+use futures_lite::StreamExt;
 use hidapi::{HidApi, HidDevice};
+use nusb::hotplug::HotplugEvent;
 use serde::Serialize;
 use tauri::{ipc::Request, AppHandle, Emitter, Manager, State, Url};
 use tauri_plugin_dialog::DialogExt;
@@ -23,7 +25,7 @@ const BUFFER_SIZE: usize = 4096;
 // How long the worker waits for an input report before it checks for commands again
 const READ_TIMEOUT_MS: i32 = 1;
 // Only Santroller devices are listed. On Windows, hidapi asks every device it lists for its
-// strings, which makes some mice and keyboards stutter when the list is refreshed every second.
+// strings, which makes some mice and keyboards stutter.
 const SANTROLLER_VID: u16 = 0x1209;
 const SANTROLLER_PID: u16 = 0x2882;
 
@@ -78,6 +80,7 @@ struct OpenDevice {
 struct HidState {
     api: Mutex<Option<HidApi>>,
     devices: Mutex<HashMap<String, OpenDevice>>,
+    watching: AtomicBool,
     next_id: AtomicU64,
 }
 
@@ -179,6 +182,37 @@ fn hid_list(state: State<'_, HidState>) -> Result<Vec<HidDeviceInfo>, String> {
             })
             .collect())
     })
+}
+
+// Tells the frontend to look at the device list again when a Santroller is plugged in, or when
+// anything is unplugged (only the device's id is known by then). The USB device shows up before
+// its HID interface does, so the frontend has to keep looking for a little while.
+#[tauri::command]
+fn hid_watch(app: AppHandle, state: State<'_, HidState>) -> Result<(), String> {
+    if state.watching.swap(true, Ordering::Relaxed) {
+        return Ok(());
+    }
+    let mut watch = match nusb::watch_devices() {
+        Ok(watch) => watch,
+        Err(e) => {
+            state.watching.store(false, Ordering::Relaxed);
+            return Err(e.to_string());
+        }
+    };
+    tauri::async_runtime::spawn(async move {
+        while let Some(event) = watch.next().await {
+            let changed = match event {
+                HotplugEvent::Connected(info) => {
+                    info.vendor_id() == SANTROLLER_VID && info.product_id() == SANTROLLER_PID
+                }
+                HotplugEvent::Disconnected(_) => true,
+            };
+            if changed {
+                let _ = app.emit("hid-changed", ());
+            }
+        }
+    });
+    Ok(())
 }
 
 // Returns the report descriptor, as the frontend needs to know which reports the device has
@@ -345,6 +379,7 @@ pub fn run() {
         .manage(HidState::default())
         .invoke_handler(tauri::generate_handler![
             hid_list,
+            hid_watch,
             hid_open,
             hid_close,
             hid_send_report,

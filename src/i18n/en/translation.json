@@ -2002,6 +2002,8 @@
     "connect": "Connect to a Santroller powered device",
     "connectBluetooth": "Connect to a Santroller powered device over Bluetooth",
     "setup": "Setup a new device",
+    "oldFirmwareTitle": "Upgrading from Santroller 1?",
+    "oldFirmware": "Devices running the old Santroller 1 firmware won't be detected here. To move a device over to this version, follow the steps under \"Setup a new device\" below.",
     "santroller1": "Still using Santroller 1? Open the Santroller 1 site",
     "discord": "Need help? Join the Discord",
     "downloadDesktop": {
@@ -2013,6 +2015,9 @@
     "browserNotSupported": "Browser Unsupported",
     "disconnect": "Disconnect from Santroller powered device",
     "configuratorVersion": "Configurator version: {{version}}",
+    "checkForUpdates": "Check for updates",
+    "upToDate": "You're on the latest version",
+    "updateCheckFailed": "Couldn't check for updates",
     "firmwareVersion": "Firmware version: {{version}}",
     "bootloader": "Jump to bootloader",
     "export": "Export Current Config",

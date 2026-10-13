@@ -16,7 +16,11 @@ interface NativeHidDeviceInfo {
   usage: number;
 }
 
-// WebHID has no connect events of its own here, so check for new devices this often
+// After a USB device comes or goes its HID interface takes a moment to follow, so keep looking
+// this often, this many times
+const SETTLE_INTERVAL_MS = 250;
+const SETTLE_ATTEMPTS = 12;
+// Only used when the backend can't watch for devices being plugged in and out
 const POLL_INTERVAL_MS = 1000;
 
 function toBytes(data: BufferSource) {
@@ -165,6 +169,7 @@ export class NativeHid extends EventTarget {
   ondisconnect: ((evt: HIDConnectionEvent) => void) | null = null;
   private readonly devices = new Map<string, NativeHidDevice>();
   private listing?: Promise<NativeHidDeviceInfo[]>;
+  private settleAttempts = 0;
 
   async initialize() {
     await listen<{ path: string; data: number[] }>('hid-input', ({ payload }) => {
@@ -180,8 +185,28 @@ export class NativeHid extends EventTarget {
         this.removeDevice(device);
       }
     });
+    await listen('hid-changed', () => void this.settle());
     await this.refresh(false);
-    setInterval(() => void this.refresh(true).catch(console.error), POLL_INTERVAL_MS);
+    try {
+      await invoke('hid_watch');
+    } catch (e) {
+      console.error(`Can't watch for devices, checking every second instead: ${e}`);
+      setInterval(() => void this.refresh(true).catch(console.error), POLL_INTERVAL_MS);
+    }
+  }
+
+  // Another change while this is running starts the count again
+  private async settle() {
+    const running = this.settleAttempts > 0;
+    this.settleAttempts = SETTLE_ATTEMPTS;
+    if (running) {
+      return;
+    }
+    while (this.settleAttempts > 0) {
+      await this.refresh(true).catch(console.error);
+      await new Promise((resolve) => setTimeout(resolve, SETTLE_INTERVAL_MS));
+      this.settleAttempts--;
+    }
   }
 
   async getDevices(): Promise<HIDDevice[]> {
