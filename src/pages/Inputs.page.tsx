@@ -4537,6 +4537,13 @@ function SantrollerLed({
         .map((x) => x[1].ledLabel!.label!);
     }
   }
+  // These modes write the colour the host sends straight to the LEDs, so the configured colours are unused
+  const hostSetsColour =
+    !!led.mapping.playstationMapping ||
+    (!!led.mapping.stageKitMapping &&
+      ![proto.StageKitLedType.StageKitFog, proto.StageKitLedType.StageKitStrobe].includes(
+        led.mapping.stageKitMapping.type
+      ));
   let mappingValue = '';
   if (led.mapping.inputMapping) {
     mappingValue = t(`leds.type.input`);
@@ -5357,6 +5364,7 @@ function SantrollerLed({
               />
             )}
             {!led.mapping.staticMapping &&
+              !hostSetsColour &&
               !simpleMode &&
               led.mapping.patternMapping?.pattern !== proto.RgbPatternType.PatternRainbow && (
                 <>
@@ -5380,7 +5388,8 @@ function SantrollerLed({
               )}
             {(led.mapping.patternMapping?.pattern !== proto.RgbPatternType.PatternRainbow &&
               led.device.rgb.hasStart &&
-              !led.mapping.staticMapping && (
+              !led.mapping.staticMapping &&
+              !hostSetsColour && (
                 <>
                   <Space h="md" />
                   <Group grow>
@@ -5433,56 +5442,57 @@ function SantrollerLed({
               )) ||
               undefined}
             <Space h="md" />
-            {led.mapping.patternMapping?.pattern !== proto.RgbPatternType.PatternRainbow && (
-              <Group grow>
-                <LedColorInput
-                  label={led.mapping.staticMapping ? t('leds.colour') : t('leds.pressed')}
-                  r={led.device.rgb?.endR}
-                  g={led.device.rgb?.endG}
-                  b={led.device.rgb?.endB}
-                  w={led.device.rgb?.endW}
-                  onChange={({ r, g, b, w }) => {
-                    dispatch({
-                      ...led,
-                      device: {
-                        ...led.device,
-                        rgb: {
-                          ...led.device.rgb!,
-                          endR: r,
-                          endG: g,
-                          endB: b,
-                          endW: w,
-                        },
-                      },
-                    });
-                  }}
-                />
-                {!led.mapping.staticMapping && led.device.rgb.hasStart && (
-                  <Input.Wrapper label=" " description=" " error=" " mr="0">
-                    <Button
-                      w="100%"
-                      onClick={() =>
-                        dispatch({
-                          ...led,
-                          device: {
-                            ...led.device,
-                            rgb: {
-                              ...led.device.rgb!,
-                              startR: led.device.rgb!.endR,
-                              startG: led.device.rgb!.endG,
-                              startB: led.device.rgb!.endB,
-                              startW: led.device.rgb!.endW,
-                            },
+            {led.mapping.patternMapping?.pattern !== proto.RgbPatternType.PatternRainbow &&
+              !hostSetsColour && (
+                <Group grow>
+                  <LedColorInput
+                    label={led.mapping.staticMapping ? t('leds.colour') : t('leds.pressed')}
+                    r={led.device.rgb?.endR}
+                    g={led.device.rgb?.endG}
+                    b={led.device.rgb?.endB}
+                    w={led.device.rgb?.endW}
+                    onChange={({ r, g, b, w }) => {
+                      dispatch({
+                        ...led,
+                        device: {
+                          ...led.device,
+                          rgb: {
+                            ...led.device.rgb!,
+                            endR: r,
+                            endG: g,
+                            endB: b,
+                            endW: w,
                           },
-                        })
-                      }
-                    >
-                      {t('leds.copyToReleased')}
-                    </Button>
-                  </Input.Wrapper>
-                )}
-              </Group>
-            )}
+                        },
+                      });
+                    }}
+                  />
+                  {!led.mapping.staticMapping && led.device.rgb.hasStart && (
+                    <Input.Wrapper label=" " description=" " error=" " mr="0">
+                      <Button
+                        w="100%"
+                        onClick={() =>
+                          dispatch({
+                            ...led,
+                            device: {
+                              ...led.device,
+                              rgb: {
+                                ...led.device.rgb!,
+                                startR: led.device.rgb!.endR,
+                                startG: led.device.rgb!.endG,
+                                startB: led.device.rgb!.endB,
+                                startW: led.device.rgb!.endW,
+                              },
+                            },
+                          })
+                        }
+                      >
+                        {t('leds.copyToReleased')}
+                      </Button>
+                    </Input.Wrapper>
+                  )}
+                </Group>
+              )}
           </>
         )}
         {led.mapping.inputMapping && analog && (
