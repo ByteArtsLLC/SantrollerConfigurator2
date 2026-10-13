@@ -3569,13 +3569,17 @@ function isStrumOutput(output: proto.IOutput, subtype: proto.SubType) {
 }
 
 // Gives every strum mapping in the profile the same debounce, for combined strum debounce
-function withStrumDebounce(profile: proto.IProfile, debounce100us: number): proto.IProfile {
+function withStrumDebounce(
+  profile: proto.IProfile,
+  debounce100us: number,
+  debounceMode: proto.DebounceMode | null | undefined
+): proto.IProfile {
   const subtype = profile.opts.deviceToEmulate;
   return {
     ...profile,
     mappings: profile.mappings?.map((mapping) =>
       isStrumOutput(mapping.mapping, subtype)
-        ? { ...mapping, debounce: undefined, debounce100us }
+        ? { ...mapping, debounce: undefined, debounce100us, debounceMode }
         : mapping
     ),
   };
@@ -3931,12 +3935,51 @@ function SantrollerMapping({
             onChange={(val) => {
               const debounce100us = Math.round(Number(val) * 10);
               if (combinedStrum && profile) {
-                updateProfile(withStrumDebounce(profile, debounce100us), profileIdx);
+                updateProfile(
+                  withStrumDebounce(profile, debounce100us, mapping.debounceMode),
+                  profileIdx
+                );
                 return;
               }
               dispatch({ ...mapping, debounce: undefined, debounce100us });
             }}
           />
+        )}
+        {button && !simpleMode && (
+          <Input.Wrapper
+            mt="xs"
+            label={t('debounce.mode.label')}
+            description={t('debounce.mode.description')}
+          >
+            <SegmentedControl
+              fullWidth
+              data={[
+                {
+                  value: proto.DebounceMode.DebounceRelease.toString(),
+                  label: t('debounce.mode.release'),
+                },
+                {
+                  value: proto.DebounceMode.DebouncePress.toString(),
+                  label: t('debounce.mode.press'),
+                },
+              ]}
+              value={(mapping.debounceMode ?? proto.DebounceMode.DebounceRelease).toString()}
+              onChange={(val) => {
+                const debounceMode =
+                  Number(val) === proto.DebounceMode.DebouncePress
+                    ? proto.DebounceMode.DebouncePress
+                    : null;
+                if (combinedStrum && profile) {
+                  updateProfile(
+                    withStrumDebounce(profile, mappingDebounce100us(mapping), debounceMode),
+                    profileIdx
+                  );
+                  return;
+                }
+                dispatch({ ...mapping, debounceMode });
+              }}
+            />
+          </Input.Wrapper>
         )}
         {drum && crkdDrum && (
           <>
@@ -8562,7 +8605,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                   );
                   updateProfile(
                     event.currentTarget.checked && strum
-                      ? withStrumDebounce(updated, mappingDebounce100us(strum))
+                      ? withStrumDebounce(updated, mappingDebounce100us(strum), strum.debounceMode)
                       : updated,
                     profileIdx
                   );
