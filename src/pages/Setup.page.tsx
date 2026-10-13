@@ -1,4 +1,4 @@
-import { IconExclamationCircle } from '@tabler/icons-react';
+import { IconExclamationCircle, IconInfoCircle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Space, Text } from '@mantine/core';
 import { Layout } from '@/components/Layout/Layout';
@@ -20,6 +20,15 @@ export function SetupPage() {
         <Space h="md" />
         <Text size="h1">{t('getting_started.title')}</Text>
         <Text size="sm">{t('getting_started.text')}</Text>
+        <Space h="md" />
+        <Alert
+          variant="light"
+          color="blue"
+          title={t('getting_started.santroller1Title')}
+          icon={<IconInfoCircle />}
+        >
+          {t('getting_started.santroller1')}
+        </Alert>
         <Space h="md" />
         <Button
           component="a"
