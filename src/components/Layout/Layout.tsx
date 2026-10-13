@@ -226,7 +226,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </Modal>
       <AppShell
         header={{ height: showSave ? 80 : 50 }}
-        navbar={{ width: 300, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+        navbar={{ width: { sm: 300, md: 380 }, breakpoint: 'sm', collapsed: { mobile: !opened } }}
         padding="md"
       >
         <AppShell.Header>

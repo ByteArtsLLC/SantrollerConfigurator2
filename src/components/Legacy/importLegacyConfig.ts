@@ -68,6 +68,25 @@ function readsLocalInput(input: proto.IInput | null | undefined): boolean {
   return !input.fixed;
 }
 
+// Tilt is a sensor on the board (a tilt switch or the accelerometer) even when the guitar itself
+// comes from a device in a slot, so it isn't enough to play without that device
+function isTilt(mapping: proto.IMapping) {
+  const out = mapping.mapping ?? {};
+  return (
+    !!mapping.input?.accelerometer ||
+    out.ghAxis === proto.GuitarHeroGuitarAxisType.GuitarHeroGuitar_Tilt ||
+    out.rbAxis === proto.RockBandGuitarAxisType.RockBandGuitar_Tilt ||
+    out.ghlAxis === proto.GuitarHeroLiveGuitarAxisType.GuitarHeroLiveGuitar_Tilt ||
+    out.proAxis === proto.ProGuitarAxisType.ProGuitar_Tilt
+  );
+}
+
+// Whether the inputs on the board are a controller on their own, so the profile should still be
+// used while none of the devices in its slots are connected
+function playsWithoutSlots(mappings: proto.IMapping[]) {
+  return mappings.some((m) => readsLocalInput(m.input) && !isTilt(m));
+}
+
 // The old firmware read every device it had bindings for, whichever of them were plugged in, so
 // each assignment list is copied for every combination of its slots (largest first) instead of
 // needing all of them. Within a kind and subtype only later slots are left out, so the slots that
@@ -191,14 +210,12 @@ export function importLegacyConfig(data: Uint8Array, name = 'Imported'): LegacyI
       m.mapping.ghButton <= TAPS.GuitarHeroGuitar_TapOrange
   );
 
+  // The festival profile's mappings come from these, so this decides for both profiles
+  const withoutSlots = playsWithoutSlots(ctx.mappings);
   // A profile claims the first list that matches, and the USB lists match whenever USB is
   // connected, so they go last to give the Wii Remote / PS2 lists a chance to match
   const lists = ctx.expandSlotAlternatives(
-    expandOptionalSlots(
-      ctx,
-      [...emulation, ...settings.assignments],
-      ctx.mappings.some((m) => readsLocalInput(m.input))
-    )
+    expandOptionalSlots(ctx, [...emulation, ...settings.assignments], withoutSlots)
   );
   const profileName = old.variant || name;
   const profile = assignSlotIds(ctx, lists, {
@@ -231,11 +248,7 @@ export function importLegacyConfig(data: Uint8Array, name = 'Imported'): LegacyI
   if (settings.festival) {
     const mappings = festivalMappings(ctx.mappings, subType);
     const festivalLists = ctx.expandSlotAlternatives(
-      expandOptionalSlots(
-        ctx,
-        settings.festival.assignments,
-        mappings.some((m) => readsLocalInput(m.input))
-      )
+      expandOptionalSlots(ctx, settings.festival.assignments, withoutSlots)
     );
     profiles.unshift(
       assignSlotIds(ctx, festivalLists, {

@@ -168,6 +168,54 @@ describe('importLegacyConfig', () => {
       config.profiles[0].assignments.map((list) => list.assignments.map((x) => x.usbType))
     ).toEqual([[null, proto.SubType.Gamepad], [null]]);
   });
+
+  it('needs the USB host controller when the only pin is a tilt sensor', () => {
+    const data = legacy.SerializedConfiguration.encode(
+      legacy.SerializedConfiguration.create({
+        deviceType: legacy.DeviceControllerType.DeviceControllerType_GuitarHeroGuitar,
+        bindings: [
+          {
+            serializedGuitarAxis: {
+              type: legacy.GuitarAxisType.GuitarAxisType_Tilt,
+              input: {
+                serializedDigitalToAnalog: {
+                  on: 32767,
+                  child: {
+                    serializedDirectInput: {
+                      pin: 5,
+                      pinMode: legacy.DevicePinMode.DevicePinMode_PullUp,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          {
+            serializedCombinedUsbHostOutput: {
+              outputs: [
+                {
+                  serializedGuitarButton: {
+                    type: legacy.InstrumentButtonType.InstrumentButtonType_Green,
+                    input: {
+                      serializedUsbHostInput: {
+                        type: legacy.UsbHostInputType.UsbHostInputType_A,
+                        combined: true,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      })
+    ).finish();
+    const { config } = importLegacyConfig(data);
+    // a tilt sensor can't play on its own, so every list needs the guitar on the USB host
+    expect(
+      config.profiles[0].assignments.map((list) => list.assignments.some((x) => x.usbType != null))
+    ).toEqual([true]);
+  });
 });
 
 describe('importLegacyConfigs', () => {
