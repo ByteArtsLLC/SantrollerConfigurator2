@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Badge,
@@ -71,6 +71,7 @@ export function LedColorInput({
 }: LedColorInputProps) {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const currentR = Math.max(0, Math.min(255, r ?? 0));
   const currentG = Math.max(0, Math.min(255, g ?? 0));
@@ -112,8 +113,12 @@ export function LedColorInput({
     }
   };
 
-  const handleInputBlur = () => {
+  const handleInputBlur = (event: React.FocusEvent<HTMLInputElement>) => {
     setInputValue(hexColor);
+    // The brightness slider grabs focus on mousedown, which would otherwise close the popover
+    if (dropdownRef.current?.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
     setOpened(false);
   };
 
@@ -161,7 +166,7 @@ export function LedColorInput({
           />
         </Popover.Target>
 
-        <Popover.Dropdown onMouseDown={(e) => e.preventDefault()} w={240}>
+        <Popover.Dropdown ref={dropdownRef} onMouseDown={(e) => e.preventDefault()} w={240}>
           <ColorPicker
             format="hex"
             value={hexColor}
