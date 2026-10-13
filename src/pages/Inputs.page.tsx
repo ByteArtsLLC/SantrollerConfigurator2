@@ -4857,12 +4857,14 @@ function SantrollerLed({
   const guiDevices = useConfigStore((state) => state.guiDevices);
   const simpleMode = useConfigStore((state) => state.simpleMode);
   const device = useConfigStore((state) => state.deviceStatus[deviceId]);
-  const mapping = useConfigStore(
-    (state) =>
-      Object.values(state.mappingStatus[profileIdx]).find(
-        (x) => JSON.stringify(x.mapping.input) === JSON.stringify(led.mapping.inputMapping?.input)
-      )?.mapping
-  );
+  // Selectors rerun on every input report, so only select the mappings (which only change on
+  // edits) and do the stringify compare outside the store
+  const profileMappings = useConfigStore((state) => state.config.profiles?.[profileIdx]?.mappings);
+  const ledInput = led.mapping.inputMapping?.input;
+  const mapping = useMemo(() => {
+    const key = JSON.stringify(ledInput);
+    return profileMappings?.find((x) => JSON.stringify(x.input) === key);
+  }, [profileMappings, ledInput]);
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
   const analog = led.mapping.inputMapping && isAnalog(led.mapping.inputMapping.input);

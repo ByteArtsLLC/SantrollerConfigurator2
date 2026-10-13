@@ -72,11 +72,14 @@ export function LedColorInput({
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  // Dragging fires a change per mouse move, and every config change re-renders the whole inputs
+  // page, so hold the colour here while dragging and only hand it over once the drag ends
+  const [draft, setDraft] = useState<{ r: number; g: number; b: number; w: number } | null>(null);
 
-  const currentR = Math.max(0, Math.min(255, r ?? 0));
-  const currentG = Math.max(0, Math.min(255, g ?? 0));
-  const currentB = Math.max(0, Math.min(255, b ?? 0));
-  const currentW = Math.max(0, Math.min(255, w ?? 255));
+  const currentR = Math.max(0, Math.min(255, draft?.r ?? r ?? 0));
+  const currentG = Math.max(0, Math.min(255, draft?.g ?? g ?? 0));
+  const currentB = Math.max(0, Math.min(255, draft?.b ?? b ?? 0));
+  const currentW = Math.max(0, Math.min(255, draft?.w ?? w ?? 255));
 
   const hexColor = rgbToHex(currentR, currentG, currentB);
   const [inputValue, setInputValue] = useState(hexColor);
@@ -92,16 +95,31 @@ export function LedColorInput({
   const dimmedColorRgb = `rgb(${dimmedR}, ${dimmedG}, ${dimmedB})`;
   const brightnessPercent = Math.round((currentW / 255) * 100);
 
+  const commit = (val: { r: number; g: number; b: number; w: number }) => {
+    setDraft(null);
+    onChange(val);
+  };
+
   const handleColorPickerChange = (newHex: string) => {
     const parsed = hexToRgb(newHex);
     if (parsed) {
-      setInputValue(newHex);
-      onChange({ r: parsed.r, g: parsed.g, b: parsed.b, w: currentW });
+      setDraft({ r: parsed.r, g: parsed.g, b: parsed.b, w: currentW });
+    }
+  };
+
+  const handleColorPickerChangeEnd = (newHex: string) => {
+    const parsed = hexToRgb(newHex);
+    if (parsed) {
+      commit({ r: parsed.r, g: parsed.g, b: parsed.b, w: currentW });
     }
   };
 
   const handleBrightnessChange = (newW: number) => {
-    onChange({ r: currentR, g: currentG, b: currentB, w: newW });
+    setDraft({ r: currentR, g: currentG, b: currentB, w: newW });
+  };
+
+  const handleBrightnessChangeEnd = (newW: number) => {
+    commit({ r: currentR, g: currentG, b: currentB, w: newW });
   };
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,6 +189,7 @@ export function LedColorInput({
             format="hex"
             value={hexColor}
             onChange={handleColorPickerChange}
+            onChangeEnd={handleColorPickerChangeEnd}
             focusable={false}
             fullWidth
           />
@@ -188,6 +207,7 @@ export function LedColorInput({
             max={255}
             value={currentW}
             onChange={handleBrightnessChange}
+            onChangeEnd={handleBrightnessChangeEnd}
             label={(val) => `${Math.round((val / 255) * 100)}%`}
             styles={{
               track: {
