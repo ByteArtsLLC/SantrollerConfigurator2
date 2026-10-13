@@ -26,8 +26,14 @@ runs:
     - name: Fetch the git history
       shell: bash
       run: |
-        if [ "$(git rev-parse --is-shallow-repository)" = true ]; then git fetch --unshallow --quiet; fi
-        if [ "$(git -C Santroller rev-parse --is-shallow-repository)" = true ]; then git -C Santroller fetch --unshallow --quiet; fi
+        # Without --recurse-submodules=no git also fetches every submodule touched anywhere in the
+        # history it just got, including ones that aren't checked out
+        if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+          git fetch --unshallow --quiet --recurse-submodules=no
+        fi
+        if [ "$(git -C Santroller rev-parse --is-shallow-repository)" = true ]; then
+          git -C Santroller fetch --unshallow --quiet --recurse-submodules=no
+        fi
     - name: Change Mirror Priorities
       shell: bash
       run: |
