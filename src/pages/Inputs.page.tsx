@@ -98,13 +98,13 @@ import {
   getProfileSlotLabel,
   getProfileSlots,
   getProfileWideSlotIds,
-  moveWiiDrumNotesToMidiSlot,
   getPS2InputFilters,
   getSNESInputFilters,
   isAnalogInput,
   isDrumInput,
   isSelectableWiiAxis,
   midiInputSourceType,
+  moveWiiDrumNotesToMidiSlot,
   ProfileSlot,
 } from '@/components/Inputs/inputRegistry';
 import { LedColorInput } from '@/components/Inputs/LedColorInput';
@@ -1114,6 +1114,40 @@ function OutputBox({
           dispatch={(button) => dispatch({ dmButton: button }, false, false)}
           dispatch2={gamepadAxisCallback}
           dispatch3={gamepadButtonCallback}
+          dispatchMidi={dispatchMidi}
+        />
+      );
+    case proto.SubType.KeyboardMania:
+      return (
+        <DropdownOutputBox
+          {...actionProps}
+          label={label}
+          title={title}
+          type={type}
+          mode={mode}
+          legendMode={legendMode}
+          midi={midi}
+          valMidi={valMidi}
+          extraOptions={
+            midi
+              ? undefined
+              : [
+                  {
+                    value: 'ProKeyboard_Keys',
+                    label: t('outputs.ProKeyboard_Keys', 'All Keys (Root Note)'),
+                  },
+                ]
+          }
+          valExtra={mapping?.proKeyMultiple != null ? 'ProKeyboard_Keys' : undefined}
+          dispatchExtra={(val) => {
+            if (val === 'ProKeyboard_Keys') {
+              // KeyboardMania has two octaves
+              dispatch({ proKeyMultiple: 24 }, true, true);
+            }
+          }}
+          e={proto.KeyboardManiaButtonType}
+          val={mapping?.kbmButton ?? undefined}
+          dispatch={(button) => dispatch({ kbmButton: button }, false, false)}
           dispatchMidi={dispatchMidi}
         />
       );
@@ -3697,6 +3731,7 @@ function SantrollerMapping({
     proto.BeatManiaButtonType[mapping.mapping.bmButton ?? -1] ||
     proto.GuitarFreaksButtonType[mapping.mapping.gfButton ?? -1] ||
     proto.DrumManiaButtonType[mapping.mapping.dmButton ?? -1] ||
+    proto.KeyboardManiaButtonType[mapping.mapping.kbmButton ?? -1] ||
     proto.ProKeyboardButtonType[mapping.mapping.proKeyboardButton ?? -1] ||
     (mapping.mapping.keycode != null
       ? hidKeyName(mapping.mapping.keycode)
@@ -4899,6 +4934,7 @@ function SantrollerLed({
           proto.BeatManiaButtonType[mapping.mapping.bmButton ?? -1] ||
           proto.GuitarFreaksButtonType[mapping.mapping.gfButton ?? -1] ||
           proto.DrumManiaButtonType[mapping.mapping.dmButton ?? -1] ||
+          proto.KeyboardManiaButtonType[mapping.mapping.kbmButton ?? -1] ||
           proto.ProKeyboardButtonType[mapping.mapping.proKeyboardButton ?? -1];
 
         // FixIcon, not FixLabel: the label joins the folder and name with a dot, for translations
@@ -5015,6 +5051,7 @@ function SantrollerLed({
       proto.BeatManiaButtonType[mapping.mapping.bmButton ?? -1] ||
       proto.GuitarFreaksButtonType[mapping.mapping.gfButton ?? -1] ||
       proto.DrumManiaButtonType[mapping.mapping.dmButton ?? -1] ||
+      proto.KeyboardManiaButtonType[mapping.mapping.kbmButton ?? -1] ||
       proto.ProKeyboardButtonType[mapping.mapping.proKeyboardButton ?? -1];
     const fixedLabel = FixLabel(mode, type, label, legendMode);
     if (fixedLabel) {
@@ -7082,7 +7119,7 @@ export function ControllerSourcesEditor({
             <Text size="xs" c="dimmed" px="sm" py={6}>
               {t(
                 'assignments.no_source_devices',
-                "No controller or adapter devices are set up yet. Add a USB Host, Bluetooth, MIDI, Wii or PS1/2 device on the Devices page and it will show up here.",
+                'No controller or adapter devices are set up yet. Add a USB Host, Bluetooth, MIDI, Wii or PS1/2 device on the Devices page and it will show up here.'
               )}
             </Text>
           )}

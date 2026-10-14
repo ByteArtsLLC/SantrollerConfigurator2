@@ -611,6 +611,11 @@ export function getGpioDefaults(subType: proto.SubType): proto.IMapping[] {
         gpioButton({ gamepadButton: proto.GamepadButtonType.Gamepad_Guide }),
       ];
 
+    case proto.SubType.KeyboardMania:
+      return Object.values(proto.KeyboardManiaButtonType)
+        .filter((v): v is proto.KeyboardManiaButtonType => typeof v === 'number')
+        .map((kbmButton) => gpioButton({ kbmButton }));
+
     case proto.SubType.ProGuitarMustang:
     case proto.SubType.ProGuitarSquier:
       return [
@@ -2868,6 +2873,13 @@ export function getMidiDrumDefaults(subType: proto.SubType, deviceId: number): p
     ];
   }
 
+  if (subType === proto.SubType.KeyboardMania) {
+    return [
+      // 24 Keys starting from root MIDI note 48 (C3), Channel 1, like the real controller
+      midiNoteButton(48, deviceId, { proKeyMultiple: 24 }, 1),
+    ];
+  }
+
   if (subType === proto.SubType.ProKeys) {
     return [
       // 25 Keys starting from root MIDI note 48 (C3), Channel 1
@@ -3329,6 +3341,7 @@ const SUBTYPE_OUTPUT_KEYS: Partial<Record<keyof proto.IOutput, proto.SubType>> =
     proto.SubType.DjHeroTurntable,
     proto.SubType.ProGuitarMustang,
     proto.SubType.ProKeys,
+    proto.SubType.KeyboardMania,
   ];
   for (const st of specificSubTypes) {
     for (const m of getGpioDefaults(st)) {
