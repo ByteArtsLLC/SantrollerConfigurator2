@@ -1237,20 +1237,17 @@ function OutputBox({
           {...actionProps}
           label={label}
           title={title}
-          extraOptions={
-            midi
-              ? undefined
-              : [
-                  {
-                    value: 'ProKeyboard_Keys',
-                    label: t('outputs.ProKeyboard_Keys', 'All Keys (Root Note)'),
-                  },
-                  {
-                    value: 'ProKeyboard_Key',
-                    label: t('outputs.ProKeyboard_Key', 'Single Key'),
-                  },
-                ]
-          }
+          // Shown for inputs too, so a key on a pro keyboard can drive any output
+          extraOptions={[
+            {
+              value: 'ProKeyboard_Keys',
+              label: t('outputs.ProKeyboard_Keys', 'All Keys (Root Note)'),
+            },
+            {
+              value: 'ProKeyboard_Key',
+              label: t('outputs.ProKeyboard_Key', 'Single Key'),
+            },
+          ]}
           valExtra={
             mapping?.proKeyMultiple != null
               ? 'ProKeyboard_Keys'
@@ -1718,9 +1715,11 @@ function DropdownOutputBox<
           ? extraLabel
           : valMidi && midiKindLabel
             ? midiKindLabel
-            : t(
-                `${label}.${FixLabel(mode ?? proto.FaceButtonMappingMode.LegendBased, type, v, legendMode)}`
-              )}
+            : !v
+              ? t('inputs.unmapped')
+              : t(
+                  `${label}.${FixLabel(mode ?? proto.FaceButtonMappingMode.LegendBased, type, v, legendMode)}`
+                )}
       </InputBase>
     ) : (
       <InputBase
@@ -1732,7 +1731,7 @@ function DropdownOutputBox<
         rightSectionPointerEvents="none"
         onClick={() => inputCombobox.toggleDropdown()}
       >
-        {extraLabel || midiKindLabel || t(`${label}.${v}`)}
+        {extraLabel || midiKindLabel || (v ? t(`${label}.${v}`) : t('inputs.unmapped'))}
       </InputBase>
     );
   return (
@@ -3158,7 +3157,7 @@ function SantrollerInput({
             valMidi={input.midi ?? undefined}
             dispatch={(mapping, _, analog) =>
               dispatch(
-                analog
+                analog && !isProKeyOutput(mapping)
                   ? {
                       usbAxis: {
                         deviceid: (input.usbAxis?.deviceid ||
@@ -3192,6 +3191,10 @@ function SantrollerInput({
             mapping={input.usbAxis?.axis || input.usbButton?.button}
             legendMode={legendMode}
           />
+          <ProKeyInputNumber
+            output={input.usbButton?.button}
+            dispatch={(button) => dispatch({ usbButton: { ...input.usbButton!, button } })}
+          />
         </>
       )}
       {(device?.type === 'bt' ||
@@ -3206,7 +3209,7 @@ function SantrollerInput({
             valMidi={input.midi ?? undefined}
             dispatch={(mapping, _, analog) =>
               dispatch(
-                analog
+                analog && !isProKeyOutput(mapping)
                   ? {
                       btAxis: {
                         deviceid: (input.btAxis?.deviceid || input.btButton?.deviceid || deviceId)!,
@@ -3235,6 +3238,10 @@ function SantrollerInput({
             mode={mode}
             mapping={input.btAxis?.axis || input.btButton?.button}
             legendMode={legendMode}
+          />
+          <ProKeyInputNumber
+            output={input.btButton?.button}
+            dispatch={(button) => dispatch({ btButton: { ...input.btButton!, button } })}
           />
         </>
       )}
@@ -3620,6 +3627,36 @@ function SantrollerInput({
 }
 function isAnalog(input: proto.IInput) {
   return isAnalogInput(input);
+}
+// Pro keys keys are read as buttons, the firmware only decodes them from button inputs
+function isProKeyOutput(output: proto.IOutput) {
+  return output.proKeySingle != null || output.proKeyMultiple != null;
+}
+// Picks which key of a pro keyboard (or the first key of a range) an input reads, so a key
+// can drive any output, and not just a pro keys output
+function ProKeyInputNumber({
+  output,
+  dispatch,
+}: {
+  output?: proto.IOutput | null;
+  dispatch: (output: proto.IOutput) => void;
+}) {
+  const { t } = useTranslation();
+  if (output?.proKeySingle == null) {
+    return null;
+  }
+  return (
+    <>
+      <Space h="md" />
+      <NumberInput
+        label={t('inputs.pro_key_index', 'Key Number (1 - 25)')}
+        value={output.proKeySingle}
+        min={1}
+        max={25}
+        onChange={(val) => dispatch({ proKeySingle: Number(val) || 1 })}
+      />
+    </>
+  );
 }
 const crkdDrumMappings: Record<proto.CrkdDrumAxisType, keyof proto.ICrkdCalibrationData> = {
   [proto.CrkdDrumAxisType.CrkdGreenPad]: 'greenPad',

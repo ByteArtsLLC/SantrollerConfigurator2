@@ -3168,6 +3168,9 @@ export function convertHostOutput(
   hostType: proto.SubType,
   emulatedType: proto.SubType
 ): proto.IOutput | undefined {
+  if (emulatedType === proto.SubType.KeyboardMania && hostType !== emulatedType) {
+    return convertToKeyboardMania(output);
+  }
   if (hostType === emulatedType || output.gamepadButton != null || output.gamepadAxis != null) {
     return output;
   }
@@ -3180,6 +3183,35 @@ export function convertHostOutput(
     sameOutput(hostRoles[r]!, output)
   );
   return role ? emulatedRoles[role] : undefined;
+}
+
+const KEYBOARDMANIA_KEY_COUNT = 24;
+const KEYBOARDMANIA_GAMEPAD: Partial<
+  Record<proto.GamepadButtonType, proto.KeyboardManiaButtonType>
+> = {
+  [proto.GamepadButtonType.Gamepad_Start]: proto.KeyboardManiaButtonType.KeyboardMania_Start,
+  [proto.GamepadButtonType.Gamepad_Back]: proto.KeyboardManiaButtonType.KeyboardMania_Select,
+  [proto.GamepadButtonType.Gamepad_DpadUp]: proto.KeyboardManiaButtonType.KeyboardMania_WheelUp,
+  [proto.GamepadButtonType.Gamepad_DpadDown]: proto.KeyboardManiaButtonType.KeyboardMania_WheelDown,
+};
+
+// KeyboardMania only has its own report, so gamepad outputs are converted too. Its two octaves
+// are the first 24 keys of a pro keyboard, the top C has nowhere to go.
+function convertToKeyboardMania(output: proto.IOutput): proto.IOutput | undefined {
+  if (output.proKeyMultiple != null) {
+    return { proKeyMultiple: Math.min(output.proKeyMultiple, KEYBOARDMANIA_KEY_COUNT) };
+  }
+  if (output.proKeySingle != null) {
+    return output.proKeySingle >= 1 && output.proKeySingle <= KEYBOARDMANIA_KEY_COUNT
+      ? { kbmButton: output.proKeySingle as proto.KeyboardManiaButtonType }
+      : undefined;
+  }
+  if (output.kbmButton != null) {
+    return output;
+  }
+  const kbmButton =
+    output.gamepadButton != null ? KEYBOARDMANIA_GAMEPAD[output.gamepadButton] : undefined;
+  return kbmButton != null ? { kbmButton } : undefined;
 }
 
 // The input side always uses the host device's own outputs, as that is how the firmware
@@ -3331,6 +3363,8 @@ export const USB_HOST_INPUT_SUBTYPES: proto.SubType[] = [
 const SUBTYPE_OUTPUT_KEYS: Partial<Record<keyof proto.IOutput, proto.SubType>> = (() => {
   const map: Partial<Record<keyof proto.IOutput, proto.SubType>> = {
     keycode: proto.SubType.KeyboardMouse,
+    // No defaults use a single key, so it is never picked up below
+    proKeySingle: proto.SubType.ProKeys,
   };
   const specificSubTypes = [
     proto.SubType.GuitarHeroGuitar,

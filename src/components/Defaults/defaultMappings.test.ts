@@ -173,6 +173,34 @@ describe('USB host defaults for a different emulated type', () => {
     expect(mappings.some((m) => m.mapping?.rbAxis != null)).toBe(false);
   });
 
+  it('maps a pro keyboard to a KeyboardMania controller', () => {
+    const mappings = getDefaultMappings(
+      'usbHost',
+      proto.SubType.KeyboardMania,
+      2,
+      undefined,
+      proto.SubType.ProKeys
+    );
+    // keys are read as a button range from the pro keyboard, and only two octaves fit
+    expect(
+      mappings.find((m) => m.input?.usbButton?.button?.proKeyMultiple != null)?.mapping
+    ).toEqual({ proKeyMultiple: 24 });
+    expect(
+      mappings.find(
+        (m) => m.input?.usbButton?.button?.gamepadButton === proto.GamepadButtonType.Gamepad_Start
+      )?.mapping
+    ).toEqual({ kbmButton: proto.KeyboardManiaButtonType.KeyboardMania_Start });
+    expect(
+      mappings.find(
+        (m) => m.input?.usbButton?.button?.gamepadButton === proto.GamepadButtonType.Gamepad_Back
+      )?.mapping
+    ).toEqual({ kbmButton: proto.KeyboardManiaButtonType.KeyboardMania_Select });
+    // KeyboardMania has no gamepad report, so nothing is left writing into one
+    expect(
+      mappings.every((m) => m.mapping?.kbmButton != null || m.mapping?.proKeyMultiple != null)
+    ).toBe(true);
+  });
+
   it('keeps everything when the host matches the emulated type', () => {
     const mappings = getDefaultMappings('usbHost', proto.SubType.ProGuitarMustang, 0);
     expect(
