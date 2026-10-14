@@ -253,11 +253,13 @@ const PS2_STANDARD = [
   PT.PS2ControllerTypeDigital,
   PT.PS2ControllerTypeJogCon,
   PT.PS2ControllerTypeGunCon,
+  PT.PS2ControllerTypeFishingRod,
 ];
 const PS2_STICKS = [
   PT.PS2ControllerTypeDualshock2,
   PT.PS2ControllerTypeDualshock,
   PT.PS2ControllerTypeFlightStick,
+  PT.PS2ControllerTypeFishingRod,
 ];
 const PS2_STICK_NAMES = ['LeftStickX', 'LeftStickY', 'RightStickX', 'RightStickY'];
 const PS2_SIGNED = new Set([...PS2_STICK_NAMES, 'MouseX', 'MouseY', 'NegConTwist']);
@@ -289,6 +291,7 @@ const PS2_TYPE_NAMES: Partial<Record<proto.PS2ControllerType, string>> = {
   [PT.PS2ControllerTypeJogCon]: 'legacyImport.ps2Types.JogCon',
   [PT.PS2ControllerTypeGunCon]: 'legacyImport.ps2Types.GunCon',
   [PT.PS2ControllerTypeMouse]: 'legacyImport.ps2Types.Mouse',
+  [PT.PS2ControllerTypeFishingRod]: 'legacyImport.ps2Types.FishingRod',
 };
 const PS2_TYPES = Object.keys(PS2_TYPE_NAMES).map(Number) as proto.PS2ControllerType[];
 

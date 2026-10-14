@@ -1462,6 +1462,7 @@ export function getPs2Defaults(
   const isPopn = cntType === proto.PS2ControllerType.PS2ControllerTypePopNMusic;
   const isGuitarFreaks = cntType === proto.PS2ControllerType.PS2ControllerTypeGuitarFreaks;
   const isDrumMania = cntType === proto.PS2ControllerType.PS2ControllerTypeDrumMania;
+  const isFishingRod = cntType === proto.PS2ControllerType.PS2ControllerTypeFishingRod;
 
   if (isDrumMania || subType === proto.SubType.DrumMania) {
     // DrumMania kits are plain digital pads, each pad sends a fixed button
@@ -1985,6 +1986,62 @@ export function getPs2Defaults(
       }),
       ps2TriggerButton(proto.PS2ButtonType.PS2ButtonR2, deviceId, {
         gamepadAxis: proto.GamepadAxisType.Gamepad_RightTrigger,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonSelect, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Back,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonStart, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Start,
+      }),
+    ];
+  }
+
+  if (isFishingRod) {
+    return [
+      ps2Axis(
+        proto.PS2AxisType.PS2AxisLeftStickX,
+        deviceId,
+        { gamepadAxis: proto.GamepadAxisType.Gamepad_LeftStickX },
+        32767
+      ),
+      ps2Axis(
+        proto.PS2AxisType.PS2AxisLeftStickY,
+        deviceId,
+        { gamepadAxis: proto.GamepadAxisType.Gamepad_LeftStickY },
+        32767
+      ),
+      ps2Axis(
+        proto.PS2AxisType.PS2AxisFishingReel,
+        deviceId,
+        { gamepadAxis: proto.GamepadAxisType.Gamepad_RightStickY },
+        32767
+      ),
+      ps2Button(proto.PS2ButtonType.PS2ButtonCross, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_A,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonCircle, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_B,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonSquare, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_X,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonTriangle, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Y,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonL1, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_LeftShoulder,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonR1, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_RightShoulder,
+      }),
+      ps2TriggerButton(proto.PS2ButtonType.PS2ButtonL2, deviceId, {
+        gamepadAxis: proto.GamepadAxisType.Gamepad_LeftTrigger,
+      }),
+      ps2TriggerButton(proto.PS2ButtonType.PS2ButtonR2, deviceId, {
+        gamepadAxis: proto.GamepadAxisType.Gamepad_RightTrigger,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonL3, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_LeftThumbClick,
       }),
       ps2Button(proto.PS2ButtonType.PS2ButtonSelect, deviceId, {
         gamepadButton: proto.GamepadButtonType.Gamepad_Back,

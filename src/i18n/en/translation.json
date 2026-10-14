@@ -590,6 +590,7 @@
     "PS2AxisNegConIi": "II Button (Analog)",
     "PS2AxisNegConL": "L Button (Analog)",
     "PS2AxisJogConWheel": "Jog Wheel",
+    "PS2AxisFishingReel": "Fishing Reel",
     "PS2AxisGunConHSync": "H-Sync",
     "PS2AxisGunConVSync": "V-Sync",
     "PS2AxisDualshock2Cross": "Cross (Pressure)",
@@ -1484,6 +1485,7 @@
       "PS2ControllerTypePopNMusic": "Pop'n Music Controller",
       "PS2ControllerTypeGuitarFreaks": "GuitarFreaks Guitar",
       "PS2ControllerTypeDrumMania": "DrumMania Drum Kit",
+      "PS2ControllerTypeFishingRod": "Fishing Rod Controller",
       "PS2ControllerTypeUnknown": "Disconnected"
     }
   },
@@ -1693,6 +1695,7 @@
     "PS2ControllerTypePopNMusic": "Pop'n Music Controller",
     "PS2ControllerTypeGuitarFreaks": "GuitarFreaks Guitar",
     "PS2ControllerTypeDrumMania": "DrumMania Drum Kit",
+    "PS2ControllerTypeFishingRod": "Fishing Rod Controller",
     "PS2ControllerTypeUnknown": "Disconnected"
   },
   "bluetooth": {
@@ -5525,7 +5528,8 @@
       "NegCon": "NeGcon",
       "JogCon": "JogCon",
       "GunCon": "GunCon",
-      "Mouse": "PS2 mouse"
+      "Mouse": "PS2 mouse",
+      "FishingRod": "Fishing rod"
     },
     "wiiShortcutOutside": "A Wii shortcut binding outside of its device was skipped.",
     "ps2ShortcutOutside": "A PS2 shortcut binding outside of its device was skipped.",

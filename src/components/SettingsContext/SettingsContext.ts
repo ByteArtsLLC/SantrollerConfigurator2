@@ -1434,14 +1434,17 @@ export const useConfigStore = create<ConfigState & Actions>()(
             const event = deviceEvent.usb;
             if (event.id in state.deviceStatus) {
               const usbDevices = state.deviceStatus[event.id].usbDevices;
-              if (event.connected) {
-                usbDevices[usbDeviceKey(event)] = event;
-              } else {
-                for (const [key, existing] of Object.entries(usbDevices)) {
-                  if (existing.port === event.port && existing.interface === event.interface) {
-                    delete usbDevices[Number(key)];
-                  }
+              const targetKey = usbDeviceKey(event);
+              for (const [key, existing] of Object.entries(usbDevices)) {
+                if (
+                  Number(key) === targetKey ||
+                  (existing.port === event.port && existing.interface === event.interface)
+                ) {
+                  delete usbDevices[Number(key)];
                 }
+              }
+              if (event.connected) {
+                usbDevices[targetKey] = event;
               }
             }
           }

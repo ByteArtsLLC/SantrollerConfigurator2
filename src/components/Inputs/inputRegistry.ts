@@ -97,6 +97,11 @@ function ps2InputsForType(type: proto.PS2ControllerType): { axes: string[]; butt
       };
     case T.PS2ControllerTypeJogCon:
       return { axes: ['PS2AxisJogConWheel'], buttons: PS2_STANDARD_BUTTONS };
+    case T.PS2ControllerTypeFishingRod:
+      return {
+        axes: ['PS2AxisLeftStickX', 'PS2AxisLeftStickY', 'PS2AxisFishingReel'],
+        buttons: PS2_STANDARD_BUTTONS,
+      };
     case T.PS2ControllerTypeGunCon:
       return { axes: prefixed(proto.PS2AxisType, 'PS2AxisGunCon'), buttons: PS2_STANDARD_BUTTONS };
     case T.PS2ControllerTypeMouse:
