@@ -2390,7 +2390,9 @@ function SantrollerInput({
     [device?.joybusCntType]
   );
 
-  const effectiveUsbType = input.midi ? proto.SubType.Midi : (matchingSlot?.item.usbType ?? type);
+  const effectiveUsbType = input.midi
+    ? proto.SubType.Midi
+    : (matchingSlot?.item.usbType ?? matchingSlot?.item.usbDevice?.subtype ?? type);
 
   const effectiveBtType = useMemo(() => {
     if (input.midi) {
@@ -2402,11 +2404,15 @@ function SantrollerInput({
       return inferred;
     }
 
-    if (matchingSlot?.item.bluetoothType != null) {
-      return matchingSlot.item.bluetoothType;
+    const slotType =
+      matchingSlot?.item.bluetoothType ?? matchingSlot?.item.bluetoothDevice?.subtype;
+    if (slotType != null) {
+      return slotType;
     }
 
-    const assigned = allAssignments.find((a) => a.bluetoothType != null)?.bluetoothType;
+    const assigned = allAssignments
+      .map((a) => a.bluetoothType ?? a.bluetoothDevice?.subtype)
+      .find((x) => x != null);
     if (assigned != null) {
       return assigned;
     }
