@@ -6816,6 +6816,16 @@ export function ControllerSourcesEditor({
       );
   }, [assignments, slotIds]);
 
+  const showUsbHost =
+    hasUsbHost || assignments.some((x) => x.usbType != null || x.usbDevice != null);
+  const showBluetooth =
+    hasBluetooth || assignments.some((x) => x.bluetoothType != null || x.bluetoothDevice != null);
+  const showMidi =
+    hasMidi || assignments.some((x) => x.midiChannel != null || x.midiProGuitar != null);
+  const showWii = hasWii || assignments.some((x) => x.wiiExt != null);
+  const showPsx = hasPsx || assignments.some((x) => x.ps2Cnt != null);
+  const hasAnySource = showUsbHost || showBluetooth || showMidi || showWii || showPsx;
+
   return (
     <Stack gap="xs">
       <div>
@@ -7062,7 +7072,15 @@ export function ControllerSourcesEditor({
           </Button>
         </Menu.Target>
         <Menu.Dropdown>
-          {(hasUsbHost || assignments.some((x) => x.usbType != null || x.usbDevice != null)) && (
+          {!hasAnySource && (
+            <Text size="xs" c="dimmed" px="sm" py={6}>
+              {t(
+                'assignments.no_source_devices',
+                "No controller or adapter devices are set up yet. Add a USB Host, Bluetooth, MIDI, Wii or PS1/2 device on the Devices page and it will show up here.",
+              )}
+            </Text>
+          )}
+          {showUsbHost && (
             <>
               <Menu.Item onClick={() => onAddSource('usbType')}>
                 {t('assignments.source.usbType')}
@@ -7072,8 +7090,7 @@ export function ControllerSourcesEditor({
               </Menu.Item>
             </>
           )}
-          {(hasBluetooth ||
-            assignments.some((x) => x.bluetoothType != null || x.bluetoothDevice != null)) && (
+          {showBluetooth && (
             <>
               <Menu.Item onClick={() => onAddSource('bluetoothType')}>
                 {t('assignments.source.bluetoothType')}
@@ -7083,8 +7100,7 @@ export function ControllerSourcesEditor({
               </Menu.Item>
             </>
           )}
-          {(hasMidi ||
-            assignments.some((x) => x.midiChannel != null || x.midiProGuitar != null)) && (
+          {showMidi && (
             <>
               <Menu.Item onClick={() => onAddSource('midiChannel')}>
                 {t('assignments.source.midiChannel')}
@@ -7094,12 +7110,12 @@ export function ControllerSourcesEditor({
               </Menu.Item>
             </>
           )}
-          {(hasWii || assignments.some((x) => x.wiiExt != null)) && (
+          {showWii && (
             <Menu.Item onClick={() => onAddSource('wiiExt')}>
               {t('assignments.source.wiiExt')}
             </Menu.Item>
           )}
-          {(hasPsx || assignments.some((x) => x.ps2Cnt != null)) && (
+          {showPsx && (
             <Menu.Item onClick={() => onAddSource('ps2Cnt')}>
               {t('assignments.source.ps2Cnt')}
             </Menu.Item>
