@@ -33,7 +33,7 @@ export function SetupPage() {
         <Button
           component="a"
           download="santroller_pico1.uf2"
-          href="santroller_pico1.uf2"
+          href={`santroller_pico1.uf2?v=${__CONFIGURATOR_COMMIT__}`}
           target="_blank"
         >
           {t('connect.downloadPico1')}
@@ -42,7 +42,7 @@ export function SetupPage() {
         <Button
           component="a"
           download="santroller_pico2.uf2"
-          href="santroller_pico2.uf2"
+          href={`santroller_pico2.uf2?v=${__CONFIGURATOR_COMMIT__}`}
           target="_blank"
         >
           {t('connect.downloadPico2')}

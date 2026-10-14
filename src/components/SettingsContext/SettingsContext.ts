@@ -62,7 +62,7 @@ const FIRMWARE_APPLY_TIMEOUT_MS = 120_000;
 const FIRMWARE_APPLY_PROGRESS_INTERVAL_MS = 250;
 // A file this tool ships next to the firmware, or undefined if it is missing
 async function fetchShipped(file: string) {
-  const response = await fetch(file);
+  const response = await fetch(file, { cache: 'no-store' });
   return response.ok ? (await response.text()).trim() : undefined;
 }
 
@@ -2273,7 +2273,9 @@ export const useConfigStore = create<ConfigState & Actions>()(
       }
       let firmwareSize = 0;
       try {
-        const updateFile = await (await fetch(`santroller_ota_${state.type}.bin`)).bytes();
+        const updateFile = await (
+          await fetch(`santroller_ota_${state.type}.bin`, { cache: 'no-cache' })
+        ).bytes();
         firmwareSize = updateFile.length;
         const fastFirmwareUploadReports = findFastFirmwareUploadReports(hidDevice);
         const firmwareInfo = proto.FirmwareUpdate.create({
@@ -2919,7 +2921,9 @@ export async function buildUf2FromConfig(
   { buffer, mainLen, auxLen }: { buffer: Uint8Array; mainLen: number; auxLen: number }
 ) {
   const uf2File = new Uint8Array(
-    await (await fetch(pico2 ? '/santroller_pico2.uf2' : '/santroller_pico1.uf2')).arrayBuffer()
+    await (
+      await fetch(pico2 ? '/santroller_pico2.uf2' : '/santroller_pico1.uf2', { cache: 'no-cache' })
+    ).arrayBuffer()
   );
   const crc = new CRC32().calculate(buffer);
 
