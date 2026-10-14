@@ -13,6 +13,7 @@ import {
   IconDeviceGamepad3,
   IconGitCompare,
   IconGuitarPick,
+  IconListCheck,
   IconMoon,
   IconPiano,
   IconPlus,
@@ -363,6 +364,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
               }}
               label={t('nav.differences', 'Firmware Differences')}
               leftSection={<IconGitCompare size={16} stroke={1.5} />}
+            />
+          )}
+          {!simpleMode && (
+            <NavLink
+              component={RouterNavLink}
+              to="/assignments"
+              onClick={() => {
+                pollInputs(false);
+                nav('/assignments');
+              }}
+              label={t('nav.assignments', 'How Assignments Work')}
+              leftSection={<IconListCheck size={16} stroke={1.5} />}
             />
           )}
           {!connected && (

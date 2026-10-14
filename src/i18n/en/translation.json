@@ -175,6 +175,7 @@
     "supportedHardware": "Supported Hardware",
     "compatibility": "Console Compatibility",
     "differences": "Firmware Differences",
+    "assignments": "How Assignments Work",
     "peripherals": "Peripherals",
     "peripheralAddress": "Peripheral ({{address}})"
   },
@@ -796,6 +797,152 @@
       "pin": "LE Pin (Latch Enable)"
     },
     "count": "LED Count"
+  },
+  "assignmentsGuide": {
+    "title": "How Assignments Work",
+    "subtitle": "Santroller 2 can hold many profiles. Assignments are the rules that decide which profiles are active, what each one talks to, and which connected controllers it reads from.",
+    "openProfiles": "Go to Profiles",
+    "summary": {
+      "title": "The short version",
+      "rules": {
+        "title": "A profile is only used when one of its rules matches",
+        "body": "Each profile has one or more <strong>rules</strong>. A profile with no rules is never used, and a profile whose rules don't match right now sits idle until they do."
+      },
+      "and": {
+        "title": "Everything in a rule must be true",
+        "body": "A rule is a list of conditions, such as <strong>USB</strong> and <strong>a Wii guitar is plugged into the adapter</strong>. The rule only matches when all of them are true at once."
+      },
+      "or": {
+        "title": "Any one rule is enough",
+        "body": "Extra rules are alternatives, shown with <strong>OR</strong> between them. The first rule that matches is used and the rest are ignored."
+      },
+      "pins": {
+        "title": "Board pins don't need assigning",
+        "body": "Buttons, sensors and peripherals wired directly to the board are always available to every profile. Only external controllers and adapters need to be added to a rule."
+      }
+    },
+    "anatomy": {
+      "title": "What goes in a rule",
+      "description": "Every rule on the Profiles page is a card with the same three steps. A rule needs at least one condition, and the target connection is the one almost every rule has.",
+      "target": {
+        "body": "How this device presents itself to the console or PC: <strong>USB</strong>, <strong>Bluetooth</strong>, the <strong>PS1/2 port</strong>, a <strong>Wii extension</strong>, the <strong>GameCube / N64 port</strong> or the <strong>SNES / NES port</strong>. Bluetooth needs a board with Bluetooth, and the console port targets only match once a console is actually talking to the device on that port."
+      },
+      "source": {
+        "body": "An external controller this profile reads from: a Wii extension, a PS1/2 controller, a USB or Bluetooth controller (by type or a specific device), or a MIDI channel. The rule only matches while a matching controller is connected, and each one gets a <strong>slot number</strong> that your inputs use to read from it."
+      },
+      "trigger": {
+        "body": "An optional button condition, either <strong>held at startup</strong> or <strong>pressed any time</strong>. Use it to switch between profiles from the controller itself."
+      },
+      "exampleTitle": "Example: a profile with two rules",
+      "exampleCaption": "This profile is used over USB when a Wii guitar is plugged in, or over Bluetooth with no Wii guitar needed. Here a Wii guitar is plugged in over USB, so Rule #1 shows as matching. If both could match, Rule #1 wins because it comes first. The bar at the top of each card sums up the whole rule."
+    },
+    "multiSource": {
+      "title": "Several controllers in one rule",
+      "description": "A rule can list more than one connected controller. The profile then reads from all of them at once, and you can map each input from whichever controller suits it best.",
+      "exampleTitle": "Example: MIDI drum kit with a gamepad for navigation",
+      "exampleIntro": "An electronic drum kit is great for playing but has no way to press Start or move through menus. Put the kit and a USB gamepad in the same rule, and the console sees one drum controller that gets its pads from the kit and its buttons from the gamepad.",
+      "mappingTitle": "Then map your inputs from the matching slot",
+      "mappingMidi": "<strong>Drum pads and cymbals</strong> come from <strong>{{slot}}</strong>, using the kit's note numbers.",
+      "mappingGamepad": "<strong>Start, Select, Home and the D-pad</strong> come from <strong>{{slot}}</strong>.",
+      "notesTitle": "Things to know",
+      "notes": {
+        "allRequired": "Every controller in a rule has to be connected for it to match, which is why Rule #2 is there. Slot numbers are shared between rules, so your pad mappings keep working whichever rule matched.",
+        "midiSeen": "A MIDI channel only counts as connected once the kit has sent something on it. After plugging in, hit a pad and the profile will pick it up.",
+        "hub": "Two USB devices on the host port need a USB hub. If your kit has a 5-pin MIDI output, you can use a MIDI DIN input instead and leave the USB port free for the gamepad.",
+        "anyCombo": "The same idea works with any mix of sources, such as a Wii guitar with a USB gamepad for navigation."
+      },
+      "exampleCaption": "Rule #2 is optional. It lets the kit work on its own when the gamepad isn't plugged in."
+    },
+    "selection": {
+      "title": "How profiles get chosen",
+      "description": "Assignments are re-checked whenever the device starts, a controller is plugged in or unplugged, the console mode changes, or an any-time trigger is pressed.",
+      "steps": {
+        "order": {
+          "title": "Profiles are checked from top to bottom",
+          "body": "Each profile tries its rules in order and uses the first one that matches. Profile order is the order they appear in the sidebar."
+        },
+        "exclusive": {
+          "title": "Bluetooth, PS1/2, Wii, GameCube / N64 and SNES / NES targets go to one profile",
+          "body": "Those ports can only act as one controller, so the first matching profile takes the port. Later profiles that ask for the same target won't match it."
+        },
+        "usb": {
+          "title": "USB can be shared",
+          "body": "Every profile whose rule matches over USB becomes active at the same time, and the console or PC sees one controller per profile on the same cable. This is how a single board can act as several players, but it also means two profiles with plain USB rules will <strong>both</strong> show up."
+        },
+        "claim": {
+          "title": "Each connected controller belongs to one profile",
+          "body": "When a rule matches, it claims the controllers it used, so a later profile can't read from the same one. If more identical controllers are still free, the same profile is used again for each of them, so two USB guitars through a hub give you two players from one profile."
+        }
+      }
+    },
+    "triggers": {
+      "title": "Console modes and triggers",
+      "headers": {
+        "option": "Option",
+        "behaviour": "What it does"
+      },
+      "rows": {
+        "auto": {
+          "behaviour": "Matches on any console or PC, and the device works out which console it is plugged into. This is the right choice for most profiles."
+        },
+        "forced": {
+          "behaviour": "Skips console detection and always uses the chosen mode while this profile is active. If the configurator is open, the switch waits until you close it."
+        },
+        "specific": {
+          "behaviour": "Only matches once the device has detected that console. Use it for a profile that should only apply on, say, a PS3."
+        },
+        "boot": {
+          "behaviour": "Only matches if the button is held as the device starts up or changes console mode. The choice lasts until the next restart."
+        },
+        "anytime": {
+          "behaviour": "Pressing the button re-checks the assignments straight away with this rule matching, so you can switch profiles mid-session. The profile stays active until the next re-check."
+        },
+        "inverted": {
+          "behaviour": "Flips the button condition, so the rule matches when the button is <strong>not</strong> held. Pair it with a normal trigger to make an either-or switch."
+        }
+      }
+    },
+    "slots": {
+      "title": "Slots",
+      "body": "Every connected controller or adapter you add to a profile gets a slot number, such as <strong>Slot 1: USB Host (Guitar)</strong>. When you map an input from an external controller, you pick the slot it comes from. Slot numbers are counted per kind of controller across the whole profile, so the same slot means the same controller whichever rule matched.",
+      "migrate": "Profiles made with older versions numbered slots separately in each rule. The Profiles page shows a <strong>Migrate slot numbering</strong> button for these, and it moves your inputs across for you."
+    },
+    "recipes": {
+      "title": "Common setups",
+      "usb": {
+        "title": "A plain USB controller",
+        "body": "One profile with one rule: <strong>USB (Auto-detect)</strong>. Everything wired to the board's pins just works."
+      },
+      "adapter": {
+        "title": "A Wii or PS1/2 adapter",
+        "body": "One rule with <strong>USB</strong> and the controller type as a connected controller, for example <strong>Wii Extension: Guitar</strong>. Add another profile with <strong>Wii Extension: Drums</strong> if you want different mappings when drums are plugged in instead."
+      },
+      "wiredWireless": {
+        "title": "Different settings over USB and Bluetooth",
+        "body": "Make two profiles: one with a <strong>USB</strong> rule and one with a <strong>Bluetooth</strong> rule. Each connection uses the profile meant for it."
+      },
+      "bootSwitch": {
+        "title": "Pick a profile by holding a button at startup",
+        "body": "Give profile A a rule with <strong>USB</strong> and <strong>Hold Button at Startup</strong>. Give profile B the same rule with the same button and <strong>Inverted</strong> turned on. Without the inverted trigger, profile B would match too and you'd get two controllers when the button is held."
+      },
+      "twoPlayers": {
+        "title": "Two USB guitars through one board",
+        "body": "One profile with <strong>USB</strong> and <strong>USB Host (By Type): Guitar</strong>. Each guitar plugged in gets its own copy of the profile, and the console sees two guitars."
+      },
+      "profileA": "Profile A",
+      "profileB": "Profile B",
+      "triggerButton": "Green Fret"
+    },
+    "troubleshooting": {
+      "title": "When something doesn't show up",
+      "items": {
+        "noRule": "A profile with no rules, or no target connection, is never used. The Profiles page warns about both.",
+        "notConnected": "A rule with a connected controller only matches while that controller is plugged in and detected. Check the Devices page to see what the board can see.",
+        "taken": "If a profile never activates over Bluetooth or a console port, a profile higher up the list probably took that port first.",
+        "duplicate": "If the PC sees more controllers than you expect, more than one profile matched over USB. Add a trigger or a connected-controller condition so only the one you want matches.",
+        "slotMissing": "If a controller doesn't appear when mapping an input, add it under Connected Controller / Adapter in that profile's rules first."
+      }
+    }
   },
   "firmwareDifferences": {
     "title": "Firmware Differences (Santroller 2 vs Santroller 1)",
@@ -1422,6 +1569,7 @@
     "title": "Assignments",
     "description": "One of the key improvements with Santroller 2 is that you can have multiple profiles, but this means you need to tell Santroller 2 when you want your profiles used. Assignments are how this is done. Assignments come in two parts - one is the assignment itself, such as say assigning to plugging a Wii Guitar into a Wii Adapter, and the emulation type, such as USB or Bluetooth. This lets you do things like using different profiles for bluetooth vs for USB, but does mean you have to wrap your head around assignments.",
     "add": "Add Assignment",
+    "learnMore": "How do assignments work?",
     "specificConsole": "Require specific device",
     "specificConsoleDesc": "Enable to apply this profile when plugged into a specific device, for example setting this to PS3 would only apply this profile when plugged into a PS3.",
     "forcedType": "Force device type",

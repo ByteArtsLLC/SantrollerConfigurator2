@@ -1,4 +1,5 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { AssignmentsPage } from './pages/Assignments.page';
 import { AuthPage } from './pages/Auth.page';
 import { CommercialToolPage } from './pages/Commercial';
 import { CompatibilityPage } from './pages/Compatibility.page';
@@ -54,6 +55,10 @@ const router = createBrowserRouter([
   {
     path: '/firmware-differences',
     element: <FirmwareDifferencesPage />,
+  },
+  {
+    path: '/assignments',
+    element: <AssignmentsPage />,
   },
   {
     path: '/devices',

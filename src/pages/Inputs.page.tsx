@@ -24,12 +24,13 @@ import {
   IconUsb,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import {
   Accordion,
   ActionIcon,
   Alert,
+  Anchor,
   Badge,
   Button,
   Card,
@@ -99,6 +100,7 @@ import {
   getProfileSlots,
   getProfileWideSlotIds,
   getPS2InputFilters,
+  getRuleSummary,
   getSNESInputFilters,
   isAnalogInput,
   isDrumInput,
@@ -7248,15 +7250,6 @@ function SantrollerAssignmentList({
     return getProfileSlotIds({ ...profileForSlots, assignments: lists })[listIdx];
   }, [profileForSlots, assignments, listIdx]);
 
-  const hostIndices = useMemo(() => {
-    return assignments
-      .map((item, idx) => ({ item, idx, type: getHostSourceType(item) }))
-      .filter(
-        (x): x is { item: proto.IProfileAssignmentInfo; idx: number; type: string } =>
-          x.type !== null
-      );
-  }, [assignments]);
-
   const triggerIdx = assignments.findIndex((x) => OtherAssignmentTypes.some((y) => x[y] != null));
   const triggerItem = triggerIdx !== -1 ? assignments[triggerIdx] : undefined;
 
@@ -7487,88 +7480,7 @@ function SantrollerAssignmentList({
       : []),
   ];
 
-  const summaryText = useMemo(() => {
-    let emul = '';
-    if (emulationItem?.consoleType) {
-      if (emulationItem.consoleType.forcedType) {
-        emul = t('assignments.summary.usb', {
-          type: t(`consoleMode.${proto.ConsoleMode[emulationItem.consoleType.forcedType]}`),
-        });
-      } else if (emulationItem.consoleType.consoleType) {
-        emul = t('assignments.summary.usb', {
-          type: t(`consoleType.${proto.ConsoleType[emulationItem.consoleType.consoleType]}`),
-        });
-      } else {
-        emul = t('assignments.preset_usb_auto');
-      }
-    } else if (emulationItem?.bluetooth) {
-      emul = t('assignments.emulation_mode.bluetooth');
-    } else if (emulationItem?.ps2Emulation) {
-      emul = t('assignments.emulation_mode.ps2');
-    } else if (emulationItem?.wiiEmulation) {
-      emul = t('assignments.emulation_mode.wii');
-    } else if (emulationItem?.joybusEmulation) {
-      emul = t('assignments.emulation_mode.joybus');
-    } else if (emulationItem?.snesEmulation) {
-      emul = t('assignments.emulation_mode.snes');
-    } else {
-      emul = t('assignments.no_emulation');
-    }
-
-    const hostParts: string[] = [];
-
-    for (const { item } of hostIndices) {
-      if (item.wiiExt != null) {
-        hostParts.push(
-          t('assignments.summary.wii', { type: t(`wiiExt.${proto.WiiExtType[item.wiiExt]}`) })
-        );
-      } else if (item.ps2Cnt != null) {
-        hostParts.push(
-          t('assignments.summary.ps2', {
-            type: t(`ps2Cnt.${proto.PS2ControllerType[item.ps2Cnt]}`),
-          })
-        );
-      } else if (item.usbType != null) {
-        hostParts.push(
-          t('assignments.summary.usb', { type: t(`subType.${proto.SubType[item.usbType]}`) })
-        );
-      } else if (item.usbDevice != null) {
-        hostParts.push(t('assignments.source.usbDevice'));
-      } else if (item.bluetoothType != null) {
-        hostParts.push(
-          t('assignments.summary.bluetooth', {
-            type: t(`subType.${proto.SubType[item.bluetoothType]}`),
-          })
-        );
-      } else if (item.bluetoothDevice != null) {
-        hostParts.push(t('assignments.source.bluetoothDevice'));
-      } else if (item.midiChannel != null) {
-        hostParts.push(t('assignments.summary.midiChannel', { channel: item.midiChannel }));
-      } else if (item.midiProGuitar != null) {
-        hostParts.push(
-          t('assignments.summary.midi', {
-            type: t(`subType.${proto.SubType[item.midiProGuitar]}`),
-          })
-        );
-      }
-    }
-
-    let trig = '';
-    if (triggerItem?.input) {
-      trig = t('assignments.trigger.boot');
-    } else if (triggerItem?.inputAnyTime) {
-      trig = t('assignments.trigger.anytime');
-    }
-
-    const parts = [emul];
-    if (hostParts.length > 0) {
-      parts.push(...hostParts);
-    }
-    if (trig) {
-      parts.push(trig);
-    }
-    return parts.join(' + ');
-  }, [emulationItem, hostIndices, triggerItem, t]);
+  const summaryText = useMemo(() => getRuleSummary(assignments, t), [assignments, t]);
 
   const hasEmulation = emulationItem !== undefined;
   const triggerAnalog =
@@ -9128,7 +9040,12 @@ function Profile({ profileIdx }: { profileIdx: number }) {
             inputWrapperOrder={['label', 'error', 'input', 'description']}
             description={t('assignments.description')}
           >
-            <Title order={3}>{t('assignments.title')}</Title>
+            <Group justify="space-between" align="baseline">
+              <Title order={3}>{t('assignments.title')}</Title>
+              <Anchor component={Link} to="/assignments" size="sm">
+                {t('assignments.learnMore')}
+              </Anchor>
+            </Group>
           </Input.Wrapper>
           <Space h="md" />
 

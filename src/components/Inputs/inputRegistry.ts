@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { proto } from '@/components/SettingsContext/config';
 import { MIDI_PERCUSSION_CHANNEL } from '@/devices/midi';
 
@@ -746,6 +747,105 @@ export function getProfileSlotLabel(
           : `assignments.source.${source}`;
   const sourceLabel = t?.(sourceLabelKey) ?? t?.(`assignments.source.${source}`) ?? source;
   return `${t?.('assignments.slot') ?? 'Slot'} ${slotId}: ${sourceLabel}${typeLabel ? ` (${typeLabel})` : ''}`;
+}
+
+const EMULATION_ASSIGNMENT_TYPES = [
+  'consoleType',
+  'bluetooth',
+  'ps2Emulation',
+  'wiiEmulation',
+  'joybusEmulation',
+  'snesEmulation',
+] as const;
+
+// The "Active when" text summarising one assignment list, shared by the profile editor and the
+// assignments guide
+export function getRuleSummary(assignments: proto.IProfileAssignmentInfo[], t: TFunction): string {
+  const emulationItem = assignments.find((x) =>
+    EMULATION_ASSIGNMENT_TYPES.some((y) => x[y] != null)
+  );
+  const hostItems = assignments.filter((x) => getHostSourceType(x) !== null);
+  const triggerItem = assignments.find((x) => x.input != null || x.inputAnyTime != null);
+  let emul = '';
+  if (emulationItem?.consoleType) {
+    if (emulationItem.consoleType.forcedType) {
+      emul = t('assignments.summary.usb', {
+        type: t(`consoleMode.${proto.ConsoleMode[emulationItem.consoleType.forcedType]}`),
+      });
+    } else if (emulationItem.consoleType.consoleType) {
+      emul = t('assignments.summary.usb', {
+        type: t(`consoleType.${proto.ConsoleType[emulationItem.consoleType.consoleType]}`),
+      });
+    } else {
+      emul = t('assignments.preset_usb_auto');
+    }
+  } else if (emulationItem?.bluetooth) {
+    emul = t('assignments.emulation_mode.bluetooth');
+  } else if (emulationItem?.ps2Emulation) {
+    emul = t('assignments.emulation_mode.ps2');
+  } else if (emulationItem?.wiiEmulation) {
+    emul = t('assignments.emulation_mode.wii');
+  } else if (emulationItem?.joybusEmulation) {
+    emul = t('assignments.emulation_mode.joybus');
+  } else if (emulationItem?.snesEmulation) {
+    emul = t('assignments.emulation_mode.snes');
+  } else {
+    emul = t('assignments.no_emulation');
+  }
+
+  const hostParts: string[] = [];
+
+  for (const item of hostItems) {
+    if (item.wiiExt != null) {
+      hostParts.push(
+        t('assignments.summary.wii', { type: t(`wiiExt.${proto.WiiExtType[item.wiiExt]}`) })
+      );
+    } else if (item.ps2Cnt != null) {
+      hostParts.push(
+        t('assignments.summary.ps2', {
+          type: t(`ps2Cnt.${proto.PS2ControllerType[item.ps2Cnt]}`),
+        })
+      );
+    } else if (item.usbType != null) {
+      hostParts.push(
+        t('assignments.summary.usb', { type: t(`subType.${proto.SubType[item.usbType]}`) })
+      );
+    } else if (item.usbDevice != null) {
+      hostParts.push(t('assignments.source.usbDevice'));
+    } else if (item.bluetoothType != null) {
+      hostParts.push(
+        t('assignments.summary.bluetooth', {
+          type: t(`subType.${proto.SubType[item.bluetoothType]}`),
+        })
+      );
+    } else if (item.bluetoothDevice != null) {
+      hostParts.push(t('assignments.source.bluetoothDevice'));
+    } else if (item.midiChannel != null) {
+      hostParts.push(t('assignments.summary.midiChannel', { channel: item.midiChannel }));
+    } else if (item.midiProGuitar != null) {
+      hostParts.push(
+        t('assignments.summary.midi', {
+          type: t(`subType.${proto.SubType[item.midiProGuitar]}`),
+        })
+      );
+    }
+  }
+
+  let trig = '';
+  if (triggerItem?.input) {
+    trig = t('assignments.trigger.boot');
+  } else if (triggerItem?.inputAnyTime) {
+    trig = t('assignments.trigger.anytime');
+  }
+
+  const parts = [emul];
+  if (hostParts.length > 0) {
+    parts.push(...hostParts);
+  }
+  if (trig) {
+    parts.push(trig);
+  }
+  return parts.join(' + ');
 }
 
 export function getProfileSlots(profile?: proto.IProfile, t?: (key: string) => string) {
