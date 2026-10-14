@@ -14,7 +14,6 @@ import {
   IconBluetooth,
   IconChevronDown,
   IconCopy,
-  IconCpu,
   IconDeviceGamepad,
   IconExclamationCircle,
   IconGripVertical,
@@ -6910,33 +6909,9 @@ export function ControllerSourcesEditor({
 
   return (
     <Stack gap="xs">
-      <div>
-        <Text size="xs" fw={500}>
-          {t('assignments.step2_title')}
-        </Text>
-        <Text size="xs" c="dimmed">
-          {t('assignments.step2_desc')}
-        </Text>
-      </div>
-
-      <Card padding="xs" radius="sm" withBorder bg="var(--mantine-color-default-hover)">
-        <Group justify="space-between" align="center">
-          <Group gap="xs">
-            <ThemeIcon size="sm" variant="transparent" color="teal">
-              <IconCpu size={16} />
-            </ThemeIcon>
-            <Text size="xs" fw={500}>
-              {t('assignments.default_pins_active_title')}
-            </Text>
-          </Group>
-          <Badge size="xs" variant="light" color="teal">
-            {t('assignments.always_available')}
-          </Badge>
-        </Group>
-        <Text size="xs" c="dimmed" mt={4}>
-          {t('assignments.default_pins_active_desc')}
-        </Text>
-      </Card>
+      <Text size="xs" fw={500}>
+        {t('assignments.step2_title')}
+      </Text>
 
       {hostIndices.map(({ item, idx, slotId, type: hType }) => (
         <Card key={idx} padding="xs" radius="sm" withBorder bg="var(--mantine-color-default-hover)">
@@ -7640,11 +7615,7 @@ function SantrollerAssignmentList({
 
         <Stack gap="sm">
           <Stack gap={4}>
-            <Input.Wrapper
-              size="xs"
-              label={t('assignments.step1_title')}
-              description={t('assignments.step1_desc')}
-            >
+            <Input.Wrapper size="xs" label={t('assignments.step1_title')}>
               <SegmentedControl
                 fullWidth
                 size="xs"

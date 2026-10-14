@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { IconCpu, IconPlus } from '@tabler/icons-react';
+import { IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import {
   Badge,
@@ -15,7 +15,6 @@ import {
   Stack,
   Switch,
   Text,
-  ThemeIcon,
   Title,
 } from '@mantine/core';
 import {
@@ -115,11 +114,7 @@ function RulePreviewCard({
 
       <Stack gap="sm">
         <Stack gap={4}>
-          <Input.Wrapper
-            size="xs"
-            label={t('assignments.step1_title')}
-            description={t('assignments.step1_desc')}
-          >
+          <Input.Wrapper size="xs" label={t('assignments.step1_title')}>
             <SegmentedControl
               fullWidth
               size="xs"
@@ -145,33 +140,9 @@ function RulePreviewCard({
         </Stack>
 
         <Stack gap="xs">
-          <div>
-            <Text size="xs" fw={500}>
-              {t('assignments.step2_title')}
-            </Text>
-            <Text size="xs" c="dimmed">
-              {t('assignments.step2_desc')}
-            </Text>
-          </div>
-
-          <Card padding="xs" radius="sm" withBorder bg="var(--mantine-color-default-hover)">
-            <Group justify="space-between" align="center">
-              <Group gap="xs">
-                <ThemeIcon size="sm" variant="transparent" color="teal">
-                  <IconCpu size={16} />
-                </ThemeIcon>
-                <Text size="xs" fw={500}>
-                  {t('assignments.default_pins_active_title')}
-                </Text>
-              </Group>
-              <Badge size="xs" variant="light" color="teal">
-                {t('assignments.always_available')}
-              </Badge>
-            </Group>
-            <Text size="xs" c="dimmed" mt={4}>
-              {t('assignments.default_pins_active_desc')}
-            </Text>
-          </Card>
+          <Text size="xs" fw={500}>
+            {t('assignments.step2_title')}
+          </Text>
 
           {sources.map(({ item, slotId, type }) => {
             const typed = type ? SOURCE_FIELDS[type] : undefined;

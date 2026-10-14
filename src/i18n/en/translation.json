@@ -1605,7 +1605,6 @@
     "step1_title": "1. Target Connection",
     "step1_desc": "How this Santroller device connects to the console or PC",
     "step2_title": "2. Connected Controller / Adapter (Optional)",
-    "step2_desc": "Buttons and sensors wired directly to board pins are enabled automatically. Only add a source here if connecting an external controller or adapter (Wii, PS2, USB, Bluetooth, or MIDI). Slot numbers are scoped by source type and shared across alternative activation lists.",
     "step3_title": "3. Activation Trigger",
     "emulation_mode": {
       "usb": "USB",
@@ -1649,9 +1648,6 @@
     "add_source": "Add Connected Controller / Adapter",
     "add_another_source": "Add Another Controller / Adapter",
     "no_source_devices": "No controller or adapter devices are set up yet. Add a USB Host, Bluetooth, MIDI, Wii or PS1/2 device on the Devices page and it will show up here.",
-    "default_pins_active_title": "Direct On-Board Pins",
-    "always_available": "Always Available",
-    "default_pins_active_desc": "Pins on this board are always active and can be mapped simultaneously with any connected controller or adapter.",
     "setup_wizard_title": "Setup Profile",
     "setup_wizard_desc": "Configure how your controller connects, any connected adapters (Wii, PS2, USB, MIDI), and activation triggers.",
     "setup_wizard_apply": "Apply & Load Defaults",
