@@ -98,6 +98,7 @@ import {
   getProfileSlotLabel,
   getProfileSlots,
   getProfileWideSlotIds,
+  moveWiiDrumNotesToMidiSlot,
   getPS2InputFilters,
   getSNESInputFilters,
   isAnalogInput,
@@ -8219,12 +8220,18 @@ function BlankProfileWizard({
         const slotId = hostSlotIds[idx];
         if (item.wiiExt != null) {
           const wiiDev = Object.values(deviceStatus).find((d) => d.type === 'wii');
+          const wiiSlotId = slotId !== -1 ? slotId : wiiDev ? parseInt(wiiDev.id, 10) : 0;
           newMappings.push(
-            ...getDefaultMappings(
-              'wii',
-              deviceToEmulate,
-              slotId !== -1 ? slotId : wiiDev ? parseInt(wiiDev.id, 10) : 0,
-              wiiDev ? { ...wiiDev, wiiExtType: item.wiiExt } : { wiiExtType: item.wiiExt }
+            ...moveWiiDrumNotesToMidiSlot(
+              [finalAssignments],
+              2,
+              wiiSlotId,
+              getDefaultMappings(
+                'wii',
+                deviceToEmulate,
+                wiiSlotId,
+                wiiDev ? { ...wiiDev, wiiExtType: item.wiiExt } : { wiiExtType: item.wiiExt }
+              )
             )
           );
         } else if (item.ps2Cnt != null) {

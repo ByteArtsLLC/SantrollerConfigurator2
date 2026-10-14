@@ -633,13 +633,70 @@ export function getProfileWideSlotIds(lists: proto.IProfileAssignmentInfo[][]): 
 
 // The slot id of every assignment in each of the profile's lists, for its deviceSlotIdVersion
 export function getProfileSlotIds(profile?: proto.IProfile): number[][] {
-  const lists = (profile?.assignments ?? []).map((list) => list.assignments ?? []);
-  const version = profile?.opts?.deviceSlotIdVersion ?? 0;
+  return getSlotIdsForLists(
+    (profile?.assignments ?? []).map((list) => list.assignments ?? []),
+    profile?.opts?.deviceSlotIdVersion ?? 0
+  );
+}
+
+function getSlotIdsForLists(lists: proto.IProfileAssignmentInfo[][], version: number): number[][] {
   if (version >= 2) {
     return getProfileWideSlotIds(lists);
   }
   return lists.map((list) =>
     version >= 1 ? getAssignmentSlotIds(list) : getAssignmentTriggerIds(list)
+  );
+}
+
+const isWiiDrumNote = (mapping: proto.IMapping) =>
+  mapping.input?.midi?.sourceType === proto.MidiInputSourceType.MidiInputSourceType_Wii &&
+  mapping.input.midi.midiNote != null;
+
+// Wii drum pads arrive as MIDI notes on channel 10, and the firmware offers a drum kit to MIDI channel
+// 10 assignments. Moves the Wii drum notes in a set of defaults onto that MIDI slot, so the pads are
+// configured like any other MIDI drum kit, adding a channel 10 assignment to each list that has the Wii
+// slot but not the MIDI one. The lists are changed in place.
+export function moveWiiDrumNotesToMidiSlot(
+  lists: proto.IProfileAssignmentInfo[][],
+  version: number,
+  wiiSlotId: number,
+  mappings: proto.IMapping[]
+): proto.IMapping[] {
+  if (!mappings.some(isWiiDrumNote)) {
+    return mappings;
+  }
+  const hasWiiSlot = (list: proto.IProfileAssignmentInfo[], ids: number[]) =>
+    list.some((item, idx) => getSlotDeviceKind(item) === 'wii' && ids[idx] === wiiSlotId);
+  const isDrumChannel = (item: proto.IProfileAssignmentInfo) =>
+    item.midiChannel === MIDI_PERCUSSION_CHANNEL;
+
+  const before = getSlotIdsForLists(lists, version);
+  lists.forEach((list, listIdx) => {
+    if (hasWiiSlot(list, before[listIdx]) && !list.some(isDrumChannel)) {
+      list.push({ midiChannel: MIDI_PERCUSSION_CHANNEL });
+    }
+  });
+
+  const after = getSlotIdsForLists(lists, version);
+  const listIdx = lists.findIndex((list, idx) => hasWiiSlot(list, after[idx]));
+  if (listIdx === -1) {
+    return mappings;
+  }
+  const midiSlotId = after[listIdx][lists[listIdx].findIndex(isDrumChannel)];
+  return mappings.map((mapping) =>
+    isWiiDrumNote(mapping)
+      ? {
+          ...mapping,
+          input: {
+            ...mapping.input,
+            midi: {
+              ...mapping.input!.midi,
+              deviceid: midiSlotId,
+              sourceType: proto.MidiInputSourceType.MidiInputSourceType_MIDI,
+            },
+          },
+        }
+      : mapping
   );
 }
 

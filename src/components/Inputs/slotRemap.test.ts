@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { proto } from '@/components/SettingsContext/config';
-import { getProfileSlotForInput, getProfileSlots, getProfileWideSlotIds } from './inputRegistry';
+import { getWiiDefaults } from '@/components/Defaults/defaultMappings';
+import {
+  getProfileSlotForInput,
+  getProfileSlots,
+  getProfileWideSlotIds,
+  moveWiiDrumNotesToMidiSlot,
+} from './inputRegistry';
 import { migrateSlotIds, remapEditedSlotIds } from './slotRemap';
 
 const ST = proto.SubType;
@@ -235,5 +241,67 @@ describe('migrating slot ids', () => {
   it('leaves version 2 profiles alone', () => {
     const p = profile([[gamepad], [keyboard]], [usbA(1)], 2);
     expect(migrateSlotIds(p)).toBe(p);
+  });
+});
+
+describe('Wii drum defaults', () => {
+  const drums: proto.IProfileAssignmentInfo = { wiiExt: proto.WiiExtType.WiiGuitarHeroDrums };
+  const defaultsFor = (wiiSlotId: number) =>
+    getWiiDefaults(ST.GuitarHeroDrums, wiiSlotId, {
+      wiiExtType: proto.WiiExtType.WiiGuitarHeroDrums,
+    });
+  const notes = (mappings: proto.IMapping[]) => mappings.filter((m) => m.input?.midi?.midiNote);
+
+  it('puts the pads on a MIDI channel 10 slot added next to the Wii slot', () => {
+    const lists = [[console_, drums]];
+    const mappings = moveWiiDrumNotesToMidiSlot(lists, 2, 1, defaultsFor(1));
+    expect(lists).toEqual([[console_, drums, { midiChannel: 10 }]]);
+    expect(notes(mappings).length).toBeGreaterThan(0);
+    for (const mapping of notes(mappings)) {
+      expect(mapping.input!.midi).toMatchObject({
+        deviceid: 1,
+        sourceType: proto.MidiInputSourceType.MidiInputSourceType_MIDI,
+        midiNote: { channel: 10 },
+      });
+    }
+    // the buttons and stick stay on the Wii slot
+    expect(mappings.some((m) => m.input?.wiiButton?.deviceid === 1)).toBe(true);
+  });
+
+  it('reuses a channel 10 slot the list already has', () => {
+    const lists = [[drums, { midiChannel: 5 }, { midiChannel: 10 }]];
+    const mappings = moveWiiDrumNotesToMidiSlot(lists, 2, 1, defaultsFor(1));
+    expect(lists[0]).toHaveLength(3);
+    expect(notes(mappings).every((m) => m.input!.midi!.deviceid === 2)).toBe(true);
+  });
+
+  it('only adds the slot to lists with that Wii slot', () => {
+    const lists = [[drums], [gamepad]];
+    moveWiiDrumNotesToMidiSlot(lists, 2, 1, defaultsFor(1));
+    expect(lists).toEqual([[drums, { midiChannel: 10 }], [gamepad]]);
+  });
+
+  it('leaves defaults without Wii drum notes alone', () => {
+    const lists = [[{ wiiExt: proto.WiiExtType.WiiGuitarHeroGuitar }]];
+    const defaults = getWiiDefaults(ST.GuitarHeroGuitar, 1, {
+      wiiExtType: proto.WiiExtType.WiiGuitarHeroGuitar,
+    });
+    expect(moveWiiDrumNotesToMidiSlot(lists, 2, 1, defaults)).toBe(defaults);
+    expect(lists[0]).toHaveLength(1);
+  });
+
+  it('matches the firmware: the slot resolves as a MIDI slot', () => {
+    const profile: proto.IProfile = {
+      opts: { deviceSlotIdVersion: 2 } as proto.IProfileOpts,
+      assignments: [{ assignments: [console_, drums] }],
+    } as proto.IProfile;
+    const mappings = moveWiiDrumNotesToMidiSlot(
+      profile.assignments!.map((l) => l.assignments!),
+      2,
+      1,
+      defaultsFor(1)
+    );
+    const slot = getProfileSlotForInput(notes(mappings)[0].input!, getProfileSlots(profile));
+    expect(slot).toMatchObject({ deviceKind: 'midi', midiChannel: 10 });
   });
 });

@@ -20,6 +20,7 @@ import {
   getProfileSlotKey,
   getProfileSlots,
   inputUsesDevice,
+  moveWiiDrumNotesToMidiSlot,
   ProfileSlot,
   withSlotMidiChannel,
 } from '@/components/Inputs/inputRegistry';
@@ -1286,7 +1287,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         }
 
         const preset = MAPPING_PRESETS.find((p) => p.id === presetId);
-        const defaults = preset
+        let defaults = preset
           ? getPresetMappings(preset, type, targetDeviceId, deviceStatusObj)
           : getDefaultMappings(
               type,
@@ -1295,6 +1296,14 @@ export const useConfigStore = create<ConfigState & Actions>()(
               deviceStatusObj,
               getAssignmentHostType(assignment, profile.opts.deviceToEmulate)
             );
+        if (type === 'wii' && targetDeviceId != null) {
+          defaults = moveWiiDrumNotesToMidiSlot(
+            (profile.assignments ?? []).map((list) => (list.assignments ??= [])),
+            profile.opts.deviceSlotIdVersion ?? 0,
+            targetDeviceId,
+            defaults
+          );
+        }
         profile.mappings!.push(...defaults);
         state.config = {
           ...state.config,
