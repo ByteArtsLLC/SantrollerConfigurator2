@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { closeDevicePicker, useDevicePicker } from './devicePickerStore';
 import { NativeHid } from './nativeHid';
 
-const santroller = (path: string, serialNumber: string) => ({
+const santroller = (path: string, serialNumber: string, productId = 0x2883) => ({
   path,
   vendorId: 0x1209,
-  productId: 0x2882,
+  productId,
   productName: 'Santroller',
   serialNumber,
   usagePage: 0xff00,
@@ -25,7 +25,10 @@ vi.mock('@tauri-apps/api/event', () => ({
   }),
 }));
 
-const filters = [{ vendorId: 0x1209, productId: 0x2882, usagePage: 0xff00 }];
+const filters = [
+  { vendorId: 0x1209, productId: 0x2882, usagePage: 0xff00 },
+  { vendorId: 0x1209, productId: 0x2883, usagePage: 0xff00 },
+];
 
 describe('NativeHid.requestDevice', () => {
   let hid: NativeHid;

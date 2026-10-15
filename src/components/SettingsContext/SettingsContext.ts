@@ -30,7 +30,6 @@ import { createLabelConfig, getNextLabelId } from '@/components/Labels/labelRegi
 import { importLegacyConfigs } from '@/components/Legacy/importLegacyConfig';
 import { legacyErrorReason, legacyWarning, LegacyWarning } from '@/components/Legacy/warnings';
 import { CRC32 } from '@/CRC32.js';
-import { clearWindowsControllerCache } from '@/desktop/nativeHid';
 import { BluetoothConfigDevice } from './BluetoothConfigDevice';
 import { proto } from './config.js';
 import { parseVersionReport } from './firmwareVersion';
@@ -1990,7 +1989,6 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.detecting = false;
         state.polling = false;
       });
-      await clearWindowsControllerCache();
       try {
         const infoBuffer = proto.ConfigInfo.encode(
           proto.ConfigInfo.create({
@@ -2674,7 +2672,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
         return;
       }
       const devices = await navigator.hid.requestDevice({
-        filters: [{ vendorId: 0x1209, productId: 0x2882, usagePage: 0xff00 }],
+        filters: [
+          { vendorId: 0x1209, productId: 0x2882, usagePage: 0xff00 },
+          { vendorId: 0x1209, productId: 0x2883, usagePage: 0xff00 },
+        ],
       });
       if (devices.length) {
         await get().connectDevice(devices[0]);

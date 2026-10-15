@@ -276,12 +276,26 @@ export async function installNativeHid() {
   Object.defineProperty(navigator, 'hid', { configurable: true, value: hid });
 }
 
-export async function clearWindowsControllerCache(vid?: number, pid?: number): Promise<void> {
+export interface UdevStatus {
+  isLinux: boolean;
+  isAppImage: boolean;
+  rulesNeeded: boolean;
+}
+
+export async function checkUdevRules(): Promise<UdevStatus | null> {
   if ('isTauri' in window) {
     try {
-      await invoke('clear_windows_controller_cache', { vid, pid });
+      return await invoke<UdevStatus>('check_udev_rules');
     } catch (e) {
-      console.warn('Failed to clear Windows controller cache:', e);
+      console.warn('Failed to check udev rules:', e);
     }
   }
+  return null;
 }
+
+export async function installUdevRules(): Promise<void> {
+  if ('isTauri' in window) {
+    await invoke('install_udev_rules');
+  }
+}
+

@@ -40,12 +40,12 @@
     "linux": {
       "deb": {
         "files": {
-          "/usr/lib/udev/rules.d/70-santroller.rules": "udev/70-santroller.rules"
+          "/usr/lib/udev/rules.d/70-santroller.rules": "../public/70-santroller.rules"
         }
       },
       "rpm": {
         "files": {
-          "/usr/lib/udev/rules.d/70-santroller.rules": "udev/70-santroller.rules"
+          "/usr/lib/udev/rules.d/70-santroller.rules": "../public/70-santroller.rules"
         }
       }
     }

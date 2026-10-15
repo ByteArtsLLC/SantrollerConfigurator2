@@ -7,10 +7,10 @@ export const RELEASES_URL = 'https://github.com/Santroller/SantrollerConfigurato
 const LATEST_RELEASE_API =
   'https://api.github.com/repos/Santroller/SantrollerConfigurator2/releases/latest';
 
-type DesktopOs = 'windows' | 'mac' | 'linux';
+export type DesktopOs = 'windows' | 'mac' | 'linux';
 
 // Which installer to offer. The desktop app doesn't run on phones and tablets, so none there.
-function desktopOs(): DesktopOs | undefined {
+export function desktopOs(): DesktopOs | undefined {
   const agent = navigator.userAgent;
   if (/Android|iPhone|iPad|iPod/.test(agent)) {
     return undefined;

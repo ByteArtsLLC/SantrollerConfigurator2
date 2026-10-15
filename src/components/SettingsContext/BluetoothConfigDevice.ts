@@ -44,7 +44,7 @@ function toUint8Array(data: BufferSource) {
 
 export class BluetoothConfigDevice extends EventTarget {
   readonly vendorId = 0x1209;
-  readonly productId = 0x2882;
+  readonly productId = 0x2883;
   readonly collections: HIDCollectionInfo[];
   private characteristics = new Map<number, BluetoothRemoteGATTCharacteristic>();
   // Web Bluetooth only allows one GATT operation at a time

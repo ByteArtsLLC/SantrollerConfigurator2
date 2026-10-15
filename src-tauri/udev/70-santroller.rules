@@ -1,2 +1,0 @@
-# Lets the logged in user talk to Santroller controllers, so the configurator works without root
-SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2882", TAG+="uaccess"

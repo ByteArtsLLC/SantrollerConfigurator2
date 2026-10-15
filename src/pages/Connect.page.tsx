@@ -1,8 +1,12 @@
+import { useEffect, useState } from 'react';
 import {
   IconAlertTriangle,
   IconBrandDiscord,
+  IconCheck,
+  IconDownload,
   IconExclamationCircle,
   IconHistory,
+  IconInfoCircle,
   IconRefresh,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +14,8 @@ import { Link } from 'react-router-dom';
 import {
   Alert,
   Button,
+  Code,
+  CopyButton,
   FileButton,
   Flex,
   Group,
@@ -22,15 +28,18 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import {
   DesktopDownloadButton,
+  desktopOs,
   RELEASES_URL,
 } from '@/components/DesktopDownload/DesktopDownloadButton';
 import { Layout } from '@/components/Layout/Layout';
 import { translateLegacyWarning } from '@/components/Legacy/warnings';
 import { BluetoothConfigDevice } from '@/components/SettingsContext/BluetoothConfigDevice';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
+import { checkUdevRules, installUdevRules, UdevStatus } from '@/desktop/nativeHid';
 import { requestUpdateCheck, useUpdateCheck } from '@/desktop/updateCheckStore';
 
 const isDesktop = 'isTauri' in window;
+const isLinuxWeb = !isDesktop && desktopOs() === 'linux';
 
 export function ConnectPage() {
   const connect = useConfigStore((state) => state.connect);
@@ -58,9 +67,18 @@ export function ConnectPage() {
   const needsUf2Update = useConfigStore((state) => state.needsUf2Update);
   const [advancedModalOpened, { open: openAdvancedModal, close: closeAdvancedModal }] =
     useDisclosure(false);
+  const [udevModalOpened, { open: openUdevModal, close: closeUdevModal }] = useDisclosure(false);
   const updateCheckStatus = useUpdateCheck((state) => state.status);
   const { t } = useTranslation();
   const bluetoothSupported = BluetoothConfigDevice.isSupported();
+  const [udevStatus, setUdevStatus] = useState<UdevStatus | null>(null);
+  const [installingUdev, setInstallingUdev] = useState(false);
+  const [udevInstallError, setUdevInstallError] = useState<string | null>(null);
+  const [udevInstalledSuccess, setUdevInstalledSuccess] = useState(false);
+
+  useEffect(() => {
+    checkUdevRules().then(setUdevStatus);
+  }, []);
   return (
     <>
       <Layout>
@@ -97,6 +115,66 @@ export function ConnectPage() {
               </Button>
             </Group>
           </Flex>
+        </Modal>
+        <Modal
+          opened={udevModalOpened}
+          onClose={closeUdevModal}
+          title={t('connect.linuxWebUdevModalTitle')}
+          size="lg"
+          centered
+        >
+          <Text size="sm">{t('connect.linuxWebUdevModalIntro')}</Text>
+          <Space h="md" />
+          <Text size="sm" fw={600}>
+            {t('connect.linuxWebUdevOption1')}
+          </Text>
+          <Space h="xs" />
+          <Text size="xs" c="dimmed">
+            {t('connect.linuxWebUdevOption1Desc')}
+          </Text>
+          <Space h="xs" />
+          <Group align="flex-start" gap="xs">
+            <Code block style={{ flex: 1 }}>
+              {`curl -fsSL ${window.location.origin}/70-santroller.rules | sudo tee /etc/udev/rules.d/70-santroller.rules\nsudo udevadm control --reload-rules && sudo udevadm trigger`}
+            </Code>
+            <CopyButton
+              value={`curl -fsSL ${window.location.origin}/70-santroller.rules | sudo tee /etc/udev/rules.d/70-santroller.rules\nsudo udevadm control --reload-rules && sudo udevadm trigger`}
+            >
+              {({ copied, copy }) => (
+                <Button size="xs" variant="default" color={copied ? 'teal' : 'gray'} onClick={copy}>
+                  {copied ? t('connect.copied') : t('connect.copy')}
+                </Button>
+              )}
+            </CopyButton>
+          </Group>
+          <Space h="md" />
+          <Text size="sm" fw={600}>
+            {t('connect.linuxWebUdevOption2')}
+          </Text>
+          <Space h="xs" />
+          <List type="ordered" size="sm" spacing="xs">
+            <List.Item>
+              {t('connect.linuxWebUdevManualStep1')}{' '}
+              <Button
+                size="compact-xs"
+                variant="subtle"
+                component="a"
+                href="70-santroller.rules"
+                download="70-santroller.rules"
+                leftSection={<IconDownload size={12} />}
+              >
+                70-santroller.rules
+              </Button>
+            </List.Item>
+            <List.Item>
+              <Text size="sm">{t('connect.linuxWebUdevManualStep2')}</Text>
+              <Space h="xs" />
+              <Code block>
+                {`sudo cp ~/Downloads/70-santroller.rules /etc/udev/rules.d/\nsudo udevadm control --reload-rules && sudo udevadm trigger`}
+              </Code>
+            </List.Item>
+            <List.Item>{t('connect.linuxWebUdevManualStep3')}</List.Item>
+          </List>
         </Modal>
         {!navigator.hid && !bluetoothSupported && (
           <Alert
@@ -242,6 +320,95 @@ export function ConnectPage() {
             </Alert>
           </>
         )}
+        {udevStatus?.rulesNeeded && (
+          <>
+            <Space h="md" />
+            <Alert
+              variant="light"
+              color="blue"
+              title={t('connect.udevRulesTitle')}
+              icon={<IconAlertTriangle />}
+            >
+              <Text size="sm">{t('connect.udevRulesDesc')}</Text>
+              {udevInstallError && (
+                <>
+                  <Space h="xs" />
+                  <Text size="sm" c="red">
+                    {udevInstallError}
+                  </Text>
+                </>
+              )}
+              <Space h="sm" />
+              <Button
+                size="xs"
+                loading={installingUdev}
+                onClick={async () => {
+                  setInstallingUdev(true);
+                  setUdevInstallError(null);
+                  try {
+                    await installUdevRules();
+                    const status = await checkUdevRules();
+                    setUdevStatus(status);
+                    setUdevInstalledSuccess(true);
+                  } catch (e) {
+                    setUdevInstallError(String(e));
+                  } finally {
+                    setInstallingUdev(false);
+                  }
+                }}
+              >
+                {t('connect.installUdevRules')}
+              </Button>
+            </Alert>
+          </>
+        )}
+
+        {udevInstalledSuccess && (
+          <>
+            <Space h="md" />
+            <Alert
+              variant="light"
+              color="green"
+              title={t('connect.udevRulesInstalledTitle')}
+              icon={<IconCheck />}
+              withCloseButton
+              onClose={() => setUdevInstalledSuccess(false)}
+            >
+              <Text size="sm">{t('connect.udevRulesInstalledDesc')}</Text>
+            </Alert>
+          </>
+        )}
+
+        {isLinuxWeb && !connected && (
+          <>
+            <Space h="md" />
+            <Alert
+              variant="light"
+              color="blue"
+              title={t('connect.linuxWebUdevTitle')}
+              icon={<IconInfoCircle />}
+            >
+              <Text size="sm">{t('connect.linuxWebUdevDesc')}</Text>
+              <Space h="sm" />
+              <Group gap="xs">
+                <Button
+                  size="xs"
+                  variant="default"
+                  component="a"
+                  href="70-santroller.rules"
+                  download="70-santroller.rules"
+                  leftSection={<IconDownload size={14} />}
+                >
+                  {t('connect.downloadUdevRules')}
+                </Button>
+                <Button size="xs" variant="default" onClick={openUdevModal}>
+                  {t('connect.udevInstructionsButton')}
+                </Button>
+              </Group>
+            </Alert>
+          </>
+        )}
+
         <Space h="md" />
         {navigator.hid && !connected && (
           <Button disabled={updating} onClick={connect}>

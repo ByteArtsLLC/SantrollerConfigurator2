@@ -1,0 +1,40 @@
+# Santroller
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2882", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2883", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2886", TAG+="uaccess"
+
+# Switch
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0f0d", ATTRS{idProduct}=="0092", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0f0d", ATTRS{idProduct}=="00f0", TAG+="uaccess"
+
+# PS3 (Guitar Hero, Rock Band, DJ Hero)
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="0100", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="0120", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="0140", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="0200", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="0210", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="0218", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="0300", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="074b", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="2330", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="2338", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="2430", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="2438", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="2530", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="12ba", ATTRS{idProduct}=="2538", TAG+="uaccess"
+
+# Wii (Rock Band)
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1bad", ATTRS{idProduct}=="0004", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1bad", ATTRS{idProduct}=="0005", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1bad", ATTRS{idProduct}=="3010", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1bad", ATTRS{idProduct}=="3110", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1bad", ATTRS{idProduct}=="3138", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1bad", ATTRS{idProduct}=="3330", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1bad", ATTRS{idProduct}=="3338", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1bad", ATTRS{idProduct}=="3430", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1bad", ATTRS{idProduct}=="3438", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1bad", ATTRS{idProduct}=="3530", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1bad", ATTRS{idProduct}=="3538", TAG+="uaccess"
+
+# Guitar Praise
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0314", ATTRS{idProduct}=="0830", TAG+="uaccess"

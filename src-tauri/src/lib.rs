@@ -3,7 +3,7 @@
 use std::{
     collections::HashMap,
     ffi::CString,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc::{self, Receiver, Sender, TryRecvError},
@@ -27,7 +27,8 @@ const READ_TIMEOUT_MS: i32 = 1;
 // Only Santroller devices are listed. On Windows, hidapi asks every device it lists for its
 // strings, which makes some mice and keyboards stutter.
 const SANTROLLER_VID: u16 = 0x1209;
-const SANTROLLER_PID: u16 = 0x2882;
+const SANTROLLER_V1_PID: u16 = 0x2882;
+const SANTROLLER_PID: u16 = 0x2883;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -169,6 +170,7 @@ fn hid_list(state: State<'_, HidState>) -> Result<Vec<HidDeviceInfo>, String> {
     with_api(&state, |api| {
         api.reset_devices().map_err(|e| e.to_string())?;
         api.add_devices(SANTROLLER_VID, SANTROLLER_PID).map_err(|e| e.to_string())?;
+        api.add_devices(SANTROLLER_VID, SANTROLLER_V1_PID).map_err(|e| e.to_string())?;
         Ok(api
             .device_list()
             .map(|device| HidDeviceInfo {
@@ -203,7 +205,8 @@ fn hid_watch(app: AppHandle, state: State<'_, HidState>) -> Result<(), String> {
         while let Some(event) = watch.next().await {
             let changed = match event {
                 HotplugEvent::Connected(info) => {
-                    info.vendor_id() == SANTROLLER_VID && info.product_id() == SANTROLLER_PID
+                    info.vendor_id() == SANTROLLER_VID
+                        && (info.product_id() == SANTROLLER_PID || info.product_id() == SANTROLLER_V1_PID)
                 }
                 HotplugEvent::Disconnected(_) => true,
             };
@@ -242,7 +245,6 @@ async fn hid_open(
         .lock()
         .map_err(|e| e.to_string())?
         .insert(path.clone(), OpenDevice { id, commands });
-    clear_windows_controller_cache_internal(SANTROLLER_VID, SANTROLLER_PID);
     thread::spawn(move || run_worker(app, path, id, device, receiver));
     Ok(descriptor)
 }
@@ -327,68 +329,85 @@ async fn hid_receive_feature_report(
     .await
 }
 
-#[cfg(target_os = "windows")]
-fn clear_windows_controller_cache_internal(vid: u16, pid: u16) {
-    use winreg::enums::*;
-    use winreg::RegKey;
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UdevStatus {
+    is_linux: bool,
+    is_app_image: bool,
+    rules_needed: bool,
+}
 
-    let device_key = format!("VID_{:04X}&PID_{:04X}", vid, pid);
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+#[cfg(target_os = "linux")]
+const UDEV_RULES: &str = include_str!("../../public/70-santroller.rules");
 
-    // 1. Clear OEM Properties (OEMName, OEMData)
-    let oem_path = format!(
-        r"System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\{}",
-        device_key
-    );
-    let _ = hkcu.delete_subkey_all(&oem_path);
-
-    // 2. Clear DirectInput Calibration
-    let di_path = format!(
-        r"System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\{}",
-        device_key
-    );
-    let _ = hkcu.delete_subkey_all(&di_path);
-
-    // 3. Clean up any slot assignments in CurrentJoystickSettings
-    if let Ok(settings) = hkcu.open_subkey_with_flags(
-        r"System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings",
-        KEY_READ | KEY_WRITE,
-    ) {
-        let to_delete: Vec<String> = settings
-            .enum_values()
-            .filter_map(|val| val.ok())
-            .filter_map(|(name, _)| {
-                if let Ok(s) = settings.get_value::<String, _>(&name) {
-                    if s.contains(&device_key) {
-                        return Some(name);
-                    }
-                }
-                None
-            })
-            .collect();
-
-        for name in to_delete {
-            let _ = settings.delete_value(&name);
-            if name.ends_with("OEMName") {
-                let config_name = name.replace("OEMName", "Configuration");
-                let _ = settings.delete_value(&config_name);
+#[tauri::command]
+async fn check_udev_rules() -> Result<UdevStatus, String> {
+    #[cfg(target_os = "linux")]
+    {
+        let check_file = |path_str: &str| -> bool {
+            let path = Path::new(path_str);
+            if let Ok(content) = std::fs::read_to_string(path) {
+                content.contains("2883") && content.contains("2882")
+            } else {
+                false
             }
-        }
+        };
+
+        let installed = check_file("/etc/udev/rules.d/70-santroller.rules")
+            || check_file("/usr/lib/udev/rules.d/70-santroller.rules")
+            || check_file("/lib/udev/rules.d/70-santroller.rules")
+            || check_file("/etc/udev/rules.d/68-santroller.rules")
+            || check_file("/usr/lib/udev/rules.d/68-santroller.rules")
+            || check_file("/lib/udev/rules.d/68-santroller.rules");
+
+        Ok(UdevStatus {
+            is_linux: true,
+            is_app_image: std::env::var_os("APPIMAGE").is_some(),
+            rules_needed: !installed,
+        })
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        Ok(UdevStatus {
+            is_linux: false,
+            is_app_image: false,
+            rules_needed: false,
+        })
     }
 }
 
-#[cfg(not(target_os = "windows"))]
-fn clear_windows_controller_cache_internal(_vid: u16, _pid: u16) {}
-
 #[tauri::command]
-async fn clear_windows_controller_cache(
-    vid: Option<u16>,
-    pid: Option<u16>,
-) -> Result<(), String> {
-    let vid = vid.unwrap_or(SANTROLLER_VID);
-    let pid = pid.unwrap_or(SANTROLLER_PID);
-    clear_windows_controller_cache_internal(vid, pid);
-    Ok(())
+async fn install_udev_rules() -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    {
+        let temp_dir = std::env::temp_dir();
+        let temp_path = temp_dir.join("70-santroller.rules");
+        std::fs::write(&temp_path, UDEV_RULES)
+            .map_err(|e| format!("Failed to create temporary rules file: {}", e))?;
+
+        let temp_str = temp_path.to_string_lossy();
+        let script = format!(
+            "cp '{}' /etc/udev/rules.d/70-santroller.rules && chmod 644 /etc/udev/rules.d/70-santroller.rules && rm -f '{}' && (udevadm control --reload-rules 2>/dev/null || true) && (udevadm trigger 2>/dev/null || true)",
+            temp_str, temp_str
+        );
+
+        let status = std::process::Command::new("pkexec")
+            .args(["sh", "-c", &script])
+            .status()
+            .map_err(|e| format!("Failed to run pkexec: {}. If pkexec is not installed, install polkit or copy udev rules manually.", e))?;
+
+        let _ = std::fs::remove_file(&temp_path);
+
+        if !status.success() {
+            return Err(format!("Installation failed or was cancelled (status: {})", status));
+        }
+
+        Ok(())
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        Err("udev rules can only be installed on Linux".to_string())
+    }
 }
 
 // The webviews can't download files, so the frontend sends what it would have downloaded here.
@@ -451,7 +470,8 @@ pub fn run() {
             hid_send_feature_report,
             hid_receive_feature_report,
             save_file,
-            clear_windows_controller_cache,
+            check_udev_rules,
+            install_udev_rules,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the Santroller Configurator");
