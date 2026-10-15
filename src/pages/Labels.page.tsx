@@ -744,7 +744,7 @@ function MultiplexerLabel({
                 rightSectionPointerEvents="none"
                 onClick={() => pinModeCombobox.toggleDropdown()}
               >
-                {label.multiplexerLabel?.channel}
+                {t('multiplexer.channel', { channel: label.multiplexerLabel?.channel })}
               </InputBase>
             </Combobox.Target>
 
@@ -760,7 +760,7 @@ function MultiplexerLabel({
                   ),
                 ].map((_, i) => (
                   <Combobox.Option key={i} value={i.toString()}>
-                    {t('multiplexer.channel', { channel: i + 1 })}
+                    {t('multiplexer.channel', { channel: i })}
                   </Combobox.Option>
                 ))}
               </Combobox.Options>
@@ -776,7 +776,7 @@ function MultiplexerLabel({
             rightSectionPointerEvents="none"
             onClick={() => pinModeCombobox.toggleDropdown()}
           >
-            {label.multiplexerLabel?.channel}
+            {t('multiplexer.channel', { channel: label.multiplexerLabel?.channel })}
           </InputBase>
         )}
         {seller && (

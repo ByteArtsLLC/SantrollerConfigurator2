@@ -2005,7 +2005,7 @@ function SantrollerLabel({
         if (labelsText2) {
           return <Text>{labelsText2}</Text>;
         }
-        return <Text>{input.multiplexer?.channel}</Text>;
+        return <Text>{t('multiplexer.channel', { channel: input.multiplexer?.channel })}</Text>;
       }
       case 'vtechExpander':
         return <Text>{input.vtechExpander?.button}</Text>;
@@ -3426,7 +3426,7 @@ function SantrollerInput({
                 <Combobox.Options>
                   {[...Array(4)].map((_, i) => (
                     <Combobox.Option key={i} value={i.toString()}>
-                      {t('multiplexer.channel', { channel: i + 1 })}
+                      {t('multiplexer.channel', { channel: i })}
                     </Combobox.Option>
                   ))}
                 </Combobox.Options>
@@ -3481,7 +3481,7 @@ function SantrollerInput({
                 <Combobox.Options>
                   {[...Array(device?.device.multiplexer?.sixteenChannel ? 16 : 8)].map((_, i) => (
                     <Combobox.Option key={i} value={i.toString()}>
-                      {t('multiplexer.channel', { channel: i + 1 })}
+                      {t('multiplexer.channel', { channel: i })}
                     </Combobox.Option>
                   ))}
                 </Combobox.Options>
