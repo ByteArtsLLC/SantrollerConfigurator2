@@ -744,6 +744,25 @@ function fixInput(mapping: proto.IMapping) {
   if (wiiButton) {
     mapping.input.wiiButton!.button = wiiButton;
   }
+  // SNES pads share the Nintendo layout
+  let snesButton = mapping.input.snesButton?.button;
+  switch (snesButton) {
+    case proto.SNESButtonType.SNESButtonA:
+      snesButton = proto.SNESButtonType.SNESButtonB;
+      break;
+    case proto.SNESButtonType.SNESButtonB:
+      snesButton = proto.SNESButtonType.SNESButtonA;
+      break;
+    case proto.SNESButtonType.SNESButtonX:
+      snesButton = proto.SNESButtonType.SNESButtonY;
+      break;
+    case proto.SNESButtonType.SNESButtonY:
+      snesButton = proto.SNESButtonType.SNESButtonX;
+      break;
+  }
+  if (snesButton) {
+    mapping.input.snesButton!.button = snesButton;
+  }
   return mapping;
 }
 function encodeBase64Url(message: Uint8Array) {

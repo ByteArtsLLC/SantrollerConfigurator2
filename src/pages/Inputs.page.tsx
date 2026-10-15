@@ -2313,6 +2313,14 @@ function ConnectedDeviceOptions() {
   );
 }
 
+// Compares inputs by value. Decoded inputs stringify enums by name while edited ones are plain objects
+// with numeric enums, and either can leave out default fields, so normalise them before stringifying
+function inputKey(input: proto.IInput | null | undefined) {
+  return input
+    ? JSON.stringify(proto.Input.toObject(proto.Input.fromObject(input), { defaults: true }))
+    : undefined;
+}
+
 function SantrollerInput({
   input,
   axis,
@@ -4935,8 +4943,8 @@ function SantrollerLed({
   const profileMappings = useConfigStore((state) => state.config.profiles?.[profileIdx]?.mappings);
   const ledInput = led.mapping.inputMapping?.input;
   const mapping = useMemo(() => {
-    const key = JSON.stringify(ledInput);
-    return profileMappings?.find((x) => JSON.stringify(x.input) === key);
+    const key = inputKey(ledInput);
+    return profileMappings?.find((x) => inputKey(x.input) === key);
   }, [profileMappings, ledInput]);
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
@@ -9634,8 +9642,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                                 ...profilea.mappings!.map((cMapping, cMappingIdx) =>
                                   cMappingIdx === mappingIdx
                                     ? val
-                                    : JSON.stringify(cMapping.input) ===
-                                          JSON.stringify(val.input) &&
+                                    : inputKey(cMapping.input) ===
+                                          inputKey(val.input) &&
                                         cMapping.trigger === val.trigger
                                       ? {
                                           ...cMapping,
@@ -9652,8 +9660,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                                   ...cMapping,
                                   assignments: [
                                     ...cMapping.assignments!.map((cAssignment, _) =>
-                                      JSON.stringify(cAssignment.input?.input) ===
-                                        JSON.stringify(val.input) &&
+                                      inputKey(cAssignment.input?.input) ===
+                                        inputKey(val.input) &&
                                       cAssignment.input?.trigger === val.trigger
                                         ? {
                                             ...cAssignment,
@@ -9672,8 +9680,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                               ],
                               leds: [
                                 ...profilea.leds!.map((cMapping, _) =>
-                                  JSON.stringify(cMapping.mapping.inputMapping?.input) ===
-                                  JSON.stringify(val.input)
+                                  inputKey(cMapping.mapping.inputMapping?.input) ===
+                                  inputKey(val.input)
                                     ? {
                                         ...cMapping,
                                         mapping: {
@@ -9758,8 +9766,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                                     ...profilea.mappings!.map((cMapping, cMappingIdx) =>
                                       cMappingIdx === mappingIdx && profileIdxa === profileIdx
                                         ? val
-                                        : JSON.stringify(cMapping.input) ===
-                                              JSON.stringify(val.input) &&
+                                        : inputKey(cMapping.input) ===
+                                              inputKey(val.input) &&
                                             cMapping.trigger === val.trigger
                                           ? {
                                               ...cMapping,
@@ -9776,8 +9784,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                                       ...cMapping,
                                       assignments: [
                                         ...cMapping.assignments!.map((cAssignment, _) =>
-                                          JSON.stringify(cAssignment.input?.input) ===
-                                            JSON.stringify(val.input) &&
+                                          inputKey(cAssignment.input?.input) ===
+                                            inputKey(val.input) &&
                                           cAssignment.input?.trigger === val.trigger
                                             ? {
                                                 ...cAssignment,
@@ -9796,8 +9804,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                                   ],
                                   leds: [
                                     ...profilea.leds!.map((cMapping, _) =>
-                                      JSON.stringify(cMapping.mapping.inputMapping?.input) ===
-                                      JSON.stringify(val.input)
+                                      inputKey(cMapping.mapping.inputMapping?.input) ===
+                                      inputKey(val.input)
                                         ? {
                                             ...cMapping,
                                             mapping: {
