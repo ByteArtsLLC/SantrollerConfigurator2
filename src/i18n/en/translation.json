@@ -699,9 +699,10 @@
     "desc": "Expressed in milliseconds (0.1ms steps), use 0 to disable",
     "mode": {
       "label": "Debounce applies to",
-      "description": "Release presses straight away and holds the press after letting go. Press only counts a press once it has been held for the debounce time, ignoring anything shorter (like a 1 - 2ms ghost press), and releases straight away.",
+      "description": "Release presses straight away and holds the press after letting go. Press only counts a press once it has been held for the debounce time, ignoring anything shorter (like a 1 - 2ms ghost press), and releases straight away. Impulse outputs a pulse for the debounce time and requires a release and repress to send again.",
       "release": "Release",
-      "press": "Press"
+      "press": "Press",
+      "impulse": "Impulse"
     }
   },
   "crkd": {

@@ -4075,7 +4075,7 @@ function SantrollerMapping({
             }}
           />
         )}
-        {button && !simpleMode && (
+        {(button || (drum && !crkdDrum)) && !simpleMode && (
           <Input.Wrapper
             mt="xs"
             label={t('debounce.mode.label')}
@@ -4092,13 +4092,20 @@ function SantrollerMapping({
                   value: proto.DebounceMode.DebouncePress.toString(),
                   label: t('debounce.mode.press'),
                 },
+                {
+                  value: proto.DebounceMode.DebounceImpulse.toString(),
+                  label: t('debounce.mode.impulse'),
+                },
               ]}
               value={(mapping.debounceMode ?? proto.DebounceMode.DebounceRelease).toString()}
               onChange={(val) => {
+                const num = Number(val);
                 const debounceMode =
-                  Number(val) === proto.DebounceMode.DebouncePress
+                  num === proto.DebounceMode.DebouncePress
                     ? proto.DebounceMode.DebouncePress
-                    : null;
+                    : num === proto.DebounceMode.DebounceImpulse
+                      ? proto.DebounceMode.DebounceImpulse
+                      : null;
                 if (combinedStrum && profile) {
                   updateProfile(
                     withStrumDebounce(profile, mappingDebounce100us(mapping), debounceMode),
