@@ -242,6 +242,7 @@ async fn hid_open(
         .lock()
         .map_err(|e| e.to_string())?
         .insert(path.clone(), OpenDevice { id, commands });
+    clear_windows_controller_cache_internal(SANTROLLER_VID, SANTROLLER_PID);
     thread::spawn(move || run_worker(app, path, id, device, receiver));
     Ok(descriptor)
 }
@@ -326,6 +327,70 @@ async fn hid_receive_feature_report(
     .await
 }
 
+#[cfg(target_os = "windows")]
+fn clear_windows_controller_cache_internal(vid: u16, pid: u16) {
+    use winreg::enums::*;
+    use winreg::RegKey;
+
+    let device_key = format!("VID_{:04X}&PID_{:04X}", vid, pid);
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+
+    // 1. Clear OEM Properties (OEMName, OEMData)
+    let oem_path = format!(
+        r"System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\{}",
+        device_key
+    );
+    let _ = hkcu.delete_subkey_all(&oem_path);
+
+    // 2. Clear DirectInput Calibration
+    let di_path = format!(
+        r"System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\{}",
+        device_key
+    );
+    let _ = hkcu.delete_subkey_all(&di_path);
+
+    // 3. Clean up any slot assignments in CurrentJoystickSettings
+    if let Ok(settings) = hkcu.open_subkey_with_flags(
+        r"System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings",
+        KEY_READ | KEY_WRITE,
+    ) {
+        let to_delete: Vec<String> = settings
+            .enum_values()
+            .filter_map(|val| val.ok())
+            .filter_map(|(name, _)| {
+                if let Ok(s) = settings.get_value::<String, _>(&name) {
+                    if s.contains(&device_key) {
+                        return Some(name);
+                    }
+                }
+                None
+            })
+            .collect();
+
+        for name in to_delete {
+            let _ = settings.delete_value(&name);
+            if name.ends_with("OEMName") {
+                let config_name = name.replace("OEMName", "Configuration");
+                let _ = settings.delete_value(&config_name);
+            }
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn clear_windows_controller_cache_internal(_vid: u16, _pid: u16) {}
+
+#[tauri::command]
+async fn clear_windows_controller_cache(
+    vid: Option<u16>,
+    pid: Option<u16>,
+) -> Result<(), String> {
+    let vid = vid.unwrap_or(SANTROLLER_VID);
+    let pid = pid.unwrap_or(SANTROLLER_PID);
+    clear_windows_controller_cache_internal(vid, pid);
+    Ok(())
+}
+
 // The webviews can't download files, so the frontend sends what it would have downloaded here.
 // The body is the file, and the x-file-name header what to call it.
 #[tauri::command]
@@ -386,6 +451,7 @@ pub fn run() {
             hid_send_feature_report,
             hid_receive_feature_report,
             save_file,
+            clear_windows_controller_cache,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the Santroller Configurator");

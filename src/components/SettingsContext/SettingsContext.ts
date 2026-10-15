@@ -34,6 +34,7 @@ import { proto } from './config.js';
 import { parseVersionReport } from './firmwareVersion';
 import { KeepaliveTimer, startKeepaliveTimer, stopKeepaliveTimer } from './keepaliveTimer';
 import { truncateProfileName } from './profileName';
+import { clearWindowsControllerCache } from '@/desktop/nativeHid';
 
 // sourceId is unique per interface (including virtual wireless controller slots), older
 // firmware doesn't send it so fall back to port / interface
@@ -1958,6 +1959,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.detecting = false;
         state.polling = false;
       });
+      await clearWindowsControllerCache();
       try {
         const infoBuffer = proto.ConfigInfo.encode(
           proto.ConfigInfo.create({

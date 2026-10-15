@@ -275,3 +275,13 @@ export async function installNativeHid() {
   await hid.initialize();
   Object.defineProperty(navigator, 'hid', { configurable: true, value: hid });
 }
+
+export async function clearWindowsControllerCache(vid?: number, pid?: number): Promise<void> {
+  if ('isTauri' in window) {
+    try {
+      await invoke('clear_windows_controller_cache', { vid, pid });
+    } catch (e) {
+      console.warn('Failed to clear Windows controller cache:', e);
+    }
+  }
+}
