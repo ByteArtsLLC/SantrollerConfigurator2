@@ -145,6 +145,12 @@ function hexBytes(bytes: Uint8Array): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(' ');
 }
 
+// Bond keys only work with the radio they were made on, so they're left out of anything that can be
+// shared or flashed onto another device
+function withoutPairings(aux: proto.IAuxConfigBlock): proto.IAuxConfigBlock {
+  return { ...aux, bluetoothStates: [], tlvEntries: [] };
+}
+
 function delay(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
@@ -540,7 +546,11 @@ export interface Actions {
   commitConfig: () => Promise<void>;
   // Resolves true once the device has the current config, false if it didn't get sent
   saveConfig: (immediate?: boolean) => Promise<boolean>;
-  buildConfigBuffer: () => { buffer: Uint8Array; mainLen: number; auxLen: number };
+  buildConfigBuffer: (shareable?: boolean) => {
+    buffer: Uint8Array;
+    mainLen: number;
+    auxLen: number;
+  };
   buildConfig: () => { config: proto.IConfig; aux: proto.IAuxConfigBlock };
   exportConfig: () => void;
   loadConfig: (file: File | null) => void;
@@ -1882,7 +1892,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       }
       const { config, aux } = get().buildConfig();
       const buffer = proto.Config.create(config).toJSON();
-      const bufferAux = proto.AuxConfigBlock.create(aux).toJSON();
+      const bufferAux = proto.AuxConfigBlock.create(withoutPairings(aux)).toJSON();
       const element = document.createElement('a');
       const file = new Blob([JSON.stringify({ config: buffer, aux: bufferAux })], {
         type: 'text/json',
@@ -1908,6 +1918,9 @@ export const useConfigStore = create<ConfigState & Actions>()(
             writeTimeout: old.writeTimeout,
             // Sending it only changes the live config, flash still has the old one until it's saved
             savedConfig: old.savedConfig,
+            // The device keeps its own pairings, whatever the file has
+            bluetoothStates: old.bluetoothStates,
+            tlvEntries: old.tlvEntries,
             configModified: true,
             connected: true,
             keepaliveTimeout: timeout,
@@ -1960,6 +1973,9 @@ export const useConfigStore = create<ConfigState & Actions>()(
           writeTimeout: old.writeTimeout,
           // Sending it only changes the live config, flash still has the old one until it's saved
           savedConfig: old.savedConfig,
+          // The device keeps its own pairings, whatever the file has
+          bluetoothStates: old.bluetoothStates,
+          tlvEntries: old.tlvEntries,
           configModified: true,
           connected: true,
           keepaliveTimeout: timeout,
@@ -1977,7 +1993,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.legacyImportWarnings = [];
       }),
     buildUf2: (pico2: boolean) => {
-      const { buffer, mainLen, auxLen } = get().buildConfigBuffer();
+      const { buffer, mainLen, auxLen } = get().buildConfigBuffer(true);
       buildUf2FromConfig(pico2, { buffer, mainLen, auxLen });
     },
     saveConfig: async (immediate = false) => {
@@ -2067,10 +2083,12 @@ export const useConfigStore = create<ConfigState & Actions>()(
       });
       return true;
     },
-    buildConfigBuffer: () => {
+    buildConfigBuffer: (shareable = false) => {
       const { config, aux } = get().buildConfig();
       const bufferMain = proto.Config.encode(config).finish();
-      const bufferAux = proto.AuxConfigBlock.encode(aux).finish();
+      const bufferAux = proto.AuxConfigBlock.encode(
+        shareable ? withoutPairings(aux) : aux
+      ).finish();
       const buffer: Uint8Array = new Uint8Array(bufferMain.length + bufferAux.length);
       buffer.set(bufferMain, 0);
       buffer.set(bufferAux, bufferMain.length);
@@ -3065,7 +3083,8 @@ export async function buildUf2FromJson(file: File | null, pico2: boolean) {
     const config = proto.Config.fromObject(data.config);
     const aux = proto.AuxConfigBlock.fromObject(data.aux);
     const bufferMain = proto.Config.encode(config).finish();
-    const bufferAux = proto.AuxConfigBlock.encode(aux).finish();
+    // Older exports still have them
+    const bufferAux = proto.AuxConfigBlock.encode(withoutPairings(aux)).finish();
     const buffer: Uint8Array = new Uint8Array(bufferMain.length + bufferAux.length);
     buffer.set(bufferMain, 0);
     buffer.set(bufferAux, bufferMain.length);
