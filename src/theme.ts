@@ -48,10 +48,32 @@ export const theme = createTheme({
       },
     }),
     Accordion: Accordion.extend({
+      defaultProps: {
+        variant: 'separated',
+        radius: 'md',
+      },
       styles: {
+        item: {
+          border: '1px solid var(--mantine-color-default-border)',
+          overflow: 'hidden',
+          backgroundColor: 'var(--mantine-color-default)',
+        },
+        control: {
+          padding: '10px 14px',
+          backgroundColor: 'var(--mantine-color-default-hover)',
+        },
+        panel: {
+          borderTop: '1px solid var(--mantine-color-default-border)',
+        },
         label: {
           color: 'var(--mantine-color-bright)',
           fontWeight: 600,
+        },
+        chevron: {
+          color: 'var(--mantine-color-bright)',
+        },
+        content: {
+          padding: '14px',
         },
       },
     }),
