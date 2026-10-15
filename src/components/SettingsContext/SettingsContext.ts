@@ -538,7 +538,8 @@ export interface Actions {
   setActiveProfile: (id: string | null, instance?: number) => void;
   sendKeepAlive: () => void;
   commitConfig: () => Promise<void>;
-  saveConfig: () => void;
+  // Resolves true once the device has the current config, false if it didn't get sent
+  saveConfig: (immediate?: boolean) => Promise<boolean>;
   buildConfigBuffer: () => { buffer: Uint8Array; mainLen: number; auxLen: number };
   buildConfig: () => { config: proto.IConfig; aux: proto.IAuxConfigBlock };
   exportConfig: () => void;
@@ -820,7 +821,16 @@ export const useConfigStore = create<ConfigState & Actions>()(
         clearTimeout(state.writeTimeout);
         state.writeTimeout = undefined;
       }
-      await get().saveConfig();
+      // A save still sending its chunks has to finish first, or this one would be skipped and the
+      // device told to keep whatever it had
+      const waitUntil = Date.now() + 5000;
+      while (get().writing && Date.now() < waitUntil) {
+        await delay(50);
+      }
+      if (!(await get().saveConfig(true))) {
+        console.error('Config did not reach the device, not saving it');
+        return;
+      }
       const infoBuffer2 = proto.Command.encode(
         proto.Command.create({
           save: proto.SaveCommand.create({}),
@@ -1970,7 +1980,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       const { buffer, mainLen, auxLen } = get().buildConfigBuffer();
       buildUf2FromConfig(pico2, { buffer, mainLen, auxLen });
     },
-    saveConfig: async () => {
+    saveConfig: async (immediate = false) => {
       const state = get();
       // hidDevice is gone while the device re-enumerates after a reload, reconnect sends this
       // config once it is back
@@ -1980,18 +1990,18 @@ export const useConfigStore = create<ConfigState & Actions>()(
             state.pendingSave = true;
           });
         }
-        return;
+        return false;
       }
       // debounce writes so we don't trash the flash on the pico
       const now = +new Date();
-      if (now - state.lastUpdate < 1000 || state.writing) {
+      if ((!immediate && now - state.lastUpdate < 1000) || state.writing) {
         if (state.writeTimeout) {
           clearTimeout(state.writeTimeout);
         }
         set((state) => {
           state.writeTimeout = setTimeout(() => get().saveConfig(), 500);
         });
-        return;
+        return false;
       }
       set((state) => {
         state.lastUpdate = now;
@@ -2000,7 +2010,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       const crc = new CRC32().calculate(buffer);
       // Don't write if nothing has changed
       if (crc === state.crc) {
-        return;
+        return true;
       }
       set((state) => {
         state.writing = true;
@@ -2027,7 +2037,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
           set((state) => {
             state.writing = false;
           });
-          return;
+          return true;
         }
         let start = 0;
         const len = 63;
@@ -2047,7 +2057,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
           state.crc = 0;
           state.pendingSave = true;
         });
-        return;
+        return false;
       }
       set((state) => {
         state.writing = false;
@@ -2055,6 +2065,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.waitingForReload = true;
         state.pendingSave = false;
       });
+      return true;
     },
     buildConfigBuffer: () => {
       const { config, aux } = get().buildConfig();
