@@ -1,8 +1,10 @@
 import {
   Accordion,
+  ComboboxChevron,
   createTheme,
   Divider,
   Fieldset,
+  Input,
   InputLabel,
   InputWrapper,
   Title,
@@ -28,6 +30,25 @@ export const theme = createTheme({
         root: {
           color: 'var(--mantine-color-bright)',
           letterSpacing: '-0.012em',
+        },
+      },
+    }),
+    Input: Input.extend({
+      styles: {
+        wrapper: {
+          '--input-bg': 'light-dark(var(--mantine-color-gray-0), rgba(0, 0, 0, 0.35))',
+          '--input-bd': 'light-dark(var(--mantine-color-gray-4), rgba(255, 255, 255, 0.18))',
+        },
+        input: {
+          transition: 'border-color 150ms ease, background-color 150ms ease',
+        },
+      },
+    }),
+    ComboboxChevron: ComboboxChevron.extend({
+      styles: {
+        chevron: {
+          color: 'var(--mantine-color-bright)',
+          opacity: 0.8,
         },
       },
     }),
