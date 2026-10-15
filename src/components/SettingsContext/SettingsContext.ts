@@ -15,6 +15,7 @@ import {
   getDevicePins,
   getDeviceStatusLabel,
   isDeviceKind,
+  isSingletonDeviceKind,
 } from '@/components/Devices/deviceRegistry';
 import {
   getProfileSlotKey,
@@ -1391,6 +1392,14 @@ export const useConfigStore = create<ConfigState & Actions>()(
     addDevice: (type: string, parentId?: string, fill?: (device: proto.IDevice) => void) => {
       let id = '0';
       set((state) => {
+        if (isSingletonDeviceKind(type)) {
+          const existing = Object.values(state.deviceStatus).find((x) => x.type === type);
+          if (existing) {
+            id = existing.id;
+            fill?.(existing.device);
+            return;
+          }
+        }
         if (Object.keys(state.deviceStatus).length) {
           id = (
             Math.max(...Object.values(state.deviceStatus).map((x) => x.device.deviceid)) + 1

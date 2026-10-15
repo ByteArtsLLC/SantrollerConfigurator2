@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { IconDownload, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -27,6 +27,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure, useMounted } from '@mantine/hooks';
 import {
+  canAddDeviceKind,
   DeviceKind,
   deviceKinds,
   getGroupedDevices,
@@ -39,17 +40,38 @@ import { proto } from '@/components/SettingsContext/config';
 import { buildUf2FromConfig, useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { deviceEditors } from '@/pages/Devices.page';
 
-const subDeviceKinds = deviceKinds.filter((k) => k !== 'peripheral');
+const subDeviceKinds: DeviceKind[] = deviceKinds.filter((k) => k !== 'peripheral');
 
 export function PeripheralsPage() {
   const [searchParams] = useSearchParams();
   const id = searchParams.get('id') || '0';
   const { t } = useTranslation();
-  const groupedDevices = useMemo(() => getGroupedDevices(subDeviceKinds, t), [t]);
+  const deviceStatus = useConfigStore((state) => state.deviceStatus);
+  const existingTypes = useMemo(
+    () => new Set(Object.values(deviceStatus).map((x) => x.type)),
+    [deviceStatus]
+  );
+  const availableSubDeviceKinds = useMemo(
+    () => subDeviceKinds.filter((kind) => canAddDeviceKind(kind, existingTypes)),
+    [existingTypes]
+  );
+  const groupedDevices = useMemo(
+    () => getGroupedDevices(availableSubDeviceKinds, t),
+    [availableSubDeviceKinds, t]
+  );
 
   const [deviceType, setDeviceType] = useState<DeviceKind>(
-    () => groupedDevices[0]?.items[0] ?? subDeviceKinds[0]
+    () => groupedDevices[0]?.items[0] ?? availableSubDeviceKinds[0] ?? subDeviceKinds[0]
   );
+
+  useEffect(() => {
+    if (!availableSubDeviceKinds.includes(deviceType)) {
+      const next = groupedDevices[0]?.items[0] ?? availableSubDeviceKinds[0];
+      if (next) {
+        setDeviceType(next);
+      }
+    }
+  }, [availableSubDeviceKinds, groupedDevices, deviceType]);
   const [opened, { open, close }] = useDisclosure(false);
   const [uf2Opened, { open: openUf2, close: closeUf2 }] = useDisclosure(false);
   const combobox = useCombobox({
@@ -117,6 +139,16 @@ export function PeripheralsPage() {
 
     await buildUf2FromConfig(pico2, { buffer, mainLen: configBuf.length, auxLen: auxBuf.length });
     closeUf2();
+  };
+
+  const handleOpenAdd = () => {
+    if (!availableSubDeviceKinds.includes(deviceType)) {
+      const next = groupedDevices[0]?.items[0] ?? availableSubDeviceKinds[0];
+      if (next) {
+        setDeviceType(next);
+      }
+    }
+    open();
   };
 
   const mainElement = (
@@ -215,10 +247,13 @@ export function PeripheralsPage() {
             <Group align="flex-end">
               <Button
                 onClick={() => {
-                  addSubDevice(deviceType);
+                  if (availableSubDeviceKinds.includes(deviceType)) {
+                    addSubDevice(deviceType);
+                  }
                   close();
                 }}
                 color="red"
+                disabled={!availableSubDeviceKinds.includes(deviceType)}
               >
                 {t('add_device_dialog.confirm')}
               </Button>
@@ -302,7 +337,7 @@ export function PeripheralsPage() {
             </Menu.Target>
 
             <Menu.Dropdown>
-              <Menu.Item leftSection={<IconPlus size={14} />} onClick={open}>
+              <Menu.Item leftSection={<IconPlus size={14} />} onClick={handleOpenAdd}>
                 {t('add_device_dialog.title')}
               </Menu.Item>
               <Menu.Item leftSection={<IconTrash size={14} />} onClick={deleteAllSubDevices}>

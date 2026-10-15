@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { IconBluetooth, IconCpu, IconPlus, IconTrash } from '@tabler/icons-react';
 import {
   Accordion,
@@ -42,6 +42,7 @@ import { t } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import {
+  canAddDeviceKind,
   DeviceKind,
   deviceKinds,
   getGroupedDevices,
@@ -2699,10 +2700,32 @@ export const deviceEditors: Record<DeviceKind, React.FunctionComponent<{ id: str
 };
 export function DevicesPage() {
   const { t } = useTranslation();
-  const groupedDevices = useMemo(() => getGroupedDevices(deviceKinds, t), [t]);
-  const [deviceType, setDeviceType] = useState<DeviceKind>(
-    () => groupedDevices[0]?.items[0] ?? deviceKinds[0]
+  const deviceStatus = useConfigStore((state) => state.deviceStatus);
+  const existingTypes = useMemo(
+    () => new Set(Object.values(deviceStatus).map((x) => x.type)),
+    [deviceStatus]
   );
+  const availableDeviceKinds = useMemo(
+    () => deviceKinds.filter((kind) => canAddDeviceKind(kind, existingTypes)),
+    [existingTypes]
+  );
+  const groupedDevices = useMemo(
+    () => getGroupedDevices(availableDeviceKinds, t),
+    [availableDeviceKinds, t]
+  );
+  const [deviceType, setDeviceType] = useState<DeviceKind>(
+    () => groupedDevices[0]?.items[0] ?? availableDeviceKinds[0] ?? deviceKinds[0]
+  );
+
+  useEffect(() => {
+    if (!availableDeviceKinds.includes(deviceType)) {
+      const next = groupedDevices[0]?.items[0] ?? availableDeviceKinds[0];
+      if (next) {
+        setDeviceType(next);
+      }
+    }
+  }, [availableDeviceKinds, groupedDevices, deviceType]);
+
   const [opened, { open, close }] = useDisclosure(false);
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
@@ -2723,6 +2746,17 @@ export function DevicesPage() {
   if (!mounted) {
     return <Loader />;
   }
+
+  const handleOpenAdd = () => {
+    if (!availableDeviceKinds.includes(deviceType)) {
+      const next = groupedDevices[0]?.items[0] ?? availableDeviceKinds[0];
+      if (next) {
+        setDeviceType(next);
+      }
+    }
+    open();
+  };
+
   const mainElement = (
     <InputBase
       component="button"
@@ -2773,10 +2807,13 @@ export function DevicesPage() {
               <Group align="flex-end">
                 <Button
                   onClick={() => {
-                    addDevice(deviceType);
+                    if (availableDeviceKinds.includes(deviceType)) {
+                      addDevice(deviceType);
+                    }
                     close();
                   }}
                   color="red"
+                  disabled={!availableDeviceKinds.includes(deviceType)}
                 >
                   {t('add_device_dialog.confirm')}
                 </Button>
@@ -2802,7 +2839,7 @@ export function DevicesPage() {
               </Menu.Target>
 
               <Menu.Dropdown>
-                <Menu.Item leftSection={<IconPlus size={14} />} onClick={open}>
+                <Menu.Item leftSection={<IconPlus size={14} />} onClick={handleOpenAdd}>
                   {t('add_device_dialog.title')}
                 </Menu.Item>
                 <Menu.Item leftSection={<IconTrash size={14} />} onClick={deleteAllDevices}>

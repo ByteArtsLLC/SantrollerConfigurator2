@@ -177,7 +177,8 @@
     "differences": "Firmware Differences",
     "assignments": "How Assignments Work",
     "peripherals": "Peripherals",
-    "peripheralAddress": "Peripheral ({{address}})"
+    "peripheralAddress": "Peripheral ({{address}})",
+    "documentation": "Documentation"
   },
   "colorScheme": {
     "light": "Light",
@@ -185,7 +186,8 @@
     "auto": "Auto"
   },
   "layout": {
-    "theme": "Theme"
+    "theme": "Theme",
+    "resizeSidebar": "Drag to resize sidebar (double-click to reset)"
   },
   "crkdDrum": {
     "debounce": "Debounce",

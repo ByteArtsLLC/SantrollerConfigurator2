@@ -8118,47 +8118,172 @@ function BlankProfileWizard({
   const [hostAssignments, setHostAssignments] =
     useState<proto.IProfileAssignmentInfo[]>(initialHost);
 
+  const buildAssignments = (
+    emulMode: EmulationMode,
+    uMode: 'auto' | 'forced' | 'specific',
+    forced: proto.ConsoleMode,
+    specific: proto.ConsoleType,
+    xinput: boolean,
+    ps4: boolean,
+    btMode: proto.BluetoothMode,
+    hosts: proto.IProfileAssignmentInfo[],
+    tType: 'always' | 'input' | 'inputAnyTime',
+    tInput: proto.IInput | undefined
+  ): proto.IProfileAssignmentInfo[] => {
+    const assignments: proto.IProfileAssignmentInfo[] = [];
+
+    // Emulation
+    switch (emulMode) {
+      case 'consoleType':
+        assignments.push({
+          consoleType: {
+            consoleType: uMode === 'specific' ? specific : null,
+            forcedType: uMode === 'forced' ? forced : null,
+            xinputOnWindows: xinput,
+            ps4OrPs5Mode: ps4,
+          },
+        });
+        break;
+      case 'bluetooth':
+        assignments.push({ bluetooth: btMode });
+        break;
+      case 'ps2Emulation':
+        assignments.push({ ps2Emulation: {} });
+        break;
+      case 'wiiEmulation':
+        assignments.push({ wiiEmulation: {} });
+        break;
+      case 'joybusEmulation':
+        assignments.push({ joybusEmulation: {} });
+        break;
+      case 'snesEmulation':
+        assignments.push({ snesEmulation: {} });
+        break;
+    }
+
+    // Host sources
+    hosts.forEach((item) => {
+      assignments.push(item);
+    });
+
+    // Trigger
+    if (tType === 'input') {
+      assignments.push({ input: { input: tInput || {} } });
+    } else if (tType === 'inputAnyTime') {
+      assignments.push({ inputAnyTime: { input: tInput || {} } });
+    }
+
+    return assignments;
+  };
+
+  const syncToProfile = (params?: {
+    name?: string;
+    deviceToEmulate?: proto.SubType;
+    currentEmulMode?: EmulationMode;
+    usbMode?: 'auto' | 'forced' | 'specific';
+    forcedConsole?: proto.ConsoleMode;
+    specificConsole?: proto.ConsoleType;
+    xinputOnWindows?: boolean;
+    ps4OrPs5Mode?: boolean;
+    bluetoothMode?: proto.BluetoothMode;
+    hostAssignments?: proto.IProfileAssignmentInfo[];
+    triggerType?: 'always' | 'input' | 'inputAnyTime';
+    triggerInput?: proto.IInput | undefined;
+  }) => {
+    const updatedName = params && 'name' in params ? params.name! : name;
+    const updatedDeviceToEmulate =
+      params && 'deviceToEmulate' in params ? params.deviceToEmulate! : deviceToEmulate;
+    const updatedEmulMode =
+      params && 'currentEmulMode' in params ? params.currentEmulMode! : currentEmulMode;
+    const updatedUsbMode = params && 'usbMode' in params ? params.usbMode! : usbMode;
+    const updatedForcedConsole =
+      params && 'forcedConsole' in params ? params.forcedConsole! : forcedConsole;
+    const updatedSpecificConsole =
+      params && 'specificConsole' in params ? params.specificConsole! : specificConsole;
+    const updatedXinputOnWindows =
+      params && 'xinputOnWindows' in params ? params.xinputOnWindows! : xinputOnWindows;
+    const updatedPs4OrPs5Mode =
+      params && 'ps4OrPs5Mode' in params ? params.ps4OrPs5Mode! : ps4OrPs5Mode;
+    const updatedBluetoothMode =
+      params && 'bluetoothMode' in params ? params.bluetoothMode! : bluetoothMode;
+    const updatedHostAssignments =
+      params && 'hostAssignments' in params ? params.hostAssignments! : hostAssignments;
+    const updatedTriggerType =
+      params && 'triggerType' in params ? params.triggerType! : triggerType;
+    const updatedTriggerInput =
+      params && 'triggerInput' in params ? params.triggerInput : triggerInput;
+
+    const finalAssignments = buildAssignments(
+      updatedEmulMode,
+      updatedUsbMode,
+      updatedForcedConsole,
+      updatedSpecificConsole,
+      updatedXinputOnWindows,
+      updatedPs4OrPs5Mode,
+      updatedBluetoothMode,
+      updatedHostAssignments,
+      updatedTriggerType,
+      updatedTriggerInput
+    );
+
+    const currentProfile = useConfigStore.getState().config.profiles![profileIdx] || profile;
+    updateProfile(
+      {
+        ...currentProfile,
+        opts: {
+          ...currentProfile.opts,
+          deviceSlotIdVersion: 2,
+          name: truncateProfileName(updatedName),
+          deviceToEmulate: updatedDeviceToEmulate,
+        },
+        assignments: [{ assignments: finalAssignments }],
+      },
+      profileIdx
+    );
+  };
+
   const addHostSource = (sourceType: string) => {
+    let next: proto.IProfileAssignmentInfo | null = null;
     switch (sourceType) {
       case 'wiiExt':
-        setHostAssignments((prev) => [...prev, { wiiExt: proto.WiiExtType.WiiGuitarHeroGuitar }]);
+        next = { wiiExt: proto.WiiExtType.WiiGuitarHeroGuitar };
         break;
       case 'ps2Cnt':
-        setHostAssignments((prev) => [
-          ...prev,
-          { ps2Cnt: proto.PS2ControllerType.PS2ControllerTypeGuitar },
-        ]);
+        next = { ps2Cnt: proto.PS2ControllerType.PS2ControllerTypeGuitar };
         break;
       case 'usbType':
-        setHostAssignments((prev) => [...prev, { usbType: proto.SubType.Gamepad }]);
+        next = { usbType: proto.SubType.Gamepad };
         break;
       case 'usbDevice':
-        setHostAssignments((prev) => [
-          ...prev,
-          { usbDevice: { vid: 0, pid: 0, subtype: proto.SubType.Gamepad } },
-        ]);
+        next = { usbDevice: { vid: 0, pid: 0, subtype: proto.SubType.Gamepad } };
         break;
       case 'bluetoothType':
-        setHostAssignments((prev) => [...prev, { bluetoothType: proto.SubType.Gamepad }]);
+        next = { bluetoothType: proto.SubType.Gamepad };
         break;
       case 'bluetoothDevice':
-        setHostAssignments((prev) => [
-          ...prev,
-          { bluetoothDevice: { vid: 0, pid: 0, subtype: proto.SubType.Gamepad } },
-        ]);
+        next = { bluetoothDevice: { vid: 0, pid: 0, subtype: proto.SubType.Gamepad } };
         break;
       case 'midiChannel':
-        setHostAssignments((prev) => [...prev, { midiChannel: 10 }]);
+        next = { midiChannel: 10 };
         break;
+    }
+    if (next) {
+      const updated = [...hostAssignments, next];
+      setHostAssignments(updated);
+      syncToProfile({ hostAssignments: updated });
     }
   };
 
   const removeHostSource = (idx: number) => {
-    setHostAssignments((prev) => prev.filter((_, i) => i !== idx));
+    const updated = hostAssignments.filter((_, i) => i !== idx);
+    setHostAssignments(updated);
+    syncToProfile({ hostAssignments: updated });
   };
 
   const updateHostSource = (idx: number, updated: proto.IProfileAssignmentInfo) => {
-    setHostAssignments((prev) => prev.map((item, i) => (i === idx ? updated : item)));
+    const next = hostAssignments.map((item, i) => (i === idx ? updated : item));
+    setHostAssignments(next);
+    syncToProfile({ hostAssignments: next });
   };
 
   // Step 3: Activation Trigger
@@ -8190,48 +8315,18 @@ function BlankProfileWizard({
 
   const handleApply = () => {
     const { deviceStatus } = useConfigStore.getState();
-    const finalAssignments: proto.IProfileAssignmentInfo[] = [];
-
-    // Emulation
-    switch (currentEmulMode) {
-      case 'consoleType':
-        finalAssignments.push({
-          consoleType: {
-            consoleType: usbMode === 'specific' ? specificConsole : null,
-            forcedType: usbMode === 'forced' ? forcedConsole : null,
-            xinputOnWindows,
-            ps4OrPs5Mode,
-          },
-        });
-        break;
-      case 'bluetooth':
-        finalAssignments.push({ bluetooth: bluetoothMode });
-        break;
-      case 'ps2Emulation':
-        finalAssignments.push({ ps2Emulation: {} });
-        break;
-      case 'wiiEmulation':
-        finalAssignments.push({ wiiEmulation: {} });
-        break;
-      case 'joybusEmulation':
-        finalAssignments.push({ joybusEmulation: {} });
-        break;
-      case 'snesEmulation':
-        finalAssignments.push({ snesEmulation: {} });
-        break;
-    }
-
-    // Host sources
-    hostAssignments.forEach((item) => {
-      finalAssignments.push(item);
-    });
-
-    // Trigger
-    if (triggerType === 'input') {
-      finalAssignments.push({ input: { input: triggerInput || {} } });
-    } else if (triggerType === 'inputAnyTime') {
-      finalAssignments.push({ inputAnyTime: { input: triggerInput || {} } });
-    }
+    const finalAssignments = buildAssignments(
+      currentEmulMode,
+      usbMode,
+      forcedConsole,
+      specificConsole,
+      xinputOnWindows,
+      ps4OrPs5Mode,
+      bluetoothMode,
+      hostAssignments,
+      triggerType,
+      triggerInput
+    );
 
     // Generate mappings
     const newMappings: proto.IMapping[] = [];
@@ -8310,13 +8405,14 @@ function BlankProfileWizard({
       }
     }
 
+    const currentProfile = useConfigStore.getState().config.profiles![profileIdx] || profile;
     updateProfile(
       {
-        ...profile,
+        ...currentProfile,
         opts: {
-          ...profile.opts,
+          ...currentProfile.opts,
           deviceSlotIdVersion: 2,
-          name,
+          name: truncateProfileName(name),
           deviceToEmulate,
         },
         assignments: [{ assignments: finalAssignments }],
@@ -8347,7 +8443,11 @@ function BlankProfileWizard({
 
         <TextInput
           value={name}
-          onChange={(e) => setName(e.currentTarget.value)}
+          onChange={(e) => {
+            const next = truncateProfileName(e.currentTarget.value);
+            setName(next);
+            syncToProfile({ name: next });
+          }}
           label={t('main.profile_name.label')}
           size="xs"
         />
@@ -8358,7 +8458,10 @@ function BlankProfileWizard({
           e={proto.SubType}
           val={deviceToEmulate}
           label="subType"
-          dispatch={(val) => setDeviceToEmulate(val)}
+          dispatch={(val) => {
+            setDeviceToEmulate(val);
+            syncToProfile({ deviceToEmulate: val });
+          }}
         />
 
         <Divider />
@@ -8374,7 +8477,11 @@ function BlankProfileWizard({
               fullWidth
               size="xs"
               value={currentEmulMode}
-              onChange={(val) => setCurrentEmulMode(val as EmulationMode)}
+              onChange={(val) => {
+                const mode = val as EmulationMode;
+                setCurrentEmulMode(mode);
+                syncToProfile({ currentEmulMode: mode });
+              }}
               data={targetOptions}
             />
           </Input.Wrapper>
@@ -8384,7 +8491,11 @@ function BlankProfileWizard({
                 size="xs"
                 label={t('assignments.usb_mode.label')}
                 value={usbMode}
-                onChange={(val) => setUsbMode((val as 'auto' | 'forced' | 'specific') ?? 'auto')}
+                onChange={(val) => {
+                  const mode = (val as 'auto' | 'forced' | 'specific') ?? 'auto';
+                  setUsbMode(mode);
+                  syncToProfile({ usbMode: mode });
+                }}
                 data={[
                   { value: 'auto', label: t('assignments.usb_mode.auto') },
                   { value: 'forced', label: t('assignments.usb_mode.forced') },
@@ -8397,7 +8508,10 @@ function BlankProfileWizard({
                   e={proto.ConsoleMode}
                   val={forcedConsole}
                   label="consoleMode"
-                  dispatch={(mode) => setForcedConsole(mode)}
+                  dispatch={(mode) => {
+                    setForcedConsole(mode);
+                    syncToProfile({ forcedConsole: mode });
+                  }}
                 />
               )}
               {usbMode === 'specific' && (
@@ -8406,7 +8520,10 @@ function BlankProfileWizard({
                   e={proto.ConsoleType}
                   val={specificConsole}
                   label="consoleType"
-                  dispatch={(tVal) => setSpecificConsole(tVal)}
+                  dispatch={(tVal) => {
+                    setSpecificConsole(tVal);
+                    syncToProfile({ specificConsole: tVal });
+                  }}
                 />
               )}
               {usbMode === 'auto' && (
@@ -8424,7 +8541,11 @@ function BlankProfileWizard({
                         { label: t('main.xinput_on_windows.HID'), value: 'false' },
                       ]}
                       value={xinputOnWindows ? 'true' : 'false'}
-                      onChange={(val) => setXinputOnWindows(val === 'true')}
+                      onChange={(val) => {
+                        const isXinput = val === 'true';
+                        setXinputOnWindows(isXinput);
+                        syncToProfile({ xinputOnWindows: isXinput });
+                      }}
                     />
                   </Input.Wrapper>
                   {ps4Subtypes.includes(deviceToEmulate) && (
@@ -8441,7 +8562,11 @@ function BlankProfileWizard({
                           { label: t('main.ps4EmulationMode.PS4'), value: 'true' },
                         ]}
                         value={ps4OrPs5Mode ? 'true' : 'false'}
-                        onChange={(val) => setPs4OrPs5Mode(val === 'true')}
+                        onChange={(val) => {
+                          const isPs4 = val === 'true';
+                          setPs4OrPs5Mode(isPs4);
+                          syncToProfile({ ps4OrPs5Mode: isPs4 });
+                        }}
                       />
                     </Input.Wrapper>
                   )}
@@ -8455,7 +8580,10 @@ function BlankProfileWizard({
               e={proto.BluetoothMode}
               val={bluetoothMode}
               label="bluetooth"
-              dispatch={(mode) => setBluetoothMode(mode)}
+              dispatch={(mode) => {
+                setBluetoothMode(mode);
+                syncToProfile({ bluetoothMode: mode });
+              }}
             />
           )}
         </Stack>
@@ -8486,9 +8614,11 @@ function BlankProfileWizard({
           <Select
             size="xs"
             value={triggerType}
-            onChange={(val) =>
-              setTriggerType((val as 'always' | 'input' | 'inputAnyTime') ?? 'always')
-            }
+            onChange={(val) => {
+              const mode = (val as 'always' | 'input' | 'inputAnyTime') ?? 'always';
+              setTriggerType(mode);
+              syncToProfile({ triggerType: mode });
+            }}
             data={[
               { value: 'always', label: t('assignments.trigger.always') },
               { value: 'input', label: t('assignments.trigger.boot') },
@@ -8506,7 +8636,10 @@ function BlankProfileWizard({
                 }
                 legendMode={readStoredLegendMode()}
                 input={triggerInput ?? {}}
-                dispatch={(input) => setTriggerInput(input)}
+                dispatch={(input) => {
+                  setTriggerInput(input);
+                  syncToProfile({ triggerInput: input });
+                }}
               />
             </Stack>
           )}
@@ -9874,12 +10007,14 @@ function Profile({ profileIdx }: { profileIdx: number }) {
   );
 }
 
+const skippedProfileUids = new Set<number>();
+
 export function InputsPage() {
   const activeProfile = useConfigStore((state) => state.currentProfile);
   const profiles = useConfigStore((state) => state.config.profiles!);
   const updateProfile = useConfigStore((state) => state.updateProfile);
   const pollInputs = useConfigStore((state) => state.pollInputs);
-  const [skippedProfiles, setSkippedProfiles] = useState<Set<number>>(new Set());
+  const [, setSkippedProfilesVersion] = useState(0);
 
   const [loaded, setLoaded] = useState(false);
   // Give the loader a sec to render before rendering the rest of the page
@@ -9907,7 +10042,7 @@ export function InputsPage() {
   const profile = profiles[activeProfile];
   const isBlank =
     (!profile.mappings || profile.mappings.length === 0) &&
-    !skippedProfiles.has(profile.opts?.uid ?? activeProfile);
+    !skippedProfileUids.has(profile.opts?.uid ?? activeProfile);
 
   return (
     <Layout>
@@ -9917,9 +10052,10 @@ export function InputsPage() {
             key={`wizard-${profile.opts?.uid ?? activeProfile}`}
             profile={profile}
             profileIdx={activeProfile}
-            onSkip={() =>
-              setSkippedProfiles((prev) => new Set(prev).add(profile.opts?.uid ?? activeProfile))
-            }
+            onSkip={() => {
+              skippedProfileUids.add(profile.opts?.uid ?? activeProfile);
+              setSkippedProfilesVersion((v) => v + 1);
+            }}
             updateProfile={updateProfile}
           />
         ) : (

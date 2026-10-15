@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   IconAlertCircle,
+  IconBook,
   IconBuildingStore,
   IconCheck,
   IconChevronDown,
@@ -36,6 +37,7 @@ import {
   Alert,
   AppShell,
   Badge,
+  Box,
   Burger,
   Button,
   Flex,
@@ -49,6 +51,12 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useConfigStore } from '../SettingsContext/SettingsContext';
+import classes from './Layout.module.css';
+
+const DEFAULT_NAVBAR_WIDTH = 340;
+const MIN_NAVBAR_WIDTH = 220;
+const MAX_NAVBAR_WIDTH = 640;
+const NAVBAR_WIDTH_STORAGE_KEY = 'santroller_navbar_width';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
@@ -81,6 +89,129 @@ export function Layout({ children }: { children: React.ReactNode }) {
       Object.values(state.deviceStatus).filter((status) => status.device?.peripheral != null)
     )
   );
+
+  const isDocPage =
+    location.pathname.startsWith('/guides') ||
+    location.pathname === '/guide' ||
+    location.pathname === '/supported-hardware' ||
+    location.pathname === '/hardware' ||
+    location.pathname === '/compatibility' ||
+    location.pathname === '/emulation-modes' ||
+    location.pathname === '/differences' ||
+    location.pathname === '/firmware-differences' ||
+    location.pathname === '/assignments';
+
+  const [docsOpened, setDocsOpened] = useState(isDocPage);
+
+  useEffect(() => {
+    if (isDocPage) {
+      setDocsOpened(true);
+    }
+  }, [isDocPage]);
+
+  const [navbarWidth, setNavbarWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(NAVBAR_WIDTH_STORAGE_KEY);
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= MIN_NAVBAR_WIDTH && parsed <= MAX_NAVBAR_WIDTH) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return DEFAULT_NAVBAR_WIDTH;
+  });
+
+  const [isResizing, setIsResizing] = useState(false);
+  const isResizingRef = useRef(false);
+
+  const handleResizePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    isResizingRef.current = true;
+    setIsResizing(true);
+
+    const startX = e.clientX;
+    const startWidth = navbarWidth;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      if (!isResizingRef.current) {
+        return;
+      }
+      const delta = moveEvent.clientX - startX;
+      const nextWidth = Math.min(
+        Math.max(startWidth + delta, MIN_NAVBAR_WIDTH),
+        Math.min(MAX_NAVBAR_WIDTH, window.innerWidth - 300)
+      );
+      setNavbarWidth(nextWidth);
+    };
+
+    const onPointerUp = (upEvent: PointerEvent) => {
+      if (!isResizingRef.current) {
+        return;
+      }
+      isResizingRef.current = false;
+      setIsResizing(false);
+
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+
+      const delta = upEvent.clientX - startX;
+      const finalWidth = Math.min(
+        Math.max(startWidth + delta, MIN_NAVBAR_WIDTH),
+        Math.min(MAX_NAVBAR_WIDTH, window.innerWidth - 300)
+      );
+      try {
+        localStorage.setItem(NAVBAR_WIDTH_STORAGE_KEY, String(Math.round(finalWidth)));
+      } catch {
+        // ignore
+      }
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+  };
+
+  const handleResizeDoubleClick = () => {
+    setNavbarWidth(DEFAULT_NAVBAR_WIDTH);
+    try {
+      localStorage.setItem(NAVBAR_WIDTH_STORAGE_KEY, String(DEFAULT_NAVBAR_WIDTH));
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    const onWindowResize = () => {
+      setNavbarWidth((current) => {
+        const maxAllowed = Math.min(MAX_NAVBAR_WIDTH, window.innerWidth - 200);
+        if (current > maxAllowed && maxAllowed >= MIN_NAVBAR_WIDTH) {
+          return maxAllowed;
+        }
+        return current;
+      });
+    };
+    window.addEventListener('resize', onWindowResize);
+    return () => window.removeEventListener('resize', onWindowResize);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, []);
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [profileToDelete, setProfileToDelete] = useState<number | null>(null);
@@ -227,8 +358,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </Modal>
       <AppShell
         header={{ height: showSave ? 80 : 50 }}
-        navbar={{ width: { sm: 300, md: 380 }, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+        navbar={{
+          width: navbarWidth,
+          breakpoint: 'sm',
+          collapsed: { mobile: !opened },
+        }}
         padding="md"
+        transitionDuration={isResizing ? 0 : 200}
       >
         <AppShell.Header>
           <Grid align="center">
@@ -307,261 +443,331 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Grid.Col>
           </Grid>
         </AppShell.Header>
-        <AppShell.Navbar p="md">
-          <NavLink
-            component={RouterNavLink}
-            to="/"
-            onClick={() => {
-              pollInputs(false);
-              nav('/');
-            }}
-            label={t('nav.main', 'Main')}
-            leftSection={<IconSettings size={16} stroke={1.5} />}
-          />
-          {!simpleMode && (
+        <AppShell.Navbar p={0} style={{ overflow: 'visible' }}>
+          <Box p="md" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', height: '100%' }}>
             <NavLink
               component={RouterNavLink}
-              to="/guides"
+              to="/"
               onClick={() => {
                 pollInputs(false);
-                nav('/guides');
+                nav('/');
               }}
-              label={t('guides.navTitle', 'Build Guides & Docs')}
-              leftSection={<IconGuitarPick size={16} stroke={1.5} />}
+              label={t('nav.main', 'Main')}
+              leftSection={<IconSettings size={16} stroke={1.5} />}
             />
-          )}
-          {!simpleMode && (
-            <NavLink
-              component={RouterNavLink}
-              to="/supported-hardware"
-              onClick={() => {
-                pollInputs(false);
-                nav('/supported-hardware');
-              }}
-              label={t('nav.supportedHardware', 'Supported Hardware')}
-              leftSection={<IconCpu size={16} stroke={1.5} />}
-            />
-          )}
-          {!simpleMode && (
-            <NavLink
-              component={RouterNavLink}
-              to="/compatibility"
-              onClick={() => {
-                pollInputs(false);
-                nav('/compatibility');
-              }}
-              label={t('nav.compatibility', 'Console Compatibility')}
-              leftSection={<IconDeviceGamepad2 size={16} stroke={1.5} />}
-            />
-          )}
-          {!simpleMode && (
-            <NavLink
-              component={RouterNavLink}
-              to="/differences"
-              onClick={() => {
-                pollInputs(false);
-                nav('/differences');
-              }}
-              label={t('nav.differences', 'Firmware Differences')}
-              leftSection={<IconGitCompare size={16} stroke={1.5} />}
-            />
-          )}
-          {!simpleMode && (
-            <NavLink
-              component={RouterNavLink}
-              to="/assignments"
-              onClick={() => {
-                pollInputs(false);
-                nav('/assignments');
-              }}
-              label={t('nav.assignments', 'How Assignments Work')}
-              leftSection={<IconListCheck size={16} stroke={1.5} />}
-            />
-          )}
-          {!connected && (
-            <NavLink
-              component={RouterNavLink}
-              to="/setup"
-              onClick={() => {
-                nav('/setup');
-              }}
-              label={t('nav.setup', 'Setup a new device')}
-              leftSection={<IconChevronRight size={16} stroke={1.5} />}
-            />
-          )}
-          {connected && (
-            <>
-              {!simpleMode && (
-                <NavLink
-                  disabled={updating}
-                  component={RouterNavLink}
-                  to="/devices"
-                  onClick={() => {
-                    pollInputs(false);
-                    nav('/devices');
-                  }}
-                  label={t('nav.devices', 'Devices')}
-                  leftSection={<IconSettings size={16} stroke={1.5} />}
-                />
-              )}
-              {!simpleMode && peripheralDevices.length > 0 && (
-                <NavLink
-                  disabled={updating}
-                  href="#peripherals"
-                  label={t('nav.peripherals', 'Peripherals')}
-                  leftSection={<IconCpu size={16} stroke={1.5} />}
-                  defaultOpened
-                >
-                  {peripheralDevices.map((pStatus) => {
-                    const addrHex = (pStatus.device.peripheral?.address || 0x75).toString(16);
-                    const currentParamId = new URLSearchParams(location.search).get('id');
-                    const isActive =
-                      location.pathname === '/peripherals' &&
-                      (currentParamId === pStatus.id || (!currentParamId && pStatus.id === '0'));
-                    return (
-                      <NavLink
-                        disabled={updating}
-                        key={`peripheral-${pStatus.id}`}
-                        component={RouterLink}
-                        to={`/peripherals?id=${pStatus.id}`}
-                        active={isActive}
-                        label={t('nav.peripheralAddress', { address: `0x${addrHex}` })}
-                        leftSection={<IconCpu size={16} stroke={1.5} />}
-                      />
-                    );
-                  })}
-                </NavLink>
-              )}
-              {!simpleMode && (
-                <NavLink
-                  disabled={updating}
-                  component={RouterNavLink}
-                  to="/labels"
-                  onClick={() => {
-                    pollInputs(false);
-                    nav('/labels');
-                  }}
-                  label={t('nav.pinLabels', 'Pin Labels')}
-                  leftSection={<IconTag size={16} stroke={1.5} />}
-                />
-              )}
-              {(!simpleMode || hung) && (
-                <NavLink
-                  disabled={updating}
-                  component={RouterNavLink}
-                  to="/debug"
-                  onClick={() => {
-                    pollInputs(false);
-                    nav('/debug');
-                  }}
-                  label={t('nav.debug', 'Debug')}
-                  leftSection={<IconPiano size={16} stroke={1.5} />}
-                />
-              )}
+            {!connected && (
               <NavLink
-                disabled={updating}
-                href="#profiles"
-                label={t('nav.profiles', 'Profiles')}
-                leftSection={<IconDeviceGamepad3 size={16} stroke={1.5} />}
-                defaultOpened
-              >
-                {profiles.flatMap((x, i) => {
-                  const instanceCount =
-                    activeProfiles?.filter((id) => id === x.opts.uid).length ?? 0;
-
-                  if (instanceCount <= 1) {
-                    const label = (
-                      <Group
-                        gap="xs"
-                        justify="space-between"
-                        wrap="nowrap"
-                        style={{ width: '100%' }}
-                      >
-                        <span>{x.opts.name}</span>
-                        <Group gap={4} wrap="nowrap">
-                          {instanceCount === 1 && (
-                            <Badge>{t('main.profile_active', 'Active')}</Badge>
-                          )}
-                          {!simpleMode && profileActions(i)}
-                        </Group>
-                      </Group>
-                    );
-                    return [
-                      <NavLink
-                        disabled={updating}
-                        key={x.opts.uid}
-                        component={RouterLink}
-                        to="/profiles"
-                        onClick={() => setActiveProfile(i.toString(), 0)}
-                        active={
-                          profilePage != null && activeProfile === i && currentProfileInstance === 0
-                        }
-                        label={label}
-                        leftSection={<IconDeviceGamepad3 size={16} stroke={1.5} />}
-                      />,
-                    ];
-                  }
-
-                  // Profile is assigned multiple times (e.g. 2 gamepads and 2 drum kits) -> show each instance as a nav link item
-                  return Array.from({ length: instanceCount }).map((_, instanceIdx) => {
-                    const label = (
-                      <Group
-                        gap="xs"
-                        justify="space-between"
-                        wrap="nowrap"
-                        style={{ width: '100%' }}
-                      >
-                        <span>{`${x.opts.name} (${instanceIdx + 1})`}</span>
-                        <Group gap={4} wrap="nowrap">
-                          <Badge>{t('main.profile_active', 'Active')}</Badge>
-                          {!simpleMode && profileActions(i)}
-                        </Group>
-                      </Group>
-                    );
-                    return (
-                      <NavLink
-                        disabled={updating}
-                        key={`${x.opts.uid}-instance-${instanceIdx}`}
-                        component={RouterLink}
-                        to="/profiles"
-                        onClick={() => setActiveProfile(i.toString(), instanceIdx)}
-                        active={
-                          profilePage != null &&
-                          activeProfile === i &&
-                          currentProfileInstance === instanceIdx
-                        }
-                        label={label}
-                        leftSection={<IconDeviceGamepad3 size={16} stroke={1.5} />}
-                      />
-                    );
-                  });
-                })}
+                component={RouterNavLink}
+                to="/setup"
+                onClick={() => {
+                  nav('/setup');
+                }}
+                label={t('nav.setup', 'Setup a new device')}
+                leftSection={<IconChevronRight size={16} stroke={1.5} />}
+              />
+            )}
+            {connected && (
+              <>
                 {!simpleMode && (
                   <NavLink
                     disabled={updating}
-                    href="#add-profile"
-                    label={t('nav.addProfile', 'Add profile')}
-                    onClick={addProfile}
-                    leftSection={<IconPlus size={16} stroke={1.5} />}
+                    component={RouterNavLink}
+                    to="/devices"
+                    onClick={() => {
+                      pollInputs(false);
+                      nav('/devices');
+                    }}
+                    label={t('nav.devices', 'Devices')}
+                    leftSection={<IconSettings size={16} stroke={1.5} />}
                   />
                 )}
+                {!simpleMode && peripheralDevices.length > 0 && (
+                  <NavLink
+                    disabled={updating}
+                    href="#peripherals"
+                    label={t('nav.peripherals', 'Peripherals')}
+                    leftSection={<IconCpu size={16} stroke={1.5} />}
+                    defaultOpened
+                  >
+                    {peripheralDevices.map((pStatus) => {
+                      const addrHex = (pStatus.device.peripheral?.address || 0x75).toString(16);
+                      const currentParamId = new URLSearchParams(location.search).get('id');
+                      const isActive =
+                        location.pathname === '/peripherals' &&
+                        (currentParamId === pStatus.id || (!currentParamId && pStatus.id === '0'));
+                      return (
+                        <NavLink
+                          disabled={updating}
+                          key={`peripheral-${pStatus.id}`}
+                          component={RouterLink}
+                          to={`/peripherals?id=${pStatus.id}`}
+                          active={isActive}
+                          label={t('nav.peripheralAddress', { address: `0x${addrHex}` })}
+                          leftSection={<IconCpu size={16} stroke={1.5} />}
+                        />
+                      );
+                    })}
+                  </NavLink>
+                )}
+                {!simpleMode && (
+                  <NavLink
+                    disabled={updating}
+                    component={RouterNavLink}
+                    to="/labels"
+                    onClick={() => {
+                      pollInputs(false);
+                      nav('/labels');
+                    }}
+                    label={t('nav.pinLabels', 'Pin Labels')}
+                    leftSection={<IconTag size={16} stroke={1.5} />}
+                  />
+                )}
+                {(!simpleMode || hung) && (
+                  <NavLink
+                    disabled={updating}
+                    component={RouterNavLink}
+                    to="/debug"
+                    onClick={() => {
+                      pollInputs(false);
+                      nav('/debug');
+                    }}
+                    label={t('nav.debug', 'Debug')}
+                    leftSection={<IconPiano size={16} stroke={1.5} />}
+                  />
+                )}
+                <NavLink
+                  disabled={updating}
+                  href="#profiles"
+                  label={t('nav.profiles', 'Profiles')}
+                  leftSection={<IconDeviceGamepad3 size={16} stroke={1.5} />}
+                  defaultOpened
+                >
+                  {profiles.flatMap((x, i) => {
+                    const instanceCount =
+                      activeProfiles?.filter((id) => id === x.opts.uid).length ?? 0;
+
+                    if (instanceCount <= 1) {
+                      const label = (
+                        <Group
+                          gap="xs"
+                          justify="space-between"
+                          wrap="nowrap"
+                          style={{ width: '100%' }}
+                        >
+                          <span>{x.opts.name}</span>
+                          <Group gap={4} wrap="nowrap">
+                            {instanceCount === 1 && (
+                              <Badge>{t('main.profile_active', 'Active')}</Badge>
+                            )}
+                            {!simpleMode && profileActions(i)}
+                          </Group>
+                        </Group>
+                      );
+                      return [
+                        <NavLink
+                          disabled={updating}
+                          key={x.opts.uid}
+                          component={RouterLink}
+                          to="/profiles"
+                          onClick={() => setActiveProfile(i.toString(), 0)}
+                          active={
+                            profilePage != null &&
+                            activeProfile === i &&
+                            currentProfileInstance === 0
+                          }
+                          label={label}
+                          leftSection={<IconDeviceGamepad3 size={16} stroke={1.5} />}
+                        />,
+                      ];
+                    }
+
+                    // Profile is assigned multiple times (e.g. 2 gamepads and 2 drum kits) -> show each instance as a nav link item
+                    return Array.from({ length: instanceCount }).map((_, instanceIdx) => {
+                      const label = (
+                        <Group
+                          gap="xs"
+                          justify="space-between"
+                          wrap="nowrap"
+                          style={{ width: '100%' }}
+                        >
+                          <span>{`${x.opts.name} (${instanceIdx + 1})`}</span>
+                          <Group gap={4} wrap="nowrap">
+                            <Badge>{t('main.profile_active', 'Active')}</Badge>
+                            {!simpleMode && profileActions(i)}
+                          </Group>
+                        </Group>
+                      );
+                      return (
+                        <NavLink
+                          disabled={updating}
+                          key={`${x.opts.uid}-instance-${instanceIdx}`}
+                          component={RouterLink}
+                          to="/profiles"
+                          onClick={() => setActiveProfile(i.toString(), instanceIdx)}
+                          active={
+                            profilePage != null &&
+                            activeProfile === i &&
+                            currentProfileInstance === instanceIdx
+                          }
+                          label={label}
+                          leftSection={<IconDeviceGamepad3 size={16} stroke={1.5} />}
+                        />
+                      );
+                    });
+                  })}
+                  {!simpleMode && (
+                    <NavLink
+                      disabled={updating}
+                      href="#add-profile"
+                      label={t('nav.addProfile', 'Add profile')}
+                      onClick={addProfile}
+                      leftSection={<IconPlus size={16} stroke={1.5} />}
+                    />
+                  )}
+                </NavLink>
+              </>
+            )}
+            {/* The commercial tool works on a connected device, so there's nothing to show before one */}
+            {connected && (!simpleMode || seller) && (
+              <NavLink
+                disabled={updating}
+                component={RouterNavLink}
+                to="/commercial-tool"
+                onClick={() => {
+                  pollInputs(false);
+                  nav('/commercial-tool');
+                }}
+                label={t('nav.commercial', 'Commercial Tooling')}
+                leftSection={<IconBuildingStore size={16} stroke={1.5} />}
+              />
+            )}
+            {!simpleMode && (
+              <NavLink
+                href="#documentation"
+                label={t('nav.documentation', 'Documentation')}
+                leftSection={<IconBook size={16} stroke={1.5} />}
+                opened={docsOpened}
+                onChange={setDocsOpened}
+              >
+                <NavLink
+                  component={RouterNavLink}
+                  to="/guides"
+                  onClick={() => {
+                    pollInputs(false);
+                    nav('/guides');
+                  }}
+                  active={location.pathname.startsWith('/guide')}
+                  label={t('guides.navTitle', 'Build Guides & Docs')}
+                  leftSection={<IconGuitarPick size={16} stroke={1.5} />}
+                />
+                <NavLink
+                  component={RouterNavLink}
+                  to="/supported-hardware"
+                  onClick={() => {
+                    pollInputs(false);
+                    nav('/supported-hardware');
+                  }}
+                  active={
+                    location.pathname === '/supported-hardware' || location.pathname === '/hardware'
+                  }
+                  label={t('nav.supportedHardware', 'Supported Hardware')}
+                  leftSection={<IconCpu size={16} stroke={1.5} />}
+                />
+                <NavLink
+                  component={RouterNavLink}
+                  to="/compatibility"
+                  onClick={() => {
+                    pollInputs(false);
+                    nav('/compatibility');
+                  }}
+                  active={
+                    location.pathname === '/compatibility' ||
+                    location.pathname === '/emulation-modes'
+                  }
+                  label={t('nav.compatibility', 'Console Compatibility')}
+                  leftSection={<IconDeviceGamepad2 size={16} stroke={1.5} />}
+                />
+                <NavLink
+                  component={RouterNavLink}
+                  to="/differences"
+                  onClick={() => {
+                    pollInputs(false);
+                    nav('/differences');
+                  }}
+                  active={
+                    location.pathname === '/differences' ||
+                    location.pathname === '/firmware-differences'
+                  }
+                  label={t('nav.differences', 'Firmware Differences')}
+                  leftSection={<IconGitCompare size={16} stroke={1.5} />}
+                />
+                <NavLink
+                  component={RouterNavLink}
+                  to="/assignments"
+                  onClick={() => {
+                    pollInputs(false);
+                    nav('/assignments');
+                  }}
+                  active={location.pathname === '/assignments'}
+                  label={t('nav.assignments', 'How Assignments Work')}
+                  leftSection={<IconListCheck size={16} stroke={1.5} />}
+                />
               </NavLink>
-            </>
-          )}
-          {/* The commercial tool works on a connected device, so there's nothing to show before one */}
-          {connected && (!simpleMode || seller) && (
-            <NavLink
-              disabled={updating}
-              component={RouterNavLink}
-              to="/commercial-tool"
-              onClick={() => {
-                pollInputs(false);
-                nav('/commercial-tool');
-              }}
-              label={t('nav.commercial', 'Commercial Tooling')}
-              leftSection={<IconBuildingStore size={16} stroke={1.5} />}
-            />
-          )}
+            )}
+          </Box>
+          <Box
+            visibleFrom="sm"
+            className={`${classes.resizer} ${isResizing ? classes.resizerActive : ''}`}
+            onPointerDown={handleResizePointerDown}
+            onDoubleClick={handleResizeDoubleClick}
+            title={t('layout.resizeSidebar', 'Drag to resize sidebar (double-click to reset)')}
+            role="separator"
+            aria-orientation="vertical"
+            aria-valuenow={Math.round(navbarWidth)}
+            aria-valuemin={MIN_NAVBAR_WIDTH}
+            aria-valuemax={MAX_NAVBAR_WIDTH}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                const next = Math.max(MIN_NAVBAR_WIDTH, navbarWidth - 20);
+                setNavbarWidth(next);
+                try {
+                  localStorage.setItem(NAVBAR_WIDTH_STORAGE_KEY, String(next));
+                } catch {
+                  // ignore
+                }
+              } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                const next = Math.min(MAX_NAVBAR_WIDTH, navbarWidth + 20);
+                setNavbarWidth(next);
+                try {
+                  localStorage.setItem(NAVBAR_WIDTH_STORAGE_KEY, String(next));
+                } catch {
+                  // ignore
+                }
+              } else if (e.key === 'Home') {
+                e.preventDefault();
+                setNavbarWidth(MIN_NAVBAR_WIDTH);
+                try {
+                  localStorage.setItem(NAVBAR_WIDTH_STORAGE_KEY, String(MIN_NAVBAR_WIDTH));
+                } catch {
+                  // ignore
+                }
+              } else if (e.key === 'End') {
+                e.preventDefault();
+                setNavbarWidth(MAX_NAVBAR_WIDTH);
+                try {
+                  localStorage.setItem(NAVBAR_WIDTH_STORAGE_KEY, String(MAX_NAVBAR_WIDTH));
+                } catch {
+                  // ignore
+                }
+              } else if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleResizeDoubleClick();
+              }
+            }}
+          />
         </AppShell.Navbar>
         <AppShell.Main>
           {reloadLost && (

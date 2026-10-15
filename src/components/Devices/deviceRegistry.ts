@@ -411,6 +411,24 @@ export function hasDefaultMappings(value: string): boolean {
   return isDeviceKind(value) && defaultMappingDeviceKinds.has(value);
 }
 
+const singletonDeviceKinds = new Set<DeviceKind>(['bt', 'usbHost']);
+
+export function isSingletonDeviceKind(value: string): boolean {
+  return isDeviceKind(value) && singletonDeviceKinds.has(value);
+}
+
+export function canAddDeviceKind(kind: DeviceKind, existingKinds: Iterable<string>): boolean {
+  if (!isSingletonDeviceKind(kind)) {
+    return true;
+  }
+  for (const existing of existingKinds) {
+    if (existing === kind) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function createDeviceConfig(kind: DeviceKind, deviceid: number): proto.IDevice {
   return {
     deviceid,

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canAddDeviceKind,
   DEVICE_CATEGORIES,
   deviceKinds,
   getDeviceCategory,
   getGroupedDevices,
+  isSingletonDeviceKind,
 } from './deviceRegistry';
 
 describe('deviceRegistry categories and grouping', () => {
@@ -72,6 +74,29 @@ describe('deviceRegistry categories and grouping', () => {
     expect(grouped).toHaveLength(1);
     expect(grouped[0].category).toBe('lighting');
     expect(grouped[0].items).toEqual(['ws2812']);
+  });
+});
+
+describe('singleton devices', () => {
+  it('identifies bt and usbHost as singleton devices', () => {
+    expect(isSingletonDeviceKind('bt')).toBe(true);
+    expect(isSingletonDeviceKind('usbHost')).toBe(true);
+    expect(isSingletonDeviceKind('multiplexer')).toBe(false);
+    expect(isSingletonDeviceKind('ws2812')).toBe(false);
+  });
+
+  it('prevents adding multiple bluetooth or usbHost devices', () => {
+    expect(canAddDeviceKind('bt', [])).toBe(true);
+    expect(canAddDeviceKind('bt', ['bt'])).toBe(false);
+    expect(canAddDeviceKind('bt', ['usbHost'])).toBe(true);
+
+    expect(canAddDeviceKind('usbHost', [])).toBe(true);
+    expect(canAddDeviceKind('usbHost', ['usbHost'])).toBe(false);
+    expect(canAddDeviceKind('usbHost', ['bt'])).toBe(true);
+
+    // Non-singleton devices can always be added even if existing
+    expect(canAddDeviceKind('ws2812', ['ws2812'])).toBe(true);
+    expect(canAddDeviceKind('multiplexer', ['multiplexer'])).toBe(true);
   });
 });
 
