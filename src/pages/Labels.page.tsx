@@ -426,7 +426,7 @@ function MatrixLabel({
           pin={label.matrixLabel!.inputPin!}
           valid={Object.fromEntries(
             Object.entries(AllPinsNamed).filter(
-              (x) => device!.device.matrix!.inPins! & (1 << parseInt(x[0], 10))
+              (x) => (device?.device.matrix?.inPins ?? 0) & (1 << parseInt(x[0], 10))
             )
           )}
           dispatch={(pin) =>
@@ -441,7 +441,7 @@ function MatrixLabel({
           pin={label.matrixLabel!.outputPin!}
           valid={Object.fromEntries(
             Object.entries(AllPinsNamed).filter(
-              (x) => device!.device.matrix!.outPins! & (1 << parseInt(x[0], 10))
+              (x) => (device?.device.matrix?.outPins ?? 0) & (1 << parseInt(x[0], 10))
             )
           )}
           dispatch={(pin) =>
