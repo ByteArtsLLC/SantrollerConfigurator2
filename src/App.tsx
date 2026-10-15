@@ -3,6 +3,7 @@ import '@mantine/core/styles.css';
 import { lazy, Suspense } from 'react';
 import { MantineProvider } from '@mantine/core';
 import { Router } from './Router';
+import { theme } from './theme';
 
 // Only the desktop app needs these, so they stay out of the web build's main bundle
 const DevicePicker = lazy(() => import('./desktop/DevicePicker'));
@@ -12,7 +13,7 @@ const isDesktop = 'isTauri' in window;
 
 export default function App() {
   return (
-    <MantineProvider defaultColorScheme="auto" deduplicateInlineStyles>
+    <MantineProvider theme={theme} defaultColorScheme="auto" deduplicateInlineStyles>
       <Router />
       {isDesktop && (
         <Suspense>

@@ -9,6 +9,7 @@ import {
   Card,
   Center,
   Combobox,
+  Divider,
   Flex,
   Group,
   Image,
@@ -283,7 +284,7 @@ function DeviceCard({
           </Center>
         </Card.Section>
         <Flex mt="md" mb="xs" justify="center" align="center" gap="xs">
-          <Title order={2} fw={500}>
+          <Title order={2} fw={700}>
             {id ? t(title, { id }) : t(title)}
           </Title>{' '}
         </Flex>
@@ -1858,9 +1859,8 @@ function PowerManagementDevice({ id }: { id: string }) {
       <Text size="sm" c="dimmed">
         {t('powerManagement.description')}
       </Text>
-      <Title order={5} mt="md">
-        {t('powerManagement.heartbeat.title')}
-      </Title>
+      <Divider my="md" />
+      <Title order={5}>{t('powerManagement.heartbeat.title')}</Title>
       <Text size="xs" c="dimmed">
         {t('powerManagement.heartbeat.description')}
       </Text>
@@ -1888,9 +1888,8 @@ function PowerManagementDevice({ id }: { id: string }) {
           )}
         </>
       )}
-      <Title order={5} mt="md">
-        {t('powerManagement.inactivity.title')}
-      </Title>
+      <Divider my="md" />
+      <Title order={5}>{t('powerManagement.inactivity.title')}</Title>
       <Text size="xs" c="dimmed">
         {t('powerManagement.inactivity.description')}
       </Text>
@@ -1960,6 +1959,7 @@ function USBHostDevice({ id }: { id: string }) {
     >
       {usbDevices.length > 0 && (
         <>
+          <Divider my="md" />
           <Title order={5} mb="xs">
             {t('devices.connected_devices', 'Connected Devices')}
           </Title>
@@ -2540,6 +2540,7 @@ function BluetoothDevice({ id }: { id: string }) {
       />
       {hasConnectedDevices && (
         <>
+          <Divider my="md" />
           <Title order={5} mb="xs">
             {t('devices.connected_devices', 'Connected Devices')}
           </Title>
@@ -2566,6 +2567,7 @@ function BluetoothDevice({ id }: { id: string }) {
         </>
       )}
 
+      <Divider my="md" />
       <Group justify="space-between" mb="xs">
         <Title order={5}>{t('devices.bluetooth_paired_devices')}</Title>
         <Button

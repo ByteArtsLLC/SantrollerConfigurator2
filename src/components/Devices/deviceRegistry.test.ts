@@ -99,4 +99,3 @@ describe('singleton devices', () => {
     expect(canAddDeviceKind('multiplexer', ['multiplexer'])).toBe(true);
   });
 });
-

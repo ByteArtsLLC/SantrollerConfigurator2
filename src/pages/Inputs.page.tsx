@@ -436,9 +436,7 @@ function ValueRow({
   const { t } = useTranslation();
   return (
     <>
-      <Text size="sm" fw={700}>
-        {label}
-      </Text>
+      <Input.Label mb={3}>{label}</Input.Label>
       {description && (
         <Text size="xs" c="dimmed">
           {description}
@@ -703,9 +701,7 @@ function StateSlider({
   if (raw) {
     return (
       <>
-        <Text size="sm" fw={700}>
-          {t('calibration.rawValue')}
-        </Text>
+        <Input.Label mb={3}>{t('calibration.rawValue')}</Input.Label>
         <Progress.Root size={40} transitionDuration={0}>
           <Progress.Label w="100%" h="100%" style={{ position: 'absolute' }}>
             <StateLabel
@@ -741,9 +737,7 @@ function StateSlider({
   }
   return (
     <>
-      <Text size="sm" fw={700}>
-        {t('calibration.value')}
-      </Text>
+      <Input.Label mb={3}>{t('calibration.value')}</Input.Label>
       <Progress.Root size={40} transitionDuration={0}>
         <Progress.Label w="100%" h="100%" style={{ position: 'absolute' }}>
           <StateLabel
@@ -4235,14 +4229,8 @@ function SantrollerMapping({
                         />
                       )}
                       {(mapping.trigger === proto.AnalogToDigitalTriggerType.Range && (
-                        <Text size="sm" fw={700}>
-                          {t('trigger.min')}
-                        </Text>
-                      )) || (
-                        <Text size="sm" fw={700}>
-                          {t('trigger.trigger')}
-                        </Text>
-                      )}
+                        <Input.Label mb={3}>{t('trigger.min')}</Input.Label>
+                      )) || <Input.Label mb={3}>{t('trigger.trigger')}</Input.Label>}
                       <Group>
                         <Slider
                           flex={1}
@@ -4277,9 +4265,7 @@ function SantrollerMapping({
                       </Group>
                       {mapping.trigger === proto.AnalogToDigitalTriggerType.Range && (
                         <>
-                          <Text size="sm" fw={700}>
-                            {t('trigger.max')}
-                          </Text>
+                          <Input.Label mb={3}>{t('trigger.max')}</Input.Label>
                           <Group>
                             <Slider
                               flex={1}
@@ -6034,7 +6020,7 @@ function SantrollerLed({
               raw
               ledBased
             />
-            <Text size="sm">{t('calibration.min')}</Text>
+            <Input.Label mb={3}>{t('calibration.min')}</Input.Label>
             <Slider
               value={led.mapping.inputMapping!.min!}
               min={0}
@@ -6066,7 +6052,7 @@ function SantrollerLed({
             >
               {t('pin_use_current')}
             </Button>
-            <Text size="sm">{t('calibration.max')}</Text>
+            <Input.Label mb={3}>{t('calibration.max')}</Input.Label>
             <Slider
               value={led.mapping.inputMapping!.max!}
               min={0}
@@ -6215,8 +6201,8 @@ function ActivationTrigger({
               />
             )}
             {(input.trigger === proto.AnalogToDigitalTriggerType.Range && (
-              <Text size="sm">{t('trigger.min')}</Text>
-            )) || <Text size="sm">{t('trigger.trigger')}</Text>}
+              <Input.Label mb={3}>{t('trigger.min')}</Input.Label>
+            )) || <Input.Label mb={3}>{t('trigger.trigger')}</Input.Label>}
 
             <Slider
               value={input.triggerValue!}
@@ -6245,7 +6231,7 @@ function ActivationTrigger({
             </Button>
             {input.trigger === proto.AnalogToDigitalTriggerType.Range && (
               <>
-                <Text size="sm">{t('trigger.max')}</Text>
+                <Input.Label mb={3}>{t('trigger.max')}</Input.Label>
                 <Slider
                   value={input.maxTriggerValue!}
                   min={0}
@@ -9185,19 +9171,21 @@ function Profile({ profileIdx }: { profileIdx: number }) {
             </>
           )}
 
-          <Space h="md" />
+          <Divider my="xl" />
           <Input.Wrapper
             inputWrapperOrder={['label', 'error', 'input', 'description']}
             description={t('assignments.description')}
           >
-            <Group justify="space-between" align="baseline">
-              <Title order={3}>{t('assignments.title')}</Title>
+            <Group justify="space-between" align="baseline" mb="xs">
+              <Title order={2} size="h3">
+                {t('assignments.title')}
+              </Title>
               <Anchor component={Link} to="/assignments" size="sm">
                 {t('assignments.learnMore')}
               </Anchor>
             </Group>
           </Input.Wrapper>
-          <Space h="md" />
+          <Space h="xs" />
 
           <Table stickyHeader stickyHeaderOffset={60} withRowBorders={false} layout="fixed">
             <Table.Thead>
@@ -9546,9 +9534,10 @@ function Profile({ profileIdx }: { profileIdx: number }) {
         </>
       )}
 
-      <Space h="md" />
-      <Title order={3}>{t('inputs.title')}</Title>
-      <Space h="md" />
+      <Divider my="xl" />
+      <Title order={2} size="h3" mb="md">
+        {t('inputs.title')}
+      </Title>
       <Table stickyHeader stickyHeaderOffset={60} withRowBorders={false} layout="fixed">
         <Table.Thead>
           {!simpleMode && (
@@ -9875,9 +9864,10 @@ function Profile({ profileIdx }: { profileIdx: number }) {
       </Table>
       {(!simpleMode || !!profile.leds?.length) && (
         <>
-          <Space h="md" />
-          <Title order={3}>{t('leds.label')}</Title>
-          <Space h="md" />
+          <Divider my="xl" />
+          <Title order={2} size="h3" mb="md">
+            {t('leds.label')}
+          </Title>
           <Table stickyHeader stickyHeaderOffset={60} withRowBorders={false} layout="fixed">
             <Table.Thead>
               {!simpleMode && (

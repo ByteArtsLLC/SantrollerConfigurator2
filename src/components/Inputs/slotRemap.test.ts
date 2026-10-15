@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { proto } from '@/components/SettingsContext/config';
 import { getWiiDefaults } from '@/components/Defaults/defaultMappings';
+import { proto } from '@/components/SettingsContext/config';
 import {
   getProfileSlotForInput,
   getProfileSlots,

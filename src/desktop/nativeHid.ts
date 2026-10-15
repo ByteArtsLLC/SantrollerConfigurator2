@@ -298,4 +298,3 @@ export async function installUdevRules(): Promise<void> {
     await invoke('install_udev_rules');
   }
 }
-
