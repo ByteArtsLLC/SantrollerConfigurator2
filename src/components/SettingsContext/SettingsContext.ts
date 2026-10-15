@@ -29,12 +29,12 @@ import { createLabelConfig, getNextLabelId } from '@/components/Labels/labelRegi
 import { importLegacyConfigs } from '@/components/Legacy/importLegacyConfig';
 import { legacyErrorReason, legacyWarning, LegacyWarning } from '@/components/Legacy/warnings';
 import { CRC32 } from '@/CRC32.js';
+import { clearWindowsControllerCache } from '@/desktop/nativeHid';
 import { BluetoothConfigDevice } from './BluetoothConfigDevice';
 import { proto } from './config.js';
 import { parseVersionReport } from './firmwareVersion';
 import { KeepaliveTimer, startKeepaliveTimer, stopKeepaliveTimer } from './keepaliveTimer';
 import { truncateProfileName } from './profileName';
-import { clearWindowsControllerCache } from '@/desktop/nativeHid';
 
 // sourceId is unique per interface (including virtual wireless controller slots), older
 // firmware doesn't send it so fall back to port / interface
@@ -567,6 +567,7 @@ export interface Actions {
     innerMapping: number | undefined,
     type: proto.PinDetectType
   ) => void;
+  testLed: (profileId: number, ledId?: number, durationMs?: number) => Promise<void>;
 }
 
 function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState {
@@ -1237,6 +1238,27 @@ export const useConfigStore = create<ConfigState & Actions>()(
       const outBuffer2 = new ArrayBuffer(63);
       new Uint8Array(outBuffer2).set(infoBuffer2);
       await dev.sendFeatureReport(proto.ReportId.ReportIdCommand, outBuffer2);
+    },
+
+    testLed: async (profileId: number, ledId?: number, durationMs: number = 2000) => {
+      const dev = get().hidDevice;
+      if (!dev) {
+        return;
+      }
+      const infoBuffer = proto.Command.encode(
+        proto.Command.create({
+          testLed: proto.TestLedCommand.create({
+            profileId,
+            id: ledId ?? 0xffffffff,
+            durationMs,
+          }),
+        })
+      )
+        .ldelim()
+        .finish();
+      const outBuffer = new ArrayBuffer(63);
+      new Uint8Array(outBuffer).set(infoBuffer);
+      await dev.sendFeatureReport(proto.ReportId.ReportIdCommand, outBuffer);
     },
 
     updateConfig: (config: proto.IConfig) => {

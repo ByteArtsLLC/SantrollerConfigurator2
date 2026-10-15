@@ -1347,6 +1347,11 @@
     "copyToPressed": "Copy to Pressed Colour",
     "copyToReleased": "Copy to Released Colour",
     "add": "Add Led Mapping",
+    "test": "Test LED",
+    "testing": "Testing LED...",
+    "test_all": "Test All LEDs",
+    "invert": "Invert (Active Low)",
+    "invert_desc": "Invert output pin logic so active-low LEDs work (low = on, high = off)",
     "type": {
       "input": "Input Based",
       "pattern": "Pattern based",

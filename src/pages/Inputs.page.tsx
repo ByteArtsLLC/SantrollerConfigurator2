@@ -5072,6 +5072,8 @@ function SantrollerLed({
   }
 
   const isLedActive = useConfigStore((state) => !!state.ledStatus[profileIdx]?.[ledIdx]?.state);
+  const connected = useConfigStore((state) => state.connected);
+  const testLed = useConfigStore((state) => state.testLed);
 
   let summaryModeText = mappingValue || t('leds.type.static');
   if (led.mapping.inputMapping && mapping) {
@@ -5527,14 +5529,33 @@ function SantrollerLed({
             )}
             <Space h="md" />
             {led.device.gpio && (
-              <PinBox
-                label="pin_label"
-                valid={led.device.gpio.analog ? AnalogPinsNamed : AllPinsNamed}
-                pin={led.device.gpio.pin}
-                dispatch={(pin) =>
-                  dispatch({ ...led, device: { gpio: { ...led.device.gpio!, pin } } })
-                }
-              />
+              <>
+                <PinBox
+                  label="pin_label"
+                  valid={led.device.gpio.analog ? AnalogPinsNamed : AllPinsNamed}
+                  pin={led.device.gpio.pin}
+                  dispatch={(pin) =>
+                    dispatch({ ...led, device: { gpio: { ...led.device.gpio!, pin } } })
+                  }
+                />
+                <Space h="sm" />
+                <Switch
+                  label={t('leds.invert')}
+                  description={t('leds.invert_desc')}
+                  checked={!!led.device.gpio.inverted}
+                  onChange={(event) =>
+                    dispatch({
+                      ...led,
+                      device: {
+                        gpio: {
+                          ...led.device.gpio!,
+                          inverted: event.currentTarget.checked,
+                        },
+                      },
+                    })
+                  }
+                />
+              </>
             )}
             {led.device.mpr121 && (
               <Select
@@ -6079,6 +6100,22 @@ function SantrollerLed({
             </Button>
           </>
         )}
+        <Space h="sm" />
+        <Button
+          fullWidth
+          variant={isLedActive ? 'filled' : 'light'}
+          color={isLedActive ? 'blue' : 'gray'}
+          disabled={!connected}
+          onClick={() => {
+            if (isLedActive) {
+              testLed(profileIdx, ledIdx, 0);
+            } else {
+              testLed(profileIdx, ledIdx, 2000);
+            }
+          }}
+        >
+          {isLedActive ? t('leds.testing') : t('leds.test')}
+        </Button>
       </Card>
     </div>
   );
@@ -8554,6 +8591,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
   const cloneProfile = useConfigStore((state) => state.cloneProfile);
   const loadDefaults = useConfigStore((state) => state.loadDefaults);
   const setSyncMode = useConfigStore((state) => state.setSyncMode);
+  const connected = useConfigStore((state) => state.connected);
+  const testLed = useConfigStore((state) => state.testLed);
   const [legendMode, setLegendMode] = useState<LegendMode>(readStoredLegendMode);
   const deviceTypes = useDeviceTypes();
   const [defaultTarget, setDefaultTarget] = useState<DeviceStatus | ProfileSlot | undefined>(
@@ -9751,6 +9790,13 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                       </Button>
                       <Button variant="filled" onClick={open4}>
                         {t('clear_all_button')}
+                      </Button>
+                      <Button
+                        variant="filled"
+                        disabled={!connected || !profile.leds?.length}
+                        onClick={() => testLed(profileIdx, undefined, 2000)}
+                      >
+                        {t('leds.test_all')}
                       </Button>
                     </Group>
                   </Table.Td>
