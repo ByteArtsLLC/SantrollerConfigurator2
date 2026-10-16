@@ -6164,6 +6164,7 @@ function SantrollerLed({
 
 type ProfileAssignmentTypes = keyof proto.IProfileAssignmentInfo;
 const OtherAssignmentTypes: ProfileAssignmentTypes[] = ['input', 'inputAnyTime'];
+const LocalAssignmentTypes: ProfileAssignmentTypes[] = ['localInputs'];
 const HostProfileAssignmentTypes: ProfileAssignmentTypes[] = [
   'wiiExt',
   'ps2Cnt',
@@ -6190,8 +6191,10 @@ type EmulationMode =
   | 'joybusEmulation'
   | 'snesEmulation';
 const AllProfileAssignmentTypes: ProfileAssignmentTypes[] = OtherAssignmentTypes.concat(
-  HostProfileAssignmentTypes
-).concat(DeviceProfileAssignmentTypes);
+  LocalAssignmentTypes
+)
+  .concat(HostProfileAssignmentTypes)
+  .concat(DeviceProfileAssignmentTypes);
 function ActivationTrigger({
   input,
   profileIdx,
@@ -6488,6 +6491,9 @@ export function SantrollerAssignment({
               case 'midiProGuitar':
                 dispatch({ midiProGuitar: proto.SubType.ProGuitarSquier });
                 break;
+              case 'localInputs':
+                dispatch({ localInputs: {} });
+                break;
             }
             assignmentTypeCombobox.closeDropdown();
           }}
@@ -6497,7 +6503,7 @@ export function SantrollerAssignment({
           <Combobox.Dropdown mah="300px" style={{ overflow: 'auto' }}>
             <Combobox.Options>
               <Combobox.Group label={t('assignments.generic')}>
-                {OtherAssignmentTypes.map((item) => (
+                {OtherAssignmentTypes.concat(LocalAssignmentTypes).map((item) => (
                   <Combobox.Option value={item} key={item} selected={!!mapping[item]}>
                     <AssignmentOption value={FixLabel(mode, type, item, legendMode)} />
                   </Combobox.Option>
@@ -7316,6 +7322,7 @@ function SantrollerAssignmentList({
 
   const triggerIdx = assignments.findIndex((x) => OtherAssignmentTypes.some((y) => x[y] != null));
   const triggerItem = triggerIdx !== -1 ? assignments[triggerIdx] : undefined;
+  const localInputsIdx = assignments.findIndex((x) => x.localInputs != null);
 
   const isActive = useConfigStore(
     (state) => state.activationListStatus[profileIdx]?.[listIdx]?.state ?? false
@@ -7910,6 +7917,21 @@ function SantrollerAssignmentList({
             hasMidi={hasMidi}
             hasWii={hasWii}
             hasPsx={hasPsx}
+          />
+
+          <Switch
+            size="xs"
+            label={t('assignments.localInputs')}
+            description={t('assignments.localInputsDesc')}
+            checked={localInputsIdx !== -1}
+            onChange={(evt) =>
+              dispatch({
+                ...mapping,
+                assignments: evt.currentTarget.checked
+                  ? [...assignments, { localInputs: {} }]
+                  : assignments.filter((_, idx) => idx !== localInputsIdx),
+              })
+            }
           />
 
           <Divider my={2} />

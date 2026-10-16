@@ -1715,6 +1715,8 @@
     "specificConsoleDesc": "Enable to apply this profile when plugged into a specific device, for example setting this to PS3 would only apply this profile when plugged into a PS3.",
     "forcedType": "Force device type",
     "forcedTypeDesc": "Enable to ignore console detection and always use a specific mode for this profile.",
+    "localInputs": "Uses this device's own inputs",
+    "localInputsDesc": "Enable so that only one profile using the inputs wired to this device is active at a time. Profiles are tried in order, so put the one you'd rather use first. USB profiles only match while a PC or console is connected, so a USB profile followed by a bluetooth one uses bluetooth when running from a battery or charger.",
     "missingEmulation": "Missing Emulation",
     "missingDevice": "This profile is missing an emulation assignment. Without one, santroller doesn't know when it should use this profile, so it won't be used.",
     "missing": "This profile is missing an assignment! Without one, it won't ever be assigned",
@@ -1883,7 +1885,8 @@
     "joybusEmulation": "GameCube / N64 Controller Emulation",
     "snesEmulation": "SNES / NES Controller Emulation",
     "bluetoothType": "Bluetooth Host By Type",
-    "bluetoothDevice": "Bluetooth Host Specific"
+    "bluetoothDevice": "Bluetooth Host Specific",
+    "localInputs": "This Device's Own Inputs"
   },
   "assignmentTypeDesc": {
     "wiiExt": "Match when a Wii Extension is plugged into this device",
@@ -1901,7 +1904,8 @@
     "joybusEmulation": "Match when plugged into a GameCube or N64 via the controller port",
     "snesEmulation": "Match when plugged into a SNES or NES via the controller port",
     "bluetoothType": "Match when a bluetooth device type is connected to this device via Bluetooth host",
-    "bluetoothDevice": "Match when a specific bluetooth device is connected to this device via Bluetooth host"
+    "bluetoothDevice": "Match when a specific bluetooth device is connected to this device via Bluetooth host",
+    "localInputs": "Match unless an earlier profile already uses the inputs wired to this device (pins, ADC, I2C devices etc), so only one of them is used at a time"
   },
   "activation": {
     "usbType": "Usb Controller Type",
