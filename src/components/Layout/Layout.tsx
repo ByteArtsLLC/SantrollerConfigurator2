@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   IconAlertCircle,
+  IconArrowBackUp,
   IconBook,
   IconBuildingStore,
   IconCheck,
@@ -51,6 +52,7 @@ import {
   useMantineColorScheme,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { proto } from '../SettingsContext/config';
 import { useConfigStore } from '../SettingsContext/SettingsContext';
 import classes from './Layout.module.css';
 
@@ -66,6 +68,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const connected = useConfigStore((state) => state.connected);
   const hung = useConfigStore((state) => state.hung);
   const reloadLost = useConfigStore((state) => state.reloadLost && !state.connected);
+  const deferredMode = useConfigStore((state) => (state.connected ? state.deferredMode : null));
   const updating = useConfigStore((state) => state.updating);
   const pollInputs = useConfigStore((state) => state.pollInputs);
   const activeProfile = useConfigStore((state) => state.currentProfile);
@@ -85,6 +88,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const profilePage = useMatch('/profiles');
   const seller = useConfigStore((state) => state.seller);
   const commitConfig = useConfigStore((state) => state.commitConfig);
+  const discardChanges = useConfigStore((state) => state.discardChanges);
   const peripheralDevices = useConfigStore(
     useShallow((state) =>
       Object.values(state.deviceStatus).filter((status) => status.device?.peripheral != null)
@@ -268,6 +272,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   const showSave = configModified || saveStatus !== 'idle';
+  const [discardOpened, setDiscardOpened] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+  const handleDiscard = async () => {
+    setDiscarding(true);
+    try {
+      await discardChanges();
+    } catch (e) {
+      console.error('Failed to discard changes:', e);
+    } finally {
+      setDiscarding(false);
+      setDiscardOpened(false);
+    }
+  };
   const targetProfile = profileToDelete !== null ? profiles[profileToDelete] : null;
 
   // Buttons shown on each profile's nav row; the link itself navigates, so clicks must not reach it
@@ -358,6 +375,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Group>
         </Flex>
       </Modal>
+      <Modal
+        opened={discardOpened}
+        onClose={() => !discarding && setDiscardOpened(false)}
+        title={t('save.discardTitle', 'Discard changes')}
+        centered
+      >
+        {t(
+          'save.discardDesc',
+          'Everything changed since the last save will be lost, and the controller will go back to its saved config.'
+        )}
+        <Space h="md" />
+        <Flex justify="flex-end">
+          <Group align="flex-end">
+            <Button onClick={handleDiscard} loading={discarding} color="red">
+              {t('save.discardConfirm', 'Discard changes')}
+            </Button>
+            <Button onClick={() => setDiscardOpened(false)} disabled={discarding}>
+              {t('save.discardCancel', 'Cancel')}
+            </Button>
+          </Group>
+        </Flex>
+      </Modal>
       <AppShell
         header={{ height: showSave ? 80 : 50 }}
         navbar={{
@@ -388,45 +427,58 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   alt="santroller"
                 />
                 {showSave && (
-                  <Button
-                    size="xs"
-                    radius="md"
-                    color={
-                      saveStatus === 'saved'
-                        ? 'teal'
-                        : saveStatus === 'error'
-                          ? 'red'
-                          : saveStatus === 'saving'
-                            ? 'blue'
-                            : 'red'
-                    }
-                    loading={saveStatus === 'saving'}
-                    loaderProps={{ type: 'dots' }}
-                    leftSection={
-                      saveStatus === 'saved' ? (
-                        <IconCheck size={16} stroke={2.5} />
-                      ) : saveStatus === 'error' ? (
-                        <IconAlertCircle size={16} stroke={2} />
-                      ) : saveStatus === 'saving' ? undefined : (
-                        <IconDeviceFloppy size={16} stroke={1.5} />
-                      )
-                    }
-                    onClick={
-                      saveStatus === 'saved' || saveStatus === 'saving' ? undefined : handleSave
-                    }
-                    style={{
-                      transition: 'all 200ms ease',
-                      cursor: saveStatus === 'saved' ? 'default' : undefined,
-                    }}
-                  >
-                    {saveStatus === 'saving'
-                      ? t('save.saving', 'Saving...')
-                      : saveStatus === 'saved'
-                        ? t('save.saved', 'Saved!')
-                        : saveStatus === 'error'
-                          ? t('save.failed', 'Save failed')
-                          : t('save.saveChanges', 'Save changes')}
-                  </Button>
+                  <Group gap="xs" wrap="nowrap">
+                    <Button
+                      size="xs"
+                      radius="md"
+                      color={
+                        saveStatus === 'saved'
+                          ? 'teal'
+                          : saveStatus === 'error'
+                            ? 'red'
+                            : saveStatus === 'saving'
+                              ? 'blue'
+                              : 'red'
+                      }
+                      loading={saveStatus === 'saving'}
+                      loaderProps={{ type: 'dots' }}
+                      leftSection={
+                        saveStatus === 'saved' ? (
+                          <IconCheck size={16} stroke={2.5} />
+                        ) : saveStatus === 'error' ? (
+                          <IconAlertCircle size={16} stroke={2} />
+                        ) : saveStatus === 'saving' ? undefined : (
+                          <IconDeviceFloppy size={16} stroke={1.5} />
+                        )
+                      }
+                      onClick={
+                        saveStatus === 'saved' || saveStatus === 'saving' ? undefined : handleSave
+                      }
+                      style={{
+                        transition: 'all 200ms ease',
+                        cursor: saveStatus === 'saved' ? 'default' : undefined,
+                      }}
+                    >
+                      {saveStatus === 'saving'
+                        ? t('save.saving', 'Saving...')
+                        : saveStatus === 'saved'
+                          ? t('save.saved', 'Saved!')
+                          : saveStatus === 'error'
+                            ? t('save.failed', 'Save failed')
+                            : t('save.saveChanges', 'Save changes')}
+                    </Button>
+                    {saveStatus === 'idle' && (
+                      <Button
+                        size="xs"
+                        radius="md"
+                        variant="default"
+                        leftSection={<IconArrowBackUp size={16} stroke={1.5} />}
+                        onClick={() => setDiscardOpened(true)}
+                      >
+                        {t('save.discard', 'Discard changes')}
+                      </Button>
+                    )}
+                  </Group>
                 )}
               </Flex>
             </Grid.Col>
@@ -783,6 +835,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
           />
         </AppShell.Navbar>
         <AppShell.Main>
+          {deferredMode !== null && (
+            <>
+              <Alert
+                variant="light"
+                color="blue"
+                title={t('connect.modeDeferredTitle')}
+                icon={<IconAlertCircle />}
+              >
+                {t('connect.modeDeferred', {
+                  mode: t(`consoleMode.${proto.ConsoleMode[deferredMode]}`),
+                })}
+              </Alert>
+              <Space h="md" />
+            </>
+          )}
           {reloadLost && (
             <>
               <Alert

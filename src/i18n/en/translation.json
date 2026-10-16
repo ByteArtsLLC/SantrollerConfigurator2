@@ -2307,7 +2307,12 @@
     "saveChanges": "Save changes",
     "saving": "Saving...",
     "saved": "Saved!",
-    "failed": "Save failed"
+    "failed": "Save failed",
+    "discard": "Discard changes",
+    "discardTitle": "Discard changes",
+    "discardDesc": "Everything changed since the last save will be lost, and the controller will go back to its saved config.",
+    "discardConfirm": "Discard changes",
+    "discardCancel": "Cancel"
   },
   "update": {
     "title": "Update available",
@@ -2382,6 +2387,8 @@
     "updateNoReconnect": "The controller didn't come back after updating. Try unplugging it and plugging it back in, then connect to it again.",
     "reloadLostTitle": "Controller didn't reconnect",
     "reloadLost": "The controller restarted but didn't come back in a mode that can be configured. This usually means the active profile forces a console mode like PS3. Change whatever activates that profile so a different one is used, then connect to it again.",
+    "modeDeferredTitle": "Console mode switch is waiting",
+    "modeDeferred": "An active profile switches the controller to {{mode}} mode. It stays in its current mode while the configurator is open, as switching would disconnect it, and switches once you close the configurator.",
     "applyingUpdate": "Installing the update, this can take up to a minute. Don't unplug the controller, it will reconnect on its own when it's done.",
     "downloadPico1": "Download UF2 (Pico 1 / RP2040)",
     "downloadPico2": "Download UF2 (Pico 2 / RP2350)",

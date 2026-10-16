@@ -159,6 +159,32 @@ function receiveFeatureReport(device: HIDDevice, reportId: number) {
   return withHidTimeout(device.receiveFeatureReport(reportId), 'response');
 }
 
+// The profiles the device is running, and a mode an active profile forces that it held off switching
+// to, as that would drop the tool's connection
+async function readActiveProfiles(
+  device: HIDDevice
+): Promise<{ activeProfiles: number[]; deferredMode: proto.ConsoleMode | null }> {
+  let payload: Uint8Array | undefined;
+  try {
+    const profileData = await receiveFeatureReport(device, proto.ReportId.ReportIdGetActiveProfiles);
+    payload = new Uint8Array(
+      profileData.buffer,
+      profileData.byteOffset,
+      profileData.byteLength
+    ).slice(1);
+    if (payload.length > 0) {
+      const resp = proto.GetActiveProfiles.decodeDelimited(payload);
+      return { activeProfiles: resp.profiles || [], deferredMode: resp.deferredMode ?? null };
+    }
+  } catch (e) {
+    console.error(
+      `Failed to get active profiles (${payload?.length ?? 0} bytes: ${hexBytes(payload ?? new Uint8Array())})`,
+      e
+    );
+  }
+  return { activeProfiles: [], deferredMode: null };
+}
+
 // Feature reports can come back zero padded out to their declared size (depending on the platform and
 // transport), which plain protobuf decoding misreads. Zero is never a valid protobuf tag, so the message
 // ends at the first one.
@@ -483,6 +509,8 @@ export interface ConfigState {
   currentProfileInstance: number;
   lastProfile: number;
   activeProfiles: number[];
+  // A mode an active profile forces, held off until the tool disconnects
+  deferredMode: proto.ConsoleMode | null;
   midiData: number[][];
   console: string;
   sendingKeepAlive: boolean;
@@ -545,7 +573,9 @@ export interface Actions {
   onReport: (evt: HIDInputReportEvent) => void;
   setActiveProfile: (id: string | null, instance?: number) => void;
   sendKeepAlive: () => void;
+  refreshActiveProfiles: () => Promise<void>;
   commitConfig: () => Promise<void>;
+  discardChanges: () => Promise<void>;
   // Resolves true once the device has the current config, false if it didn't get sent
   saveConfig: (immediate?: boolean) => Promise<boolean>;
   buildConfigBuffer: (shareable?: boolean) => {
@@ -693,6 +723,7 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     currentProfileInstance: 0,
     lastProfile: 0,
     activeProfiles: [],
+    deferredMode: null,
     midiData: [],
     guiDevices,
     console: '',
@@ -855,6 +886,54 @@ export const useConfigStore = create<ConfigState & Actions>()(
       await state.hidDevice?.sendFeatureReport(proto.ReportId.ReportIdCommand, outBuffer2);
       set((state) => {
         state.savedConfig = proto.Config.encode(state.config).finish();
+        state.configModified = false;
+      });
+    },
+    discardChanges: async () => {
+      const state = get();
+      if (!state.hidDevice || !state.connected) {
+        return;
+      }
+      if (state.writeTimeout) {
+        clearTimeout(state.writeTimeout);
+        state.writeTimeout = undefined;
+      }
+      // A save still sending its chunks would land after the revert and bring the edits back
+      const waitUntil = Date.now() + 5000;
+      while (get().writing && Date.now() < waitUntil) {
+        await delay(50);
+      }
+      const { data, info } = await fetchConfigDataWithRetry(state.hidDevice, true);
+      const config = proto.Config.decode(data, info.mainSize);
+      const aux = proto.AuxConfigBlock.decode(data.slice(info.mainSize), info.auxSize);
+      const fresh = InitState(config, aux);
+      set(
+        (old) => ({
+          ...old,
+          // Only what comes from the config, the connection and firmware state stay as they are
+          deviceStatus: fresh.deviceStatus,
+          mappingStatus: fresh.mappingStatus,
+          activationStatus: fresh.activationStatus,
+          activationListStatus: fresh.activationListStatus,
+          ledStatus: fresh.ledStatus,
+          guiDevices: fresh.guiDevices,
+          toolInfo: fresh.toolInfo,
+          syncInputs: fresh.syncInputs,
+          ghArcadeSide: fresh.ghArcadeSide,
+          config,
+          savedConfig: data.slice(0, info.mainSize),
+          // A profile added since the last save is gone now
+          currentProfile:
+            old.currentProfile < (config.profiles?.length ?? 0) ? old.currentProfile : 0,
+          currentProfileInstance:
+            old.currentProfile < (config.profiles?.length ?? 0) ? old.currentProfileInstance : 0,
+        }),
+        true
+      );
+      // The live config on the device still has the edits, so send it the saved one
+      await get().saveConfig(true);
+      await get().setActiveProfile(get().currentProfile.toString(), get().currentProfileInstance);
+      set((state) => {
         state.configModified = false;
       });
     },
@@ -1461,6 +1540,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         return;
       }
       let btConnected = false;
+      let reloaded = false;
       // One store update per report: the device can send these every millisecond while live
       // values change, and every update re-runs every selector on the page.
       set((state) => {
@@ -1486,6 +1566,11 @@ export const useConfigStore = create<ConfigState & Actions>()(
           }
           if (deviceEvent.reload) {
             state.waitingForReload = true;
+          }
+          if (deviceEvent.loaded) {
+            // The reload kept the connection, so there's no reconnect to wait for
+            state.waitingForReload = false;
+            reloaded = true;
           }
           if (deviceEvent.ps2) {
             if (deviceEvent.ps2.id in state.deviceStatus) {
@@ -1630,6 +1715,23 @@ export const useConfigStore = create<ConfigState & Actions>()(
       if (btConnected) {
         get().refreshBluetoothPairings();
       }
+      if (reloaded) {
+        get().refreshActiveProfiles();
+      }
+    },
+    refreshActiveProfiles: async () => {
+      const device = get().hidDevice;
+      if (!device) {
+        return;
+      }
+      const { activeProfiles, deferredMode } = await readActiveProfiles(device);
+      if (get().hidDevice !== device) {
+        return;
+      }
+      set((state) => {
+        state.activeProfiles = activeProfiles;
+        state.deferredMode = deferredMode;
+      });
     },
     addProfile: () => {
       set((state) => {
@@ -1828,23 +1930,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       stopKeepaliveTimer(get().keepaliveTimeout);
       const timeout = startKeepaliveTimer(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
       await device.sendFeatureReport(proto.ReportId.ReportIdKeepalive, new Uint8Array([0]));
-      let activeProfiles: number[] = [];
-      try {
-        const profileData = await receiveFeatureReport(
-          device,
-          proto.ReportId.ReportIdGetActiveProfiles
-        );
-        const payload = new Uint8Array(
-          profileData.buffer,
-          profileData.byteOffset,
-          profileData.byteLength
-        ).slice(1);
-        if (payload.length > 0) {
-          activeProfiles = proto.GetActiveProfiles.decodeDelimited(payload).profiles || [];
-        }
-      } catch (e) {
-        console.error('Failed to get active profiles', e);
-      }
+      const { activeProfiles, deferredMode } = await readActiveProfiles(device);
       const state = get();
       if (state.config.profiles![state.currentProfile]) {
         const infoBuffer2 = proto.Command.encode(
@@ -1866,6 +1952,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
           ...state,
           keepaliveTimeout: timeout,
           activeProfiles,
+          deferredMode,
           waitingForReload: false,
         }),
         true
@@ -2760,27 +2847,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
           latest,
           newer: firmwareNewer,
         } = await checkFirmwareVersion(device);
-        let activeProfiles: number[] = [];
-        let payload: Uint8Array | undefined;
-        try {
-          const profileData = await receiveFeatureReport(
-            device,
-            proto.ReportId.ReportIdGetActiveProfiles
-          );
-          payload = new Uint8Array(
-            profileData.buffer,
-            profileData.byteOffset,
-            profileData.byteLength
-          ).slice(1);
-          if (payload.length > 0) {
-            activeProfiles = proto.GetActiveProfiles.decodeDelimited(payload).profiles || [];
-          }
-        } catch (e) {
-          console.error(
-            `Failed to get active profiles (${payload?.length ?? 0} bytes: ${hexBytes(payload ?? new Uint8Array())})`,
-            e
-          );
-        }
+        const { activeProfiles, deferredMode } = await readActiveProfiles(device);
         let deviceType = 'pico_w';
         try {
           const deviceTypeData = await receiveFeatureReport(device, proto.ReportId.ReportIdGetType);
@@ -2826,6 +2893,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               streamedFirmwareUpload: !!info.streamedFirmwareUpload,
               keepaliveTimeout: timeout,
               activeProfiles,
+              deferredMode,
               savedConfig: dataSaved,
               configModified: !equals(dataSaved, data),
             }),
