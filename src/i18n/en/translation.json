@@ -702,7 +702,7 @@
     "desc": "Expressed in milliseconds (0.1ms steps), use 0 to disable",
     "mode": {
       "label": "Debounce applies to",
-      "description": "Release presses straight away and holds the press after letting go. Press only counts a press once it has been held for the debounce time, ignoring anything shorter (like a 1 - 2ms ghost press), and releases straight away. Impulse outputs a pulse for the debounce time and requires a release and repress to send again.",
+      "description": "Release: presses register instantly, and the button stays held for the debounce time after you let go, hiding any bounce. Press: a press only registers once the button has been held for the debounce time, so brief ghost presses are ignored. Impulse: each press sends one quick tap lasting the debounce time, however long you hold it. Let go and press again to send another.",
       "release": "Release",
       "press": "Press",
       "impulse": "Impulse"
