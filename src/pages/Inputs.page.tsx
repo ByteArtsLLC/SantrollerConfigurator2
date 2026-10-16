@@ -5574,7 +5574,7 @@ function SantrollerLed({
               <NumberInput
                 value={led.device.dmx.channel}
                 min={0}
-                max={device.device.dmx!.channelCount}
+                max={device?.device.dmx?.channelCount}
                 onChange={(e) =>
                   dispatch({
                     ...led,
@@ -5867,7 +5867,7 @@ function SantrollerLed({
                 label={t('leds.label')}
                 value={led.device.rgb?.activeLed?.map((x) => x.toString())}
                 data={Array.from(
-                  { length: device.device.ws2812?.count || device.device.apa102?.count || 0 },
+                  { length: device?.device.ws2812?.count || device?.device.apa102?.count || 0 },
                   (_, x) => ({ value: x.toString(), label: x.toString() + getLedLabel(x) })
                 )}
                 clearable
