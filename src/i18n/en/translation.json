@@ -1494,6 +1494,16 @@
       "PatternSpread": "Spread"
     },
     "set_off": "Set off colour",
+    "hides": {
+      "title": "Hides another LED mapping",
+      "off_colour": "This mapping shares an LED with {{leds}}. Because it sets an off colour, it shows that colour while released and {{leds}} never shows. Turn off \"Set off colour\" here so the earlier mappings show through while this input is released.",
+      "always": "This mapping shares an LED with {{leds}}. It updates that LED all the time, so {{leds}} never shows. When mappings share an LED, only the last one in the list is visible."
+    },
+    "cutsShort": {
+      "title": "Takes over an LED the game controls",
+      "off_colour": "This mapping shares an LED with {{leds}}, which the game controls. Because this mapping sets an off colour, it takes the LED back about a second after the game last changed it, so the game's colour barely shows. Turn off \"Set off colour\" here so this mapping only takes the LED while the input is pressed.",
+      "always": "This mapping shares an LED with {{leds}}, which the game controls. It updates that LED all the time, so the game's colour only shows for about a second each time the game changes it."
+    },
     "mpr121_pin": "MPR121 pin",
     "mpr121_pin_description": "Electrodes 4 to 11 can drive an LED. Touch sensing stops before the first electrode used this way, so wire touch inputs to the lower electrodes.",
     "mpr121_electrode": "Electrode {{pin}}",

@@ -109,6 +109,7 @@ import {
   ProfileSlot,
 } from '@/components/Inputs/inputRegistry';
 import { LedColorInput } from '@/components/Inputs/LedColorInput';
+import { ledOverlaps } from '@/components/Inputs/ledOverlap';
 import { migrateSlotIds } from '@/components/Inputs/slotRemap';
 import { Layout } from '@/components/Layout/Layout';
 import { RequireDevice } from '@/components/RequireDevice/RequireDevice';
@@ -4941,6 +4942,12 @@ function SantrollerLed({
   // Selectors rerun on every input report, so only select the mappings (which only change on
   // edits) and do the stringify compare outside the store
   const profileMappings = useConfigStore((state) => state.config.profiles?.[profileIdx]?.mappings);
+  const profileLeds = useConfigStore((state) => state.config.profiles?.[profileIdx]?.leds);
+  // the other mappings (by index) this one covers up by sharing an LED with them
+  const overlap = useMemo(
+    () => (profileLeds ? ledOverlaps(profileLeds)[ledIdx] : undefined),
+    [profileLeds, ledIdx]
+  );
   const ledInput = led.mapping.inputMapping?.input;
   const mapping = useMemo(() => {
     const key = inputKey(ledInput);
@@ -5065,6 +5072,14 @@ function SantrollerLed({
     mappingValue = t(`leds.type.status`);
   }
 
+  // An RGB input or status mapping can turn off its off colour to stop covering the others
+  const offColourWarning = !!(
+    led.device.rgb &&
+    (led.mapping.inputMapping || led.mapping.statusMapping)
+  );
+  const ledNames = (idxs: number[]) =>
+    idxs.map((idx) => t('leds.item_title', { num: idx + 1 })).join(', ');
+
   const isLedActive = useConfigStore((state) => !!state.ledStatus[profileIdx]?.[ledIdx]?.state);
   const connected = useConfigStore((state) => state.connected);
   const testLed = useConfigStore((state) => state.testLed);
@@ -5176,6 +5191,37 @@ function SantrollerLed({
             </Group>
           )}
         </Group>
+
+        {overlap && overlap.hides.length > 0 && (
+          <Alert
+            variant="light"
+            color="yellow"
+            title={t('leds.hides.title')}
+            icon={<IconExclamationCircle size={16} />}
+            mb="sm"
+          >
+            <Text size="xs">
+              {offColourWarning
+                ? t('leds.hides.off_colour', { leds: ledNames(overlap.hides) })
+                : t('leds.hides.always', { leds: ledNames(overlap.hides) })}
+            </Text>
+          </Alert>
+        )}
+        {overlap && overlap.cutsShort.length > 0 && (
+          <Alert
+            variant="light"
+            color="yellow"
+            title={t('leds.cutsShort.title')}
+            icon={<IconExclamationCircle size={16} />}
+            mb="sm"
+          >
+            <Text size="xs">
+              {offColourWarning
+                ? t('leds.cutsShort.off_colour', { leds: ledNames(overlap.cutsShort) })
+                : t('leds.cutsShort.always', { leds: ledNames(overlap.cutsShort) })}
+            </Text>
+          </Alert>
+        )}
 
         <Card padding="xs" radius="sm" withBorder mb="sm" bg="var(--mantine-color-default-hover)">
           <Group justify="space-between" wrap="nowrap">
@@ -9642,8 +9688,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                                 ...profilea.mappings!.map((cMapping, cMappingIdx) =>
                                   cMappingIdx === mappingIdx
                                     ? val
-                                    : inputKey(cMapping.input) ===
-                                          inputKey(val.input) &&
+                                    : inputKey(cMapping.input) === inputKey(val.input) &&
                                         cMapping.trigger === val.trigger
                                       ? {
                                           ...cMapping,
@@ -9660,8 +9705,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                                   ...cMapping,
                                   assignments: [
                                     ...cMapping.assignments!.map((cAssignment, _) =>
-                                      inputKey(cAssignment.input?.input) ===
-                                        inputKey(val.input) &&
+                                      inputKey(cAssignment.input?.input) === inputKey(val.input) &&
                                       cAssignment.input?.trigger === val.trigger
                                         ? {
                                             ...cAssignment,
@@ -9766,8 +9810,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                                     ...profilea.mappings!.map((cMapping, cMappingIdx) =>
                                       cMappingIdx === mappingIdx && profileIdxa === profileIdx
                                         ? val
-                                        : inputKey(cMapping.input) ===
-                                              inputKey(val.input) &&
+                                        : inputKey(cMapping.input) === inputKey(val.input) &&
                                             cMapping.trigger === val.trigger
                                           ? {
                                               ...cMapping,
