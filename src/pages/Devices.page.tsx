@@ -35,7 +35,12 @@ import {
 import { useDisclosure, useMounted } from '@mantine/hooks';
 import { Layout } from '@/components/Layout/Layout';
 import { RequireDevice } from '@/components/RequireDevice/RequireDevice';
-import { proto, usbDeviceKey, useConfigStore } from '../components/SettingsContext/SettingsContext';
+import {
+  normalizeSubType,
+  proto,
+  usbDeviceKey,
+  useConfigStore,
+} from '../components/SettingsContext/SettingsContext';
 
 import '@/i18n/config';
 
@@ -2556,9 +2561,16 @@ function BluetoothDevice({ id }: { id: string }) {
                 <Table.Tr key={x.sourceId ?? x.id}>
                   <Table.Td>{x.name || '-'}</Table.Td>
                   <Table.Td>
-                    <Badge size="xs" variant="outline">
-                      {t(`subType.${proto.SubType[x.subtype]}`, proto.SubType[x.subtype])}
-                    </Badge>
+                    {x.subtype === proto.SubType.Unknown ? (
+                      // A Santroller reports its subtype once it answers the capabilities query
+                      <Badge size="xs" variant="outline" color="gray">
+                        {t('devices.bluetooth_detecting_type', 'Detecting…')}
+                      </Badge>
+                    ) : (
+                      <Badge size="xs" variant="outline">
+                        {t(`subType.${proto.SubType[x.subtype]}`, proto.SubType[x.subtype])}
+                      </Badge>
+                    )}
                   </Table.Td>
                 </Table.Tr>
               ))}
@@ -2609,9 +2621,11 @@ function BluetoothDevice({ id }: { id: string }) {
                   : t('BtControllerType.BtControllerTypeGeneric');
               const isSantroller =
                 state.controllerType === proto.BtControllerType.BtControllerTypeSantroller;
+              const subtype = normalizeSubType(state.subtype);
+              // Unknown means it was paired before it reported one, it's picked up on the next connection
               const subTypeStr =
-                isSantroller && state.subtype != null
-                  ? t(`subType.${proto.SubType[state.subtype]}`, proto.SubType[state.subtype])
+                isSantroller && subtype != null && subtype !== proto.SubType.Unknown
+                  ? t(`subType.${proto.SubType[subtype]}`, proto.SubType[subtype])
                   : null;
               return (
                 <Table.Tr key={state.id}>

@@ -42,6 +42,13 @@ export function usbDeviceKey(event: proto.IUsbDeviceHotplugEvent): number {
   return event.sourceId ?? event.port! * 256 + event.interface!;
 }
 
+// Older firmware encodes SubType signed from a byte, so Unknown (255) arrives as -1
+export function normalizeSubType(subtype: number): proto.SubType;
+export function normalizeSubType(subtype: number | null | undefined): proto.SubType | null | undefined;
+export function normalizeSubType(subtype: number | null | undefined) {
+  return subtype == null ? subtype : ((subtype & 0xff) as proto.SubType);
+}
+
 export * from './config.js';
 const HID_RESPONSE_TIMEOUT_MS = 3_000;
 const KEEPALIVE_INTERVAL_MS = 10;
@@ -1589,6 +1596,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
           }
           if (deviceEvent.usb) {
             const event = deviceEvent.usb;
+            event.subtype = normalizeSubType(event.subtype);
             if (event.id in state.deviceStatus) {
               const usbDevices = state.deviceStatus[event.id].usbDevices;
               const targetKey = usbDeviceKey(event);
@@ -1606,6 +1614,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
             }
           }
           if (deviceEvent.bt) {
+            deviceEvent.bt.subtype = normalizeSubType(deviceEvent.bt.subtype);
             if (deviceEvent.bt.id in state.deviceStatus) {
               const id = deviceEvent.bt.sourceId ?? 0;
               if (deviceEvent.bt.connected) {
