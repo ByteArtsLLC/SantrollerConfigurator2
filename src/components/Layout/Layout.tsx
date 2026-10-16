@@ -18,6 +18,7 @@ import {
   IconMoon,
   IconPiano,
   IconPlus,
+  IconRocket,
   IconSettings,
   IconSun,
   IconTag,
@@ -91,6 +92,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 
   const isDocPage =
+    location.pathname === '/getting-started' ||
     location.pathname.startsWith('/guides') ||
     location.pathname === '/guide' ||
     location.pathname === '/supported-hardware' ||
@@ -649,6 +651,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 opened={docsOpened}
                 onChange={setDocsOpened}
               >
+                <NavLink
+                  component={RouterNavLink}
+                  to="/getting-started"
+                  onClick={() => {
+                    pollInputs(false);
+                    nav('/getting-started');
+                  }}
+                  active={location.pathname === '/getting-started'}
+                  label={t('nav.gettingStarted', 'Getting Started')}
+                  leftSection={<IconRocket size={16} stroke={1.5} />}
+                />
                 <NavLink
                   component={RouterNavLink}
                   to="/guides"

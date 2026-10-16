@@ -7,6 +7,7 @@ import { ConnectPage } from './pages/Connect.page';
 import { DebugPage } from './pages/Debug.page';
 import { DevicesPage } from './pages/Devices.page';
 import { FirmwareDifferencesPage } from './pages/FirmwareDifferences.page';
+import { GettingStartedPage } from './pages/GettingStarted.page';
 import { GuidePage } from './pages/Guide.page';
 import { GuideCatalogPage } from './pages/GuideCatalog.page';
 import { InputsPage } from './pages/Inputs.page';
@@ -19,6 +20,10 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <ConnectPage />,
+  },
+  {
+    path: '/getting-started',
+    element: <GettingStartedPage />,
   },
   {
     path: '/guides',

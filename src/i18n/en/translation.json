@@ -178,7 +178,8 @@
     "assignments": "How Assignments Work",
     "peripherals": "Peripherals",
     "peripheralAddress": "Peripheral ({{address}})",
-    "documentation": "Documentation"
+    "documentation": "Documentation",
+    "gettingStarted": "Getting Started"
   },
   "colorScheme": {
     "light": "Light",
@@ -805,6 +806,121 @@
       "pin": "LE Pin (Latch Enable)"
     },
     "count": "LED Count"
+  },
+  "gettingStarted": {
+    "title": "Getting Started with Santroller",
+    "subtitle": "A walkthrough of the whole process, from getting the firmware onto your board to saving a working controller. Each step links to the page where you do it.",
+    "concepts": {
+      "title": "How it fits together",
+      "firmware": {
+        "title": "One firmware, configured live",
+        "body": "Every board runs the same prebuilt firmware. The configurator sends your settings straight to the controller, so changes take effect immediately with <strong>no rebuilding or re-flashing</strong>."
+      },
+      "devices": {
+        "title": "Devices",
+        "body": "Hardware attached to the board, such as a <strong>Wii Extension</strong>, <strong>USB Host</strong>, LEDs, Bluetooth or a multiplexer. Devices are shared by every profile. Buttons wired straight to pins don't need one."
+      },
+      "profiles": {
+        "title": "Profiles",
+        "body": "A profile holds the controller type to emulate, its input mappings, calibration and LEDs. You can have several, for example one for guitar and one for gamepad."
+      },
+      "assignments": {
+        "title": "Assignments",
+        "body": "Rules that decide <strong>when</strong> a profile is used: over USB, over Bluetooth, through an adapter, or when a button is held at startup."
+      }
+    },
+    "steps": {
+      "title": "Step by step",
+      "description": "If your controller came from a seller with Santroller already installed, skip the first two steps.",
+      "flash": {
+        "title": "Put Santroller on your board",
+        "body": "Open <strong>Setup a new device</strong>. Hold <strong>BOOTSEL</strong> while plugging the Pico in, download the UF2 for your chip (<strong>Pico 1 / RP2040</strong> or <strong>Pico 2 / RP2350</strong>), and drag it onto the drive that appears (<strong>RPI-RP2</strong> or <strong>RP2350</strong>). The board restarts by itself when the copy finishes."
+      },
+      "wire": {
+        "title": "Wire up your hardware",
+        "body": "The <strong>Build Guides</strong> have pinouts and wiring steps for guitars, drums, turntables, adapters and LEDs. Check <strong>Supported Hardware</strong> if you're not sure which board or part to use."
+      },
+      "connect": {
+        "title": "Connect to the configurator",
+        "body": "On the main page, click <strong>Connect to a Santroller powered device</strong> and pick your controller. On the website, use a Chromium-based browser such as Chrome or Edge, or download the desktop app."
+      },
+      "update": {
+        "title": "Update the firmware if asked",
+        "body": "If you see <strong>Controller firmware out of date</strong>, click <strong>Start Update</strong>. The update takes up to a minute. Don't unplug the controller until it reconnects."
+      },
+      "devices": {
+        "title": "Add your devices",
+        "body": "On the <strong>Devices</strong> page, use the <strong>+</strong> button and choose <strong>Add device</strong> for each piece of hardware connected to the board, then set its pins. Skip this if everything is wired straight to pins."
+      },
+      "profile": {
+        "title": "Set up a profile",
+        "body": "Select a profile under <strong>Profiles</strong> in the sidebar, or click <strong>Add profile</strong>. A new profile opens the <strong>Setup Profile</strong> wizard, which asks how the controller connects and what is plugged into it. <strong>Apply & Load Defaults</strong> fills in a sensible starting layout. Pick the controller type under <strong>Device to emulate</strong> in the profile's <strong>Settings</strong>."
+      },
+      "inputs": {
+        "title": "Map your inputs",
+        "body": "In the <strong>Inputs</strong> section, click <strong>Add Input</strong>, choose where the input comes from and set its <strong>Target Output</strong>. <strong>Detect Pin</strong> finds a pin for you when you press or move the control. For analog inputs such as whammy or tilt, open <strong>Axis Calibration</strong> and use <strong>Use current value</strong> to set the min, max and center while watching the live value."
+      },
+      "assignments": {
+        "title": "Check the assignments",
+        "body": "The <strong>Assignments</strong> section controls when this profile is used. The wizard adds one for you; use <strong>Add Assignment</strong> for more, such as a Bluetooth or console-specific profile. A profile with no assignment is never used."
+      },
+      "leds": {
+        "title": "Set up LEDs (optional)",
+        "body": "If you added an LED device, use <strong>Add Led Mapping</strong> in the <strong>Leds</strong> section to link LEDs to inputs and choose colours. <strong>Test All LEDs</strong> confirms the wiring and LED order."
+      },
+      "save": {
+        "title": "Save changes",
+        "body": "Edits are sent to the controller as you make them so you can test straight away, but they are only stored once you click <strong>Save changes</strong> at the top of the page."
+      },
+      "backup": {
+        "title": "Back up your config",
+        "body": "On the main page, <strong>Export Current Config</strong> downloads your settings as a file. <strong>Load Config from File</strong> restores it later, including onto another board. Bluetooth pairings aren't included."
+      }
+    },
+    "links": {
+      "setup": "Setup a new device",
+      "guides": "Open Build Guides",
+      "connect": "Go to the main page",
+      "assignments": "How Assignments Work"
+    },
+    "saveReminder": {
+      "title": "Remember to save",
+      "body": "The <strong>Save changes</strong> button only appears when there is something to save. If you unplug the controller before saving, it goes back to its last saved config."
+    },
+    "goodToKnow": {
+      "title": "Good to know",
+      "simpleMode": {
+        "title": "Simple mode and Advanced mode",
+        "body": "Controllers set up by a seller may open in Simple mode, which hides the Devices, Pin Labels and Debug pages so you can't break the wiring setup by accident. Click <strong>Switch to Advanced Mode</strong> on the main page to see everything."
+      },
+      "santroller1": {
+        "title": "Coming from Santroller 1",
+        "body": "Santroller 1 devices aren't detected until they run the new firmware. Export your presets from Santroller 1 first, use <strong>Revert Device to Arduino</strong> there, then follow <strong>Setup a new device</strong>. After connecting, <strong>Import Santroller 1 Config</strong> on the main page loads your old .picoconfig files. See <strong>Firmware Differences</strong> for what changed."
+      },
+      "desktopApp": {
+        "title": "Website or desktop app",
+        "body": "Both do the same job. The website needs a browser with WebHID (Chrome, Edge or another Chromium browser). The desktop app works anywhere and can install the Linux udev rules for you."
+      },
+      "peripherals": {
+        "title": "Running out of pins",
+        "body": "A second Pico can act as a <strong>Peripheral</strong>, connected over I2C, to add more inputs and devices. Add it from the <strong>Devices</strong> page; it then gets its own page in the sidebar."
+      },
+      "labels": {
+        "title": "Naming your pins",
+        "body": "The <strong>Pin Labels</strong> page lets you name pins, LEDs and multiplexer or matrix channels, so mappings read as \"Green fret\" instead of a pin number."
+      }
+    },
+    "troubleshooting": {
+      "title": "Troubleshooting",
+      "items": {
+        "notFound": "<strong>Controller doesn't show up:</strong> a blank board must have the UF2 flashed first (step 1). On the website, make sure you're using a Chromium-based browser.",
+        "linux": "<strong>Linux:</strong> install the udev rules from the main page, then unplug and replug the controller.",
+        "notResponding": "<strong>Controller not responding:</strong> open the <strong>Debug</strong> page, click <strong>Copy logs</strong>, and share them on the Discord.",
+        "profileInactive": "<strong>Inputs do nothing:</strong> check that the profile has an assignment and shows the <strong>Active</strong> badge in the sidebar.",
+        "lostChanges": "<strong>Settings reset after unplugging:</strong> click <strong>Save changes</strong> before unplugging.",
+        "newerFirmware": "<strong>Firmware is newer than the configurator:</strong> refresh the website, or update the desktop app."
+      }
+    }
   },
   "assignmentsGuide": {
     "title": "How Assignments Work",
