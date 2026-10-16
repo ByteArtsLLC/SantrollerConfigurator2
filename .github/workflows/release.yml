@@ -62,8 +62,37 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-  desktop:
+  # The draft is created once here, not by each platform: tauri-action looks for drafts in the
+  # release list, which lags behind, so two platforms finishing together would each create one
+  release:
     needs: web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      id: ${{ steps.draft.outputs.id }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERSION: ${{ needs.web.outputs.version }}
+    steps:
+      # A re-run of the same commit picks up the draft it left behind
+      - name: Create the draft release
+        id: draft
+        run: |
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq ".[] | select(.draft and .tag_name == \"v$VERSION\") | .id" | head -n1)
+          if [ -z "$id" ]; then
+            id=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" \
+              -f tag_name="v$VERSION" \
+              -f target_commitish="$GITHUB_SHA" \
+              -f name="Santroller Configurator $VERSION" \
+              -f body="Built from $GITHUB_SHA. See the assets below to download and install it." \
+              -F draft=true -F prerelease=false --jq .id)
+          fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  desktop:
+    needs: [web, release]
     permissions:
       contents: write
     strategy:
@@ -124,31 +153,41 @@ jobs:
           tauriScript: yarn tauri
           # each platform adds itself to the release's latest.json, which the app checks for updates
           includeUpdaterJson: true
+          releaseId: ${{ needs.release.outputs.id }}
+          # still needed so latest.json links to the tag rather than the draft's untagged-* url
           tagName: v${{ env.VERSION }}
-          releaseName: 'Santroller Configurator ${{ env.VERSION }}'
-          releaseBody: 'Built from ${{ github.sha }}. See the assets below to download and install it.'
-          releaseCommitish: ${{ github.sha }}
-          releaseDraft: true
-          prerelease: false
           args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
 
   publish:
-    needs: [web, desktop]
+    needs: [release, desktop]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      TAG: v${{ needs.web.outputs.version }}
+      RELEASE: repos/${{ github.repository }}/releases/${{ needs.release.outputs.id }}
     steps:
       # The platforms all write to the same latest.json, so make sure none of them were lost before
       # the app starts offering this release as an update
       - name: Check the updater manifest
         run: |
-          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern latest.json --dir manifest
+          asset=$(gh api "$RELEASE" --jq '.assets[] | select(.name == "latest.json") | .url')
+          [ -n "$asset" ] || { echo "the release has no latest.json"; exit 1; }
+          gh api -H 'Accept: application/octet-stream' "$asset" > latest.json
           for platform in linux-x86_64 windows-x86_64 darwin-x86_64 darwin-aarch64; do
-            jq -e --arg p "$platform" '.platforms[$p].signature | length > 0' manifest/latest.json > /dev/null \
-              || { echo "latest.json is missing $platform"; cat manifest/latest.json; exit 1; }
+            jq -e --arg p "$platform" '.platforms[$p].signature | length > 0' latest.json > /dev/null \
+              || { echo "latest.json is missing $platform"; cat latest.json; exit 1; }
           done
       - name: Publish the release
-        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+        run: gh api -X PATCH "$RELEASE" -F draft=false -f make_latest=true --silent
+      # Runs cancelled by a newer push leave their drafts behind. Only drafts created before this
+      # one are removed, in case a newer run has already made its own.
+      - name: Discard older drafts
+        run: |
+          created=$(gh api "$RELEASE" --jq .created_at)
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq ".[] | select(.draft and .created_at < \"$created\") | \"\(.id) \(.tag_name)\"" |
+            while read -r id tag; do
+              echo "Deleting draft $tag ($id)"
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$id"
+            done
