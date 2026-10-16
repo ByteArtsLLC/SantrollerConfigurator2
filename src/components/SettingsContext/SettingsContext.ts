@@ -238,6 +238,8 @@ export const ps4Subtypes = [
   proto.SubType.GuitarHeroGuitar,
   proto.SubType.RockBandGuitar,
 ];
+// Only exist as HID devices, so they always stay in HID mode on Windows
+export const hidOnlySubtypes = [proto.SubType.KeyboardMania];
 export class MappingStatus {
   [immerable] = true;
   constructor(id: number, mapping: proto.IMapping) {
@@ -2115,6 +2117,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       config.profiles = state.mappingStatus.map((x, i) => {
         const profile = config.profiles![i];
         const isPs4Subtype = ps4Subtypes.includes(profile.opts.deviceToEmulate);
+        const isHidOnly = hidOnlySubtypes.includes(profile.opts.deviceToEmulate);
         const profileSlots = getProfileSlots(profile);
         const midiChannels = new Map(
           profileSlots.flatMap((slot) =>
@@ -2131,7 +2134,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               consoleType: assignment.consoleType
                 ? {
                     ...assignment.consoleType,
-                    xinputOnWindows: assignment.consoleType.xinputOnWindows ?? true,
+                    xinputOnWindows: !isHidOnly && (assignment.consoleType.xinputOnWindows ?? true),
                     ps4OrPs5Mode: !isPs4Subtype || !!assignment.consoleType.ps4OrPs5Mode,
                   }
                 : undefined,

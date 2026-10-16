@@ -117,6 +117,7 @@ import { proto } from '@/components/SettingsContext/config';
 import { truncateProfileName } from '@/components/SettingsContext/profileName';
 import {
   DeviceStatus,
+  hidOnlySubtypes,
   isDeviceAssigned,
   ps4Subtypes,
   requiresAssignment,
@@ -6616,28 +6617,32 @@ export function SantrollerAssignment({
             )}
             {!mapping.consoleType.forcedType && (
               <>
-                <Space h="md" />
-                <Input.Wrapper
-                  label={t('main.xinput_on_windows.label')}
-                  description={t('main.xinput_on_windows.description')}
-                >
-                  <SegmentedControl
-                    fullWidth
-                    data={[
-                      { label: t('main.xinput_on_windows.XInput'), value: 'true' },
-                      { label: t('main.xinput_on_windows.HID'), value: 'false' },
-                    ]}
-                    value={(mapping.consoleType.xinputOnWindows ?? true) ? 'true' : 'false'}
-                    onChange={(val) =>
-                      dispatch({
-                        consoleType: {
-                          ...mapping.consoleType,
-                          xinputOnWindows: val === 'true',
-                        },
-                      })
-                    }
-                  />
-                </Input.Wrapper>
+                {!hidOnlySubtypes.includes(type) && (
+                  <>
+                    <Space h="md" />
+                    <Input.Wrapper
+                      label={t('main.xinput_on_windows.label')}
+                      description={t('main.xinput_on_windows.description')}
+                    >
+                      <SegmentedControl
+                        fullWidth
+                        data={[
+                          { label: t('main.xinput_on_windows.XInput'), value: 'true' },
+                          { label: t('main.xinput_on_windows.HID'), value: 'false' },
+                        ]}
+                        value={(mapping.consoleType.xinputOnWindows ?? true) ? 'true' : 'false'}
+                        onChange={(val) =>
+                          dispatch({
+                            consoleType: {
+                              ...mapping.consoleType,
+                              xinputOnWindows: val === 'true',
+                            },
+                          })
+                        }
+                      />
+                    </Input.Wrapper>
+                  </>
+                )}
                 {ps4Subtypes.includes(type) && (
                   <>
                     <Space h="md" />
@@ -7819,33 +7824,35 @@ function SantrollerAssignmentList({
                 )}
                 {currentUsbOption === 'auto' && (
                   <>
-                    <Input.Wrapper
-                      size="xs"
-                      label={t('main.xinput_on_windows.label')}
-                      description={t('main.xinput_on_windows.description')}
-                    >
-                      <SegmentedControl
-                        fullWidth
+                    {!hidOnlySubtypes.includes(type) && (
+                      <Input.Wrapper
                         size="xs"
-                        data={[
-                          { label: t('main.xinput_on_windows.XInput'), value: 'true' },
-                          { label: t('main.xinput_on_windows.HID'), value: 'false' },
-                        ]}
-                        value={
-                          (emulationItem?.consoleType?.xinputOnWindows ?? true) ? 'true' : 'false'
-                        }
-                        onChange={(val) =>
-                          updateEmulation({
-                            consoleType: {
-                              ...emulationItem?.consoleType,
-                              consoleType: null,
-                              forcedType: null,
-                              xinputOnWindows: val === 'true',
-                            },
-                          })
-                        }
-                      />
-                    </Input.Wrapper>
+                        label={t('main.xinput_on_windows.label')}
+                        description={t('main.xinput_on_windows.description')}
+                      >
+                        <SegmentedControl
+                          fullWidth
+                          size="xs"
+                          data={[
+                            { label: t('main.xinput_on_windows.XInput'), value: 'true' },
+                            { label: t('main.xinput_on_windows.HID'), value: 'false' },
+                          ]}
+                          value={
+                            (emulationItem?.consoleType?.xinputOnWindows ?? true) ? 'true' : 'false'
+                          }
+                          onChange={(val) =>
+                            updateEmulation({
+                              consoleType: {
+                                ...emulationItem?.consoleType,
+                                consoleType: null,
+                                forcedType: null,
+                                xinputOnWindows: val === 'true',
+                              },
+                            })
+                          }
+                        />
+                      </Input.Wrapper>
+                    )}
                     {ps4Subtypes.includes(type) && (
                       <Input.Wrapper
                         size="xs"
@@ -8568,26 +8575,28 @@ function BlankProfileWizard({
               )}
               {usbMode === 'auto' && (
                 <>
-                  <Input.Wrapper
-                    size="xs"
-                    label={t('main.xinput_on_windows.label')}
-                    description={t('main.xinput_on_windows.description')}
-                  >
-                    <SegmentedControl
-                      fullWidth
+                  {!hidOnlySubtypes.includes(deviceToEmulate) && (
+                    <Input.Wrapper
                       size="xs"
-                      data={[
-                        { label: t('main.xinput_on_windows.XInput'), value: 'true' },
-                        { label: t('main.xinput_on_windows.HID'), value: 'false' },
-                      ]}
-                      value={xinputOnWindows ? 'true' : 'false'}
-                      onChange={(val) => {
-                        const isXinput = val === 'true';
-                        setXinputOnWindows(isXinput);
-                        syncToProfile({ xinputOnWindows: isXinput });
-                      }}
-                    />
-                  </Input.Wrapper>
+                      label={t('main.xinput_on_windows.label')}
+                      description={t('main.xinput_on_windows.description')}
+                    >
+                      <SegmentedControl
+                        fullWidth
+                        size="xs"
+                        data={[
+                          { label: t('main.xinput_on_windows.XInput'), value: 'true' },
+                          { label: t('main.xinput_on_windows.HID'), value: 'false' },
+                        ]}
+                        value={xinputOnWindows ? 'true' : 'false'}
+                        onChange={(val) => {
+                          const isXinput = val === 'true';
+                          setXinputOnWindows(isXinput);
+                          syncToProfile({ xinputOnWindows: isXinput });
+                        }}
+                      />
+                    </Input.Wrapper>
+                  )}
                   {ps4Subtypes.includes(deviceToEmulate) && (
                     <Input.Wrapper
                       size="xs"
