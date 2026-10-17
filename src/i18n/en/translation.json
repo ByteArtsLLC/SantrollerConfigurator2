@@ -208,6 +208,8 @@
     }
   },
   "main": {
+    "expand_all": "Expand All",
+    "collapse_all": "Collapse All",
     "settings": "Settings",
     "inactivity": {
       "led_timeout": {
@@ -375,6 +377,8 @@
     "title": "Inputs",
     "led_icon": "LED icon",
     "mapping_title": "Input #{{num}}",
+    "expand": "Edit Input",
+    "collapse": "Collapse Input",
     "target_output": "Target Output",
     "axis": "Axis",
     "unmapped": "Unmapped",
@@ -702,10 +706,12 @@
     "desc": "Expressed in milliseconds (0.1ms steps), use 0 to disable",
     "mode": {
       "label": "Debounce applies to",
-      "description": "Release: presses register instantly, and the button stays held for the debounce time after you let go, hiding any bounce. Press: a press only registers once the button has been held for the debounce time, so brief ghost presses are ignored. Impulse: each press sends one quick tap lasting the debounce time, however long you hold it. Let go and press again to send another.",
       "release": "Release",
       "press": "Press",
-      "impulse": "Impulse"
+      "impulse": "Impulse",
+      "release_desc": "presses register instantly, and the button stays held for the debounce time after letting go.",
+      "press_desc": "a press only counts once held for the debounce time, so ghost presses are ignored.",
+      "impulse_desc": "each press sends one tap lasting the debounce time, however long it's held."
     }
   },
   "crkd": {
@@ -1451,6 +1457,8 @@
   },
   "leds": {
     "item_title": "LED #{{num}}",
+    "expand": "Edit LED",
+    "collapse": "Collapse LED",
     "summary_mode": "LED Mode",
     "label": "Leds",
     "device": "LED Device",
@@ -1706,7 +1714,6 @@
   "assignments": {
     "type": "Assignment Type",
     "title": "Assignments",
-    "description": "One of the key improvements with Santroller 2 is that you can have multiple profiles, but this means you need to tell Santroller 2 when you want your profiles used. Assignments are how this is done. Assignments come in two parts - one is the assignment itself, such as say assigning to plugging a Wii Guitar into a Wii Adapter, and the emulation type, such as USB or Bluetooth. This lets you do things like using different profiles for bluetooth vs for USB, but does mean you have to wrap your head around assignments.",
     "add": "Add Assignment",
     "learnMore": "How do assignments work?",
     "specificConsole": "Require specific device",
@@ -1714,7 +1721,7 @@
     "forcedType": "Force device type",
     "forcedTypeDesc": "Enable to ignore console detection and always use a specific mode for this profile.",
     "localInputs": "Uses this device's own inputs",
-    "localInputsDesc": "Enable so that only one profile using the inputs wired to this device is active at a time. Profiles are tried in order, so put the one you'd rather use first. USB profiles only match while a PC or console is connected, so a USB profile followed by a bluetooth one uses bluetooth when running from a battery or charger.",
+    "localInputsDesc": "Only one profile using the buttons and sensors wired to this board is active at a time. The highest one in the sidebar wins.",
     "missingEmulation": "Missing Emulation",
     "missingDevice": "This profile is missing an emulation assignment. Without one, santroller doesn't know when it should use this profile, so it won't be used.",
     "missing": "This profile is missing an assignment! Without one, it won't ever be assigned",
@@ -1780,6 +1787,10 @@
       "boot": "Hold Button at Startup",
       "anytime": "Press Button Anytime"
     },
+    "trigger_edit": "Edit Trigger Button",
+    "trigger_pick": "Pick a Trigger Button",
+    "expand": "Edit Rule",
+    "collapse": "Collapse Rule",
     "logic_or": "OR",
     "slot": "Slot",
     "no_slots_assigned": "No controller sources assigned in Profile",

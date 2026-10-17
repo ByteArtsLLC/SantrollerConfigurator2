@@ -7,8 +7,17 @@ import {
   Input,
   InputLabel,
   InputWrapper,
+  Switch,
   Title,
 } from '@mantine/core';
+
+// Mantine's dimmed text is too faint for help text on the dark cards, and `xs` inputs shrink it to
+// 10px, so keep descriptions at least 12px and a step brighter
+const descriptionStyle = {
+  color: 'light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1))',
+  fontSize: 'max(var(--input-description-size, 0px), var(--mantine-font-size-xs))',
+  lineHeight: 1.4,
+};
 
 export const theme = createTheme({
   headings: {
@@ -58,6 +67,12 @@ export const theme = createTheme({
           color: 'var(--mantine-color-bright)',
           fontWeight: 600,
         },
+        description: descriptionStyle,
+      },
+    }),
+    Switch: Switch.extend({
+      styles: {
+        description: descriptionStyle,
       },
     }),
     InputLabel: InputLabel.extend({

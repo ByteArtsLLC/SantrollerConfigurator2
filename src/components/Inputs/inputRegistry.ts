@@ -774,6 +774,15 @@ const EMULATION_ASSIGNMENT_TYPES = [
 // The "Active when" text summarising one assignment list, shared by the profile editor and the
 // assignments guide
 export function getRuleSummary(assignments: proto.IProfileAssignmentInfo[], t: TFunction): string {
+  return getRuleSummaryParts(assignments, t).join(' + ');
+}
+
+// Each condition of the rule on its own: the target, then any connected controllers, then the
+// button trigger
+export function getRuleSummaryParts(
+  assignments: proto.IProfileAssignmentInfo[],
+  t: TFunction
+): string[] {
   const emulationItem = assignments.find((x) =>
     EMULATION_ASSIGNMENT_TYPES.some((y) => x[y] != null)
   );
@@ -858,7 +867,7 @@ export function getRuleSummary(assignments: proto.IProfileAssignmentInfo[], t: T
   if (trig) {
     parts.push(trig);
   }
-  return parts.join(' + ');
+  return parts;
 }
 
 export function getProfileSlots(profile?: proto.IProfile, t?: (key: string) => string) {

@@ -43,6 +43,20 @@ export function PinBox({
     onDropdownOpen: () => combobox.updateSelectedOptionIndex('selected', { scrollIntoView: true }),
   });
 
+  // The input has a fixed height, so keep this on one line and truncate the usage text
+  const selectedContent = (
+    <Group gap="2" wrap="nowrap" title={labelsText || undefined}>
+      <Text fz="sm" span style={{ flexShrink: 0 }}>
+        {t(valid[pin]?.label, valid[pin]) || (
+          <Input.Placeholder>{t('invalid_pin')}</Input.Placeholder>
+        )}
+      </Text>
+      <Text fz="xs" span opacity="0.7" truncate="end" miw={0}>
+        {labelsText}
+      </Text>
+    </Group>
+  );
+
   if (!dispatch) {
     return (
       <InputBase
@@ -53,16 +67,7 @@ export function PinBox({
         rightSection={<Combobox.Chevron />}
         rightSectionPointerEvents="none"
       >
-        <Group gap="2">
-          <Text fz="sm" span>
-            {t(valid[pin]?.label, valid[pin]) || (
-              <Input.Placeholder>{t('invalid_pin')}</Input.Placeholder>
-            )}
-          </Text>
-          <Text fz="xs" span opacity="0.7">
-            {labelsText}
-          </Text>
-        </Group>
+        {selectedContent}
       </InputBase>
     );
   }
@@ -79,16 +84,7 @@ export function PinBox({
       rightSectionPointerEvents="none"
       onClick={() => combobox.toggleDropdown()}
     >
-      <Group gap="2">
-        <Text fz="sm" span>
-          {t(valid[pin]?.label, valid[pin]) || (
-            <Input.Placeholder>{t('invalid_pin')}</Input.Placeholder>
-          )}
-        </Text>
-        <Text fz="xs" span opacity="0.7">
-          {labelsText}
-        </Text>
-      </Group>
+      {selectedContent}
     </InputBase>
   );
 
