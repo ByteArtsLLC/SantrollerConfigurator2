@@ -9267,7 +9267,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
               <Title order={2} size="h3">
                 {t('assignments.title')}
               </Title>
-              <Anchor component={Link} to="/assignments" size="sm">
+              <Anchor component={Link} to="/setup?step=assignments" size="sm">
                 {t('assignments.learnMore')}
               </Anchor>
             </Group>

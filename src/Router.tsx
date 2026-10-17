@@ -1,5 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { AssignmentsPage } from './pages/Assignments.page';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { AuthPage } from './pages/Auth.page';
 import { CommercialToolPage } from './pages/Commercial';
 import { CompatibilityPage } from './pages/Compatibility.page';
@@ -7,7 +6,6 @@ import { ConnectPage } from './pages/Connect.page';
 import { DebugPage } from './pages/Debug.page';
 import { DevicesPage } from './pages/Devices.page';
 import { FirmwareDifferencesPage } from './pages/FirmwareDifferences.page';
-import { GettingStartedPage } from './pages/GettingStarted.page';
 import { GuidePage } from './pages/Guide.page';
 import { GuideCatalogPage } from './pages/GuideCatalog.page';
 import { InputsPage } from './pages/Inputs.page';
@@ -22,8 +20,9 @@ const router = createBrowserRouter([
     element: <ConnectPage />,
   },
   {
+    // Getting Started now lives on the setup page; keep old links working
     path: '/getting-started',
-    element: <GettingStartedPage />,
+    element: <Navigate to="/setup" replace />,
   },
   {
     path: '/guides',
@@ -62,8 +61,9 @@ const router = createBrowserRouter([
     element: <FirmwareDifferencesPage />,
   },
   {
+    // How Assignments Work is now a step of the setup guide
     path: '/assignments',
-    element: <AssignmentsPage />,
+    element: <Navigate to="/setup?step=assignments" replace />,
   },
   {
     path: '/devices',

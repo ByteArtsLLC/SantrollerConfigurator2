@@ -10,7 +10,8 @@ export interface StepWorkbenchProps {
   badgeColor?: string;
   description?: string;
   guideContent: React.ReactNode;
-  workbenchContent: React.ReactNode;
+  // Leave out for steps that are reading only; the guide content then takes the full width
+  workbenchContent?: React.ReactNode;
   onNext?: () => void;
   onPrevious?: () => void;
   isFirstStep?: boolean;
@@ -47,7 +48,7 @@ export function StepWorkbench({
     <Stack gap="xl">
       <Grid gap="xl" align="stretch">
         {/* Left Column: Instructions, Documentation & Photos */}
-        <Grid.Col span={{ base: 12, md: 7 }}>
+        <Grid.Col span={{ base: 12, md: workbenchContent ? 7 : 12 }}>
           <Stack gap="md">
             <div>
               <Group gap="xs" align="center" mb={4}>
@@ -72,89 +73,91 @@ export function StepWorkbench({
         </Grid.Col>
 
         {/* Right Column: Hardware Test Bench & Live Pin Status */}
-        <Grid.Col span={{ base: 12, md: 5 }}>
-          <Paper
-            withBorder
-            radius="md"
-            p="md"
-            style={{
-              position: 'sticky',
-              top: 80,
-              backgroundColor: 'var(--mantine-color-body)',
-            }}
-          >
-            <Stack gap="sm">
-              <Group justify="space-between" align="center">
-                <Text fw={600} size="sm">
-                  {t('guides.configAndVerification')}
-                </Text>
-
-                {connected ? (
-                  <Group gap={6}>
-                    <Badge
-                      leftSection={
-                        <span
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: '50%',
-                            backgroundColor: 'currentColor',
-                            display: 'inline-block',
-                          }}
-                        />
-                      }
-                      color="teal"
-                      variant="light"
-                      size="sm"
-                    >
-                      {t('guides.picoConnectedLive')}
-                    </Badge>
-                    <Button
-                      size="compact-xs"
-                      variant="subtle"
-                      color="gray"
-                      onClick={disconnect}
-                      disabled={updating}
-                    >
-                      {t('guides.disconnect')}
-                    </Button>
-                  </Group>
-                ) : (
-                  typeof navigator !== 'undefined' &&
-                  'hid' in navigator && (
-                    <Button
-                      size="xs"
-                      variant="light"
-                      color="blue"
-                      leftSection={<IconUsb size={13} />}
-                      onClick={connect}
-                      loading={updating}
-                    >
-                      {t('guides.connectPico')}
-                    </Button>
-                  )
-                )}
-              </Group>
-
-              {!connected && (
-                <Paper
-                  withBorder
-                  p="xs"
-                  radius="sm"
-                  style={{
-                    backgroundColor: 'var(--mantine-color-default-hover)',
-                  }}
-                >
-                  <Text size="xs" c="dimmed">
-                    {t('guides.plugInPicoPrompt')}
+        {workbenchContent && (
+          <Grid.Col span={{ base: 12, md: 5 }}>
+            <Paper
+              withBorder
+              radius="md"
+              p="md"
+              style={{
+                position: 'sticky',
+                top: 80,
+                backgroundColor: 'var(--mantine-color-body)',
+              }}
+            >
+              <Stack gap="sm">
+                <Group justify="space-between" align="center">
+                  <Text fw={600} size="sm">
+                    {t('guides.configAndVerification')}
                   </Text>
-                </Paper>
-              )}
 
-              <Box mt={2}>{workbenchContent}</Box>
-            </Stack>
-          </Paper>
-        </Grid.Col>
+                  {connected ? (
+                    <Group gap={6}>
+                      <Badge
+                        leftSection={
+                          <span
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: '50%',
+                              backgroundColor: 'currentColor',
+                              display: 'inline-block',
+                            }}
+                          />
+                        }
+                        color="teal"
+                        variant="light"
+                        size="sm"
+                      >
+                        {t('guides.picoConnectedLive')}
+                      </Badge>
+                      <Button
+                        size="compact-xs"
+                        variant="subtle"
+                        color="gray"
+                        onClick={disconnect}
+                        disabled={updating}
+                      >
+                        {t('guides.disconnect')}
+                      </Button>
+                    </Group>
+                  ) : (
+                    typeof navigator !== 'undefined' &&
+                    'hid' in navigator && (
+                      <Button
+                        size="xs"
+                        variant="light"
+                        color="blue"
+                        leftSection={<IconUsb size={13} />}
+                        onClick={connect}
+                        loading={updating}
+                      >
+                        {t('guides.connectPico')}
+                      </Button>
+                    )
+                  )}
+                </Group>
+
+                {!connected && (
+                  <Paper
+                    withBorder
+                    p="xs"
+                    radius="sm"
+                    style={{
+                      backgroundColor: 'var(--mantine-color-default-hover)',
+                    }}
+                  >
+                    <Text size="xs" c="dimmed">
+                      {t('guides.plugInPicoPrompt')}
+                    </Text>
+                  </Paper>
+                )}
+
+                <Box mt={2}>{workbenchContent}</Box>
+              </Stack>
+            </Paper>
+          </Grid.Col>
+        )}
       </Grid>
 
       {/* Navigation Footer */}

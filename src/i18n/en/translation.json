@@ -176,7 +176,6 @@
     "supportedHardware": "Supported Hardware",
     "compatibility": "Console Compatibility",
     "differences": "Firmware Differences",
-    "assignments": "How Assignments Work",
     "peripherals": "Peripherals",
     "peripheralAddress": "Peripheral ({{address}})",
     "documentation": "Documentation",
@@ -736,12 +735,6 @@
     "rawValue": "Raw Value",
     "value": "Value"
   },
-  "getting_started": {
-    "title": "Getting started",
-    "text": "Put your Raspberry Pi Pico or Pico 2 into bootloader mode by holding BOOTSEL and connecting it to your pc, then download the following UF2 and drag it into the USB Drive named either RPI-RP2 for Pico 1 or RP2350 for Pico 2 that shows up. Once programmed, click Connect to Santroller and connect to the device.",
-    "santroller1Title": "Coming from Santroller 1?",
-    "santroller1": "If your Pico is already running Santroller 1, you don't need to hold BOOTSEL. Connect to it in Santroller 1 and click \"Revert Device to Arduino\", which puts the Pico into bootloader mode so the RPI-RP2 or RP2350 drive shows up. If you want to bring your config with you, make sure you export your presets from Santroller 1, you can import the .picoconfig files into Santroller 2."
-  },
   "gpio": {
     "mode": {
       "PullDown": "Pull Down",
@@ -809,8 +802,6 @@
     "count": "LED Count"
   },
   "gettingStarted": {
-    "title": "Getting Started with Santroller",
-    "subtitle": "A walkthrough of the whole process, from getting the firmware onto your board to saving a working controller. Each step links to the page where you do it.",
     "concepts": {
       "title": "How it fits together",
       "firmware": {
@@ -831,11 +822,9 @@
       }
     },
     "steps": {
-      "title": "Step by step",
-      "description": "If your controller came from a seller with Santroller already installed, skip the first two steps.",
       "flash": {
         "title": "Put Santroller on your board",
-        "body": "Open <strong>Setup a new device</strong>. Hold <strong>BOOTSEL</strong> while plugging the Pico in, download the UF2 for your chip (<strong>Pico 1 / RP2040</strong> or <strong>Pico 2 / RP2350</strong>), and drag it onto the drive that appears (<strong>RPI-RP2</strong> or <strong>RP2350</strong>). The board restarts by itself when the copy finishes."
+        "body": "Hold <strong>BOOTSEL</strong> while plugging the Pico in, download the UF2 for your chip (<strong>Pico 1 / RP2040</strong> or <strong>Pico 2 / RP2350</strong>), and drag it onto the drive that appears (<strong>RPI-RP2</strong> or <strong>RP2350</strong>). The board restarts by itself when the copy finishes."
       },
       "wire": {
         "title": "Wire up your hardware",
@@ -879,10 +868,7 @@
       }
     },
     "links": {
-      "setup": "Setup a new device",
-      "guides": "Open Build Guides",
-      "connect": "Go to the main page",
-      "assignments": "How Assignments Work"
+      "guides": "Open Build Guides"
     },
     "saveReminder": {
       "title": "Remember to save",
@@ -893,10 +879,6 @@
       "simpleMode": {
         "title": "Simple mode and Advanced mode",
         "body": "Controllers set up by a seller may open in Simple mode, which hides the Devices, Pin Labels and Debug pages so you can't break the wiring setup by accident. Click <strong>Switch to Advanced Mode</strong> on the main page to see everything."
-      },
-      "santroller1": {
-        "title": "Coming from Santroller 1",
-        "body": "Santroller 1 devices aren't detected until they run the new firmware. Export your presets from Santroller 1 first, use <strong>Revert Device to Arduino</strong> there, then follow <strong>Setup a new device</strong>. After connecting, <strong>Import Santroller 1 Config</strong> on the main page loads your old .picoconfig files. See <strong>Firmware Differences</strong> for what changed."
       },
       "desktopApp": {
         "title": "Website or desktop app",
@@ -921,10 +903,13 @@
         "lostChanges": "<strong>Settings reset after unplugging:</strong> click <strong>Save changes</strong> before unplugging.",
         "newerFirmware": "<strong>Firmware is newer than the configurator:</strong> refresh the website, or update the desktop app."
       }
+    },
+    "santroller1": {
+      "title": "Coming from Santroller 1?",
+      "body": "If your Pico is already running Santroller 1, you don't need to hold BOOTSEL. Connect to it in Santroller 1 and click \"Revert Device to Arduino\", which puts the Pico into bootloader mode so the RPI-RP2 or RP2350 drive shows up. If you want to bring your config with you, make sure you export your presets from Santroller 1, you can import the .picoconfig files into Santroller 2."
     }
   },
   "assignmentsGuide": {
-    "title": "How Assignments Work",
     "subtitle": "Santroller 2 can hold many profiles. Assignments are the rules that decide which profiles are active, what each one talks to, and which connected controllers it reads from.",
     "openProfiles": "Go to Profiles",
     "summary": {
@@ -4543,6 +4528,83 @@
         "rfSlimScheme": "Xbox 360 Slim RF Module Wiring Scheme",
         "rfFatTestPoints": "Xbox 360 Fat RF Module Rev H Test Points",
         "xboxOneAuthChip": "Xbox One auth chip pinout"
+      }
+    },
+    "setup": {
+      "title": "Getting Started with Santroller",
+      "subtitle": "Everything you need to set up a new controller",
+      "description": "From getting the firmware onto your board to saving a working config.",
+      "estimatedTime": "15 - 30 mins",
+      "steps": {
+        "overview": {
+          "title": "Before you start",
+          "shortTitle": "Overview",
+          "description": "How the firmware, devices, profiles and assignments fit together."
+        },
+        "flash": {
+          "title": "Put Santroller on your board",
+          "shortTitle": "Flash",
+          "description": "Copy the Santroller firmware onto your Pico."
+        },
+        "wire": {
+          "title": "Wire up your hardware",
+          "shortTitle": "Wire",
+          "description": "Find the pinout and wiring for your controller."
+        },
+        "connect": {
+          "title": "Connect and update",
+          "shortTitle": "Connect",
+          "description": "Connect the configurator to your controller and update its firmware if asked."
+        },
+        "devices": {
+          "title": "Add your devices",
+          "shortTitle": "Devices",
+          "description": "Tell the firmware what hardware is attached to the board."
+        },
+        "profile": {
+          "title": "Set up a profile",
+          "shortTitle": "Profile",
+          "description": "Pick a controller type, then map your inputs and LEDs."
+        },
+        "assignments": {
+          "title": "Assignments",
+          "shortTitle": "Assignments",
+          "description": "Decide when each profile is used."
+        },
+        "assignmentsAdvanced": {
+          "title": "How a profile gets picked",
+          "shortTitle": "More on assignments",
+          "description": "Reading several controllers in one profile, the order profiles are checked in, and console modes."
+        },
+        "save": {
+          "title": "Save and back up",
+          "shortTitle": "Save",
+          "description": "Store your settings on the controller and keep a copy."
+        }
+      },
+      "workbench": {
+        "needTitle": "What you need",
+        "needItems": [
+          "A Raspberry Pi Pico or Pico 2",
+          "A USB cable that carries data, not just power",
+          "Chrome, Edge or another Chromium-based browser, or the desktop app"
+        ],
+        "downloadTitle": "Download the firmware for your board",
+        "upToDate": "Connected, and the firmware is up to date.",
+        "deviceCount_one": "{{count}} device added",
+        "deviceCount_other": "{{count}} devices added",
+        "openDevices": "Open Devices",
+        "profilesTitle": "Your profiles",
+        "addProfile": "Add profile",
+        "allSaved": "Everything is saved."
+      },
+      "seller": {
+        "tipTitle": "Bought it from a seller?",
+        "tip": "Then it's already set up and mapped, and you can skip this guide. Just plug it in and play. You only need to connect it here if you want to change something.",
+        "connectedTitle": "This controller is ready to go",
+        "connected": "It was set up by a seller, so everything is already configured and mapped. There's nothing you need to do in this guide; the steps are here if you want to change something.",
+        "connectedNamed": "It was set up by {{name}}, so everything is already configured and mapped. There's nothing you need to do in this guide; the steps are here if you want to change something.",
+        "goToMain": "Go to the main page"
       }
     }
   },

@@ -1,4 +1,3 @@
-import React, { useEffect, useState } from 'react';
 import { IconArrowLeft } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -7,6 +6,7 @@ import { Layout } from '@/components/Layout/Layout';
 import { GuideStepNav } from '@/guides/components/GuideStepNav';
 import { DIRECT_PICO_GUITAR_GUIDE } from '@/guides/guitar/guitarGuide';
 import { getLocalizedGuide, useGuideById } from '@/guides/registry';
+import { useGuideSteps } from '@/guides/useGuideSteps';
 
 export function GuidePage() {
   const { t } = useTranslation();
@@ -14,58 +14,11 @@ export function GuidePage() {
   const { guideId } = useParams<{ guideId?: string }>();
   const guide = useGuideById(guideId) ?? getLocalizedGuide(DIRECT_PICO_GUITAR_GUIDE, t);
 
-  const storageKey = `santroller_guide_step_${guide.id}`;
-
-  const [activeStep, setActiveStep] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem(`santroller_guide_step_${guide.id}`);
-      if (saved !== null) {
-        const parsed = parseInt(saved, 10);
-        if (!isNaN(parsed) && parsed >= 0 && parsed < guide.steps.length) {
-          return parsed;
-        }
-      }
-    } catch {
-      // Fallback
-    }
-    return 0;
-  });
-
-  // Reset or load step when guideId changes
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`santroller_guide_step_${guide.id}`);
-      if (saved !== null) {
-        const parsed = parseInt(saved, 10);
-        if (!isNaN(parsed) && parsed >= 0 && parsed < guide.steps.length) {
-          setActiveStep(parsed);
-          return;
-        }
-      }
-    } catch {
-      // Ignore storage errors
-    }
-    setActiveStep(0);
-  }, [guide.id, guide.steps.length]);
-
-  const handleStepChange = (nextStep: number) => {
-    const clamped = Math.max(0, Math.min(guide.steps.length - 1, nextStep));
-    setActiveStep(clamped);
-    try {
-      localStorage.setItem(storageKey, String(clamped));
-    } catch {
-      // Ignore storage errors
-    }
-  };
-
   // Finishing starts the guide over next time and heads back to the catalog
-  const handleFinish = () => {
-    handleStepChange(0);
+  const { activeStep, currentStep, setStep, stepProps } = useGuideSteps(guide, () => {
+    setStep(0);
     navigate('/guides');
-  };
-
-  const isLastStep = activeStep === guide.steps.length - 1;
-  const currentStep = guide.steps[activeStep] ?? guide.steps[0];
+  });
   const StepComponent = currentStep.render;
 
   return (
@@ -109,17 +62,12 @@ export function GuidePage() {
           guideId={guide.id}
           steps={guide.steps}
           activeStep={activeStep}
-          onStepClick={handleStepChange}
+          onStepClick={setStep}
         />
 
         {/* Active Step Content */}
         <Box mt="md">
-          <StepComponent
-            isFirstStep={activeStep === 0}
-            isLastStep={isLastStep}
-            onNext={isLastStep ? handleFinish : () => handleStepChange(activeStep + 1)}
-            onPrevious={() => handleStepChange(activeStep - 1)}
-          />
+          <StepComponent {...stepProps} />
         </Box>
       </Container>
     </Layout>

@@ -15,7 +15,6 @@ import {
   IconDeviceGamepad3,
   IconGitCompare,
   IconGuitarPick,
-  IconListCheck,
   IconMoon,
   IconPiano,
   IconPlus,
@@ -95,8 +94,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     )
   );
 
+  // When connected, the setup guide is reached through the Getting Started docs entry
   const isDocPage =
-    location.pathname === '/getting-started' ||
+    (connected && location.pathname === '/setup') ||
     location.pathname.startsWith('/guides') ||
     location.pathname === '/guide' ||
     location.pathname === '/supported-hardware' ||
@@ -104,8 +104,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     location.pathname === '/compatibility' ||
     location.pathname === '/emulation-modes' ||
     location.pathname === '/differences' ||
-    location.pathname === '/firmware-differences' ||
-    location.pathname === '/assignments';
+    location.pathname === '/firmware-differences';
 
   const [docsOpened, setDocsOpened] = useState(isDocPage);
 
@@ -703,17 +702,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 opened={docsOpened}
                 onChange={setDocsOpened}
               >
-                <NavLink
-                  component={RouterNavLink}
-                  to="/getting-started"
-                  onClick={() => {
-                    pollInputs(false);
-                    nav('/getting-started');
-                  }}
-                  active={location.pathname === '/getting-started'}
-                  label={t('nav.gettingStarted', 'Getting Started')}
-                  leftSection={<IconRocket size={16} stroke={1.5} />}
-                />
+                {connected && (
+                  <NavLink
+                    component={RouterNavLink}
+                    to="/setup"
+                    onClick={() => {
+                      pollInputs(false);
+                      nav('/setup');
+                    }}
+                    active={location.pathname === '/setup'}
+                    label={t('nav.gettingStarted', 'Getting Started')}
+                    leftSection={<IconRocket size={16} stroke={1.5} />}
+                  />
+                )}
                 <NavLink
                   component={RouterNavLink}
                   to="/guides"
@@ -765,17 +766,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   }
                   label={t('nav.differences', 'Firmware Differences')}
                   leftSection={<IconGitCompare size={16} stroke={1.5} />}
-                />
-                <NavLink
-                  component={RouterNavLink}
-                  to="/assignments"
-                  onClick={() => {
-                    pollInputs(false);
-                    nav('/assignments');
-                  }}
-                  active={location.pathname === '/assignments'}
-                  label={t('nav.assignments', 'How Assignments Work')}
-                  leftSection={<IconListCheck size={16} stroke={1.5} />}
                 />
               </NavLink>
             )}
