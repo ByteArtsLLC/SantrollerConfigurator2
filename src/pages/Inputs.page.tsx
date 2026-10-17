@@ -5073,7 +5073,7 @@ function SantrollerLed({
     mappingValue = t(`leds.type.status`);
   }
 
-  // An RGB input or status mapping can turn off its off colour to stop covering the others
+  // An RGB input or status mapping can be made an overlay to stop covering the others
   const offColourWarning = !!(
     led.device.rgb &&
     (led.mapping.inputMapping || led.mapping.statusMapping)
@@ -5937,15 +5937,17 @@ function SantrollerLed({
                 <>
                   <Space h="md" />
                   <Switch
-                    label={t('leds.set_off')}
-                    checked={led.device.rgb.hasStart}
+                    label={t('leds.overlay.label')}
+                    description={t('leds.overlay.description')}
+                    checked={!led.device.rgb.hasStart}
                     onChange={(event) => {
                       dispatch({
                         ...led,
                         device: {
                           rgb: {
                             ...led.device.rgb!,
-                            hasStart: event.currentTarget.checked,
+                            // an overlay has no released colour to write
+                            hasStart: !event.currentTarget.checked,
                           },
                         },
                       });
