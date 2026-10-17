@@ -803,6 +803,16 @@ function MidiSerialDevice({ id }: { id: string }) {
     throw new Error('device null!');
   }
   const midiSerial = device.midiSerial;
+  const uart = midiSerial.uart;
+  const output = midiSerial.direction === proto.MidiSerialDirection.MidiSerialOut;
+  const dispatch = (val: proto.ISerialMidiDevice) =>
+    updateDevice(
+      {
+        deviceid: parseInt(id, 10),
+        midiSerial: { ...val, uart: { ...val.uart, baudrate: 31250 } },
+      },
+      id
+    );
   return (
     <DeviceCard
       connected={status.connected}
@@ -810,18 +820,51 @@ function MidiSerialDevice({ id }: { id: string }) {
       image="covers/devices/midiSerial.svg"
       deleteDevice={() => deleteDevice(id)}
     >
-      <UARTDevice
-        device={midiSerial.uart}
+      <LabeledSegmentedControl
+        data={[
+          { label: 'midi_serial.direction.in', value: `${proto.MidiSerialDirection.MidiSerialIn}` },
+          {
+            label: 'midi_serial.direction.out',
+            value: `${proto.MidiSerialDirection.MidiSerialOut}`,
+          },
+        ]}
+        value={`${output ? proto.MidiSerialDirection.MidiSerialOut : proto.MidiSerialDirection.MidiSerialIn}`}
         dispatch={(val) =>
-          updateDevice(
-            {
-              deviceid: parseInt(id, 10),
-              midiSerial: { ...midiSerial, uart: { ...val, baudrate: 31250 } },
-            },
-            id
-          )
+          // The jack only uses one pin, so the other one is cleared rather than left reserved
+          dispatch({
+            ...midiSerial,
+            direction: parseInt(val, 10),
+            uart: { ...uart, tx: -1, rx: -1 },
+          })
         }
+        label="midi_serial.direction.label"
+        description="midi_serial.direction.description"
       />
+      {output ? (
+        <PinBox
+          label="midi_serial.out_pin"
+          pin={uart.tx}
+          valid={TxPins}
+          dispatch={(pin) =>
+            dispatch({
+              ...midiSerial,
+              uart: { ...uart, rx: -1, tx: pin, block: parseInt(UARTGroups[pin], 10) },
+            })
+          }
+        />
+      ) : (
+        <PinBox
+          label="midi_serial.in_pin"
+          pin={uart.rx}
+          valid={RxPins}
+          dispatch={(pin) =>
+            dispatch({
+              ...midiSerial,
+              uart: { ...uart, tx: -1, rx: pin, block: parseInt(UARTGroups[pin], 10) },
+            })
+          }
+        />
+      )}
     </DeviceCard>
   );
 }

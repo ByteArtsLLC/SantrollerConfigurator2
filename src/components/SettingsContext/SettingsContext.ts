@@ -7,7 +7,6 @@ import { immer } from 'zustand/middleware/immer';
 import type {} from '@redux-devtools/extension';
 
 import { Reader } from 'protobufjs/minimal';
-import { savedDeviceName } from './savedDeviceName';
 import { decodeBlock, encodeBlock, UF2BlockData } from 'uf2';
 import { getAssignmentHostType, getDefaultMappings } from '@/components/Defaults/defaultMappings';
 import { getPresetMappings, MAPPING_PRESETS } from '@/components/Defaults/mappingPresets';
@@ -41,6 +40,7 @@ import { proto } from './config.js';
 import { parseVersionReport } from './firmwareVersion';
 import { KeepaliveTimer, startKeepaliveTimer, stopKeepaliveTimer } from './keepaliveTimer';
 import { truncateProfileName } from './profileName';
+import { savedDeviceName } from './savedDeviceName';
 
 // sourceId is unique per interface (including virtual wireless controller slots), older
 // firmware doesn't send it so fall back to port / interface
@@ -443,7 +443,15 @@ export class DeviceStatus {
   }
 }
 
-export function requiresAssignment(deviceType: string): boolean {
+// A MIDI out jack only sends, so it's never a MIDI source for a profile slot or an input
+export function isMidiOutDevice(device?: proto.IDevice | null): boolean {
+  return device?.midiSerial?.direction === proto.MidiSerialDirection.MidiSerialOut;
+}
+
+export function requiresAssignment(deviceType: string, device?: proto.IDevice | null): boolean {
+  if (isMidiOutDevice(device)) {
+    return false;
+  }
   return (
     deviceType === 'bt' ||
     deviceType === 'usbHost' ||
@@ -455,8 +463,12 @@ export function requiresAssignment(deviceType: string): boolean {
   );
 }
 
-export function isDeviceAssigned(deviceType: string, profile?: proto.IProfile | null): boolean {
-  if (!requiresAssignment(deviceType)) {
+export function isDeviceAssigned(
+  deviceType: string,
+  profile?: proto.IProfile | null,
+  device?: proto.IDevice | null
+): boolean {
+  if (!requiresAssignment(deviceType, device)) {
     return true;
   }
   if (!profile || !profile.assignments) {
@@ -1471,18 +1483,22 @@ export const useConfigStore = create<ConfigState & Actions>()(
           type = slot.deviceKind === 'midi' ? 'midiSerial' : slot.deviceKind;
           deviceStatusObj = Object.values(state.deviceStatus).find(
             (d) =>
-              d.type === type ||
-              (type === 'midiSerial' &&
-                (d.type === 'midiSerial' || d.type === 'bhDrum' || d.type === 'worldTourDrum'))
+              !isMidiOutDevice(d.device) &&
+              (d.type === type ||
+                (type === 'midiSerial' &&
+                  (d.type === 'midiSerial' || d.type === 'bhDrum' || d.type === 'worldTourDrum')))
           );
         } else if (device && 'type' in device) {
           const devStatus = device as DeviceStatus;
           type = devStatus.type;
-          if (requiresAssignment(type) && !isDeviceAssigned(type, profile)) {
+          if (
+            requiresAssignment(type, devStatus.device) &&
+            !isDeviceAssigned(type, profile, devStatus.device)
+          ) {
             return;
           }
           targetDeviceId = parseInt(devStatus.id, 10);
-          if (requiresAssignment(type) && profile?.assignments) {
+          if (requiresAssignment(type, devStatus.device) && profile?.assignments) {
             const allSlots = getProfileSlots(profile);
             const matchingSlot = allSlots.find(
               (s) =>

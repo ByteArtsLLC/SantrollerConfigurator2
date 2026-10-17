@@ -1,13 +1,16 @@
 import { getDevicePins } from '@/components/Devices/deviceRegistry';
 import { getProfileSlots } from '@/components/Inputs/inputRegistry';
 import { proto } from '@/components/SettingsContext/config';
-import { ConfigState, useConfigStore } from '@/components/SettingsContext/SettingsContext';
+import {
+  ConfigState,
+  isMidiOutDevice,
+  useConfigStore,
+} from '@/components/SettingsContext/SettingsContext';
 import {
   assignMidiDrumSlot,
   ensureDrumKitProfile,
   hasMidiPadMappings,
 } from '../bhdrums/bhDrumSetup';
-import { findDeviceStatus } from '../guideConfig';
 
 // MIDI runs at 31250 baud, 8N1
 export const MIDI_BAUD = 31250;
@@ -34,7 +37,9 @@ export const MIDI_DIN_PINS: MidiDinPinOption[] = [
 ];
 
 export function findMidiDin(state: ConfigState) {
-  return findDeviceStatus(state, 'midiSerial');
+  return Object.values(state.deviceStatus).find(
+    (d) => d.device.midiSerial != null && !isMidiOutDevice(d.device)
+  );
 }
 
 export function midiDinPinOption(rx: number | undefined) {
@@ -169,12 +174,14 @@ export function addMidiDinInput(option: MidiDinPinOption, channel: number) {
     rx: option.rx,
     baudrate: MIDI_BAUD,
   };
+  const direction = proto.MidiSerialDirection.MidiSerialIn;
   const store = useConfigStore.getState();
   const existing = findMidiDin(store);
   let id = existing?.id;
   if (id === undefined) {
     id = store.addDevice('midiSerial', undefined, (device) => {
       device.midiSerial!.uart = uart;
+      device.midiSerial!.direction = direction;
     });
   } else {
     const current = existing!.device.midiSerial!;
@@ -184,7 +191,7 @@ export function addMidiDinInput(option: MidiDinPinOption, channel: number) {
       current.uart.block !== uart.block ||
       current.uart.baudrate !== uart.baudrate
     ) {
-      store.updateDevice({ ...existing!.device, midiSerial: { ...current, uart } }, id);
+      store.updateDevice({ ...existing!.device, midiSerial: { ...current, uart, direction } }, id);
     }
   }
   assignMidiDrumSlot(id);

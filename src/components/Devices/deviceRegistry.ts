@@ -105,7 +105,7 @@ const deviceRegistry: DeviceDefinitions = {
   },
   midiSerial: {
     category: 'controllers',
-    create: () => ({ uart: uart(31250) }),
+    create: () => ({ uart: uart(31250), direction: proto.MidiSerialDirection.MidiSerialIn }),
     pins: ({ uart }) => [uart.tx, uart.rx],
   },
   infiniumFader: {

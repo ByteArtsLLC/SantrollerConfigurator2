@@ -85,9 +85,9 @@ import {
   hasDefaults,
   isLed,
 } from '@/components/Devices/pinUtils';
+import { DeviceNameSetting } from '@/components/Inputs/DeviceNameSetting';
 import { DropdownBox, StandardEnum } from '@/components/Inputs/DropdownBox';
 import { InactivitySettings } from '@/components/Inputs/InactivitySettings';
-import { DeviceNameSetting } from '@/components/Inputs/DeviceNameSetting';
 import {
   DetectInputRequest,
   detectInputRequest,
@@ -129,6 +129,7 @@ import {
   DeviceStatus,
   hidOnlySubtypes,
   isDeviceAssigned,
+  isMidiOutDevice,
   ps4Subtypes,
   requiresAssignment,
   useConfigStore,
@@ -2254,7 +2255,12 @@ const MIDI_PRO_GUITAR_SUBTYPES_ENUM = createBiEnum({
 // deviceStatus changes whenever any device reports its status.
 function useDeviceTypes(): string[] {
   return useConfigStore(
-    useShallow((state) => Object.values(state.deviceStatus).map((status) => status.type))
+    // MIDI out jacks aren't a MIDI source, so they don't count as midiSerial here
+    useShallow((state) =>
+      Object.values(state.deviceStatus).map((status) =>
+        isMidiOutDevice(status.device) ? 'midiSerialOut' : status.type
+      )
+    )
   );
 }
 
@@ -2270,7 +2276,8 @@ function ConnectedDeviceOptions() {
           (status) =>
             status.type !== 'peripheral' &&
             isInputDeviceKind(status.type) &&
-            !requiresAssignment(status.type)
+            !isMidiOutDevice(status.device) &&
+            !requiresAssignment(status.type, status.device)
         )
         .map((item) => {
           const parent = item.parentId ? deviceStatus[item.parentId] : undefined;
@@ -2446,11 +2453,15 @@ function SantrollerInput({
   // page for seconds while the device reported its status after connecting.
   const hasUnassignedDevice = useConfigStore((state) =>
     Object.values(state.deviceStatus).some(
-      (status) => requiresAssignment(status.type) && !isDeviceAssigned(status.type, profile)
+      (status) =>
+        requiresAssignment(status.type, status.device) &&
+        !isDeviceAssigned(status.type, profile, status.device)
     )
   );
   const hasSlotDevice = useConfigStore((state) =>
-    Object.values(state.deviceStatus).some((status) => requiresAssignment(status.type))
+    Object.values(state.deviceStatus).some((status) =>
+      requiresAssignment(status.type, status.device)
+    )
   );
   const matchingSlot = useMemo(
     () => getProfileSlotForInput(input, profileSlots),
@@ -2682,7 +2693,10 @@ function SantrollerInput({
               const deviceid = parseInt(val, 10);
               const { deviceStatus } = useConfigStore.getState();
               const targetDevice = deviceStatus[deviceid];
-              if (targetDevice && !isDeviceAssigned(targetDevice.type, profile)) {
+              if (
+                targetDevice &&
+                !isDeviceAssigned(targetDevice.type, profile, targetDevice.device)
+              ) {
                 return;
               }
               const nextInput = createDeviceInput(deviceStatus[deviceid].type, deviceid, {
@@ -3044,7 +3058,7 @@ function SantrollerInput({
       )}
       {(device?.type === 'worldTourDrum' ||
         device?.type === 'bhDrum' ||
-        device?.type === 'midiSerial' ||
+        (device?.type === 'midiSerial' && !isMidiOutDevice(device.device)) ||
         matchingSlot?.deviceKind === 'midi' ||
         (input.midi &&
           !device &&
@@ -8900,7 +8914,9 @@ function BlankProfileWizard({
           );
         } else if (item.midiChannel != null) {
           const midiDev = Object.values(deviceStatus).find(
-            (d) => d.type === 'midiSerial' || d.type === 'bhDrum' || d.type === 'worldTourDrum'
+            (d) =>
+              !isMidiOutDevice(d.device) &&
+              (d.type === 'midiSerial' || d.type === 'bhDrum' || d.type === 'worldTourDrum')
           );
           newMappings.push(
             ...getDefaultMappings(
@@ -9217,8 +9233,8 @@ function DeviceDefaultsButtons({
   return (
     <>
       {Object.values(deviceStatus)
-        .filter((item) => hasDefaults(item) && requiresAssignment(item.type))
-        .filter((item) => !isDeviceAssigned(item.type, profile))
+        .filter((item) => hasDefaults(item) && requiresAssignment(item.type, item.device))
+        .filter((item) => !isDeviceAssigned(item.type, profile, item.device))
         .map((item) => (
           <Button
             value={item.id}
@@ -9233,7 +9249,12 @@ function DeviceDefaultsButtons({
           </Button>
         ))}
       {Object.values(deviceStatus)
-        .filter((item) => hasDefaults(item) && !requiresAssignment(item.type))
+        .filter(
+          (item) =>
+            hasDefaults(item) &&
+            !isMidiOutDevice(item.device) &&
+            !requiresAssignment(item.type, item.device)
+        )
         .map((item) => (
           <Button value={item.id} key={`nonslot-${item.id}`} onClick={() => onPick(item)}>
             {t('defaults_dialog.for', {

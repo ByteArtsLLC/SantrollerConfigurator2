@@ -1460,6 +1460,16 @@
     },
     "incorrect_group": "UART pins are not from the same group"
   },
+  "midi_serial": {
+    "direction": {
+      "label": "Jack",
+      "description": "Which MIDI jack this pin is wired to",
+      "in": "MIDI In (RX)",
+      "out": "MIDI Out (TX)"
+    },
+    "in_pin": "MIDI In Pin",
+    "out_pin": "MIDI Out Pin"
+  },
   "leds": {
     "item_title": "LED #{{num}}",
     "expand": "Edit LED",
