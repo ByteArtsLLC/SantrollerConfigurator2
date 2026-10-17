@@ -4617,6 +4617,14 @@
         "profilesTitle": "Your profiles",
         "addProfile": "Add profile",
         "allSaved": "Everything is saved."
+      },
+      "seller": {
+        "tipTitle": "Bought it from a seller?",
+        "tip": "Then it's already set up and mapped, and you can skip this guide. Just plug it in and play. You only need to connect it here if you want to change something.",
+        "connectedTitle": "This controller is ready to go",
+        "connected": "It was set up by a seller, so everything is already configured and mapped. There's nothing you need to do in this guide; the steps are here if you want to change something.",
+        "connectedNamed": "It was set up by {{name}}, so everything is already configured and mapped. There's nothing you need to do in this guide; the steps are here if you want to change something.",
+        "goToMain": "Go to the main page"
       }
     }
   },
