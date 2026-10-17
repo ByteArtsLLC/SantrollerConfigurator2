@@ -822,6 +822,7 @@
       }
     },
     "steps": {
+      "description": "If your controller came from a seller with Santroller already installed, skip the first two steps.",
       "flash": {
         "title": "Put Santroller on your board",
         "body": "Hold <strong>BOOTSEL</strong> while plugging the Pico in, download the UF2 for your chip (<strong>Pico 1 / RP2040</strong> or <strong>Pico 2 / RP2350</strong>), and drag it onto the drive that appears (<strong>RPI-RP2</strong> or <strong>RP2350</strong>). The board restarts by itself when the copy finishes."
@@ -4589,6 +4590,7 @@
           "A USB cable that carries data, not just power",
           "Chrome, Edge or another Chromium-based browser, or the desktop app"
         ],
+        "skipToConnect": "Skip to Connect",
         "downloadTitle": "Download the firmware for your board",
         "upToDate": "Connected, and the firmware is up to date.",
         "deviceCount_one": "{{count}} device added",
@@ -4597,14 +4599,6 @@
         "profilesTitle": "Your profiles",
         "addProfile": "Add profile",
         "allSaved": "Everything is saved."
-      },
-      "seller": {
-        "tipTitle": "Bought it from a seller?",
-        "tip": "Then it's already set up and mapped, and you can skip this guide. Just plug it in and play. You only need to connect it here if you want to change something.",
-        "connectedTitle": "This controller is ready to go",
-        "connected": "It was set up by a seller, so everything is already configured and mapped. There's nothing you need to do in this guide; the steps are here if you want to change something.",
-        "connectedNamed": "It was set up by {{name}}, so everything is already configured and mapped. There's nothing you need to do in this guide; the steps are here if you want to change something.",
-        "goToMain": "Go to the main page"
       }
     }
   },
