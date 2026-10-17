@@ -1362,7 +1362,7 @@
       "timeout": "After no input for",
       "not_on_usb": "Only when not plugged into USB",
       "pulse_count": "Number of pulses",
-      "pulse_count_description": "Use 0 to hold the pin on instead of pulsing it, or 2 for modules that need a double press to turn off",
+      "pulse_count_description": "How many times to press the power button: 1 for a single press, 2 for a double press, and so on. Use 0 to hold the pin on instead",
       "pulse_period": "Time between pulses"
     }
   },
