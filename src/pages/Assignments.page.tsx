@@ -5,6 +5,7 @@ import {
   IconDeviceGamepad,
   IconGitMerge,
   IconHandFinger,
+  IconKeyboard,
   IconLayersLinked,
   IconListCheck,
   IconListNumbers,
@@ -52,7 +53,7 @@ const ANATOMY_PARTS = [
 
 const MULTI_SOURCE_NOTES = ['allRequired', 'midiSeen', 'hub', 'anyCombo'] as const;
 
-const SELECTION_STEPS = ['order', 'exclusive', 'usb', 'claim'] as const;
+const SELECTION_STEPS = ['order', 'exclusive', 'usb', 'claim', 'localInputs'] as const;
 
 const TROUBLESHOOTING_ITEMS = [
   'noRule',
@@ -60,6 +61,7 @@ const TROUBLESHOOTING_ITEMS = [
   'taken',
   'duplicate',
   'slotMissing',
+  'localInputs',
 ] as const;
 
 // Example assignments, built the same way the profile editor builds them
@@ -72,7 +74,7 @@ const MIDI_DRUMS: proto.IProfileAssignmentInfo = { midiChannel: MIDI_PERCUSSION_
 const USB_GAMEPAD: proto.IProfileAssignmentInfo = { usbType: proto.SubType.Gamepad };
 const USB_GUITAR: proto.IProfileAssignmentInfo = { usbType: proto.SubType.GuitarHeroGuitar };
 const HOLD_AT_BOOT: proto.IProfileAssignmentInfo = { input: { input: {} } };
-const NOT_HELD_AT_BOOT: proto.IProfileAssignmentInfo = { input: { input: {}, inverted: true } };
+const LOCAL_INPUTS: proto.IProfileAssignmentInfo = { localInputs: {} };
 
 const ANATOMY_EXAMPLE: PreviewRule[] = [
   { assignments: [USB_AUTO, WII_GUITAR], active: true },
@@ -115,24 +117,35 @@ export function AssignmentsPage() {
     {
       key: 'wiredWireless',
       icon: <IconBluetooth size={16} />,
-      profiles: [[{ assignments: [USB_AUTO] }], [{ assignments: [BLUETOOTH] }]],
+      profiles: [
+        [{ assignments: [USB_AUTO, LOCAL_INPUTS] }],
+        [{ assignments: [BLUETOOTH, LOCAL_INPUTS] }],
+      ],
     },
     {
-      key: 'bootSwitch',
-      icon: <IconHandFinger size={16} />,
+      key: 'festivalWired',
+      icon: <IconKeyboard size={16} />,
       profiles: [
         [
           {
-            assignments: [USB_AUTO, HOLD_AT_BOOT],
+            assignments: [USB_AUTO, HOLD_AT_BOOT, LOCAL_INPUTS],
             triggerButton: t('assignmentsGuide.recipes.triggerButton'),
           },
         ],
+        [{ assignments: [USB_AUTO, LOCAL_INPUTS] }],
+      ],
+    },
+    {
+      key: 'festivalAdapter',
+      icon: <IconKeyboard size={16} />,
+      profiles: [
         [
           {
-            assignments: [USB_AUTO, NOT_HELD_AT_BOOT],
+            assignments: [USB_AUTO, WII_GUITAR, HOLD_AT_BOOT],
             triggerButton: t('assignmentsGuide.recipes.triggerButton'),
           },
         ],
+        [{ assignments: [USB_AUTO, WII_GUITAR] }],
       ],
     },
     {

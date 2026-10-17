@@ -997,6 +997,10 @@
         "claim": {
           "title": "Each connected controller belongs to one profile",
           "body": "When a rule matches, it claims the controllers it used, so a later profile can't read from the same one. If more identical controllers are still free, the same profile is used again for each of them, so two USB guitars through a hub give you two players from one profile."
+        },
+        "localInputs": {
+          "title": "This device's own inputs can belong to one profile",
+          "body": "Turn on <strong>Uses this device's own inputs</strong> in a rule and it only matches if no profile above it has already claimed the buttons and sensors wired to this board. Use it when several profiles output the same inputs over different connections but only one should be active at a time. USB rules only match while a PC or console is connected, so a USB profile placed above a Bluetooth one takes over when plugged in and hands back to Bluetooth when running from a battery or charger."
         }
       }
     },
@@ -1044,11 +1048,15 @@
       },
       "wiredWireless": {
         "title": "Different settings over USB and Bluetooth",
-        "body": "Make two profiles: one with a <strong>USB</strong> rule and one with a <strong>Bluetooth</strong> rule. Each connection uses the profile meant for it."
+        "body": "Make two profiles: one with a <strong>USB</strong> rule and one with a <strong>Bluetooth</strong> rule, and turn on <strong>Uses this device's own inputs</strong> in both. Put the USB profile first. While plugged into a PC or console the USB profile claims the inputs and Bluetooth stays off, and on a battery or charger the Bluetooth profile takes over. Without the toggle, both are active while plugged in and you'd get two controllers."
       },
-      "bootSwitch": {
-        "title": "Pick a profile by holding a button at startup",
-        "body": "Give profile A a rule with <strong>USB</strong> and <strong>Hold Button at Startup</strong>. Give profile B the same rule with the same button and <strong>Inverted</strong> turned on. Without the inverted trigger, profile B would match too and you'd get two controllers when the button is held."
+      "festivalWired": {
+        "title": "Holding a button at startup to change profiles (direct wired)",
+        "body": "For a guitar with everything wired to the board's pins, make a keyboard profile such as a Fortnite Festival layout and a normal guitar profile, and turn on <strong>Uses this device's own inputs</strong> in both. Put the keyboard profile first and give it <strong>Hold Button at Startup</strong>. Holding the button while plugging in makes the keyboard profile claim the inputs, so the guitar profile can't match and the PC only sees a keyboard. Plug in without holding it and the guitar profile gets them instead. The choice lasts until the guitar is unplugged."
+      },
+      "festivalAdapter": {
+        "title": "Holding a button at startup to change profiles (adapter)",
+        "body": "When the guitar comes through an adapter, such as a Wii guitar on a Wii adapter, add it as a connected controller to both profiles instead, for example <strong>Wii Extension: Guitar</strong>. Put the keyboard profile first with <strong>Hold Button at Startup</strong>, using a button on the guitar. The adapter's controller can only belong to one profile, so once the keyboard profile has taken it the guitar profile can't match. <strong>Uses this device's own inputs</strong> isn't needed here, since the inputs come from the adapter rather than the board's pins."
       },
       "twoPlayers": {
         "title": "Two USB guitars through one board",
@@ -1065,7 +1073,8 @@
         "notConnected": "A rule with a connected controller only matches while that controller is plugged in and detected. Check the Devices page to see what the board can see.",
         "taken": "If a profile never activates over Bluetooth or a console port, a profile higher up the list probably took that port first.",
         "duplicate": "If the PC sees more controllers than you expect, more than one profile matched over USB. Add a trigger or a connected-controller condition so only the one you want matches.",
-        "slotMissing": "If a controller doesn't appear when mapping an input, add it under Connected Controller / Adapter in that profile's rules first."
+        "slotMissing": "If a controller doesn't appear when mapping an input, add it under Connected Controller / Adapter in that profile's rules first.",
+        "localInputs": "If a profile with Uses this device's own inputs never activates, a profile higher up the list with the same toggle probably matched first. Reorder them so the one you'd rather use comes first."
       }
     }
   },

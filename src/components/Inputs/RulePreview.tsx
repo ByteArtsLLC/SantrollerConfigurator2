@@ -189,6 +189,13 @@ function RulePreviewCard({
           </Button>
         </Stack>
 
+        <Switch
+          size="xs"
+          readOnly
+          label={t('assignments.localInputs')}
+          checked={assignments.some((x) => x.localInputs != null)}
+        />
+
         <Divider my={2} />
 
         <Stack gap={4}>
