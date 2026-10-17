@@ -853,6 +853,10 @@ export function getRuleSummaryParts(
     }
   }
 
+  if (assignments.some((x) => x.localInputs != null)) {
+    hostParts.push(t('assignmentType.localInputs'));
+  }
+
   let trig = '';
   if (triggerItem?.input) {
     trig = t('assignments.trigger.boot');
