@@ -35,6 +35,7 @@ import { Layout } from '@/components/Layout/Layout';
 import { translateLegacyWarning } from '@/components/Legacy/warnings';
 import { BluetoothConfigDevice } from '@/components/SettingsContext/BluetoothConfigDevice';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
+import { Uf2UpdateAlert } from '@/components/Uf2Update/Uf2UpdateAlert';
 import { checkUdevRules, installUdevRules, UdevStatus } from '@/desktop/nativeHid';
 import { requestUpdateCheck, useUpdateCheck } from '@/desktop/updateCheckStore';
 
@@ -65,6 +66,7 @@ export function ConnectPage() {
   const simpleMode = useConfigStore((state) => state.simpleMode);
   const setSimpleMode = useConfigStore((state) => state.setSimpleMode);
   const needsUf2Update = useConfigStore((state) => state.needsUf2Update);
+  const bootloaderOutdated = useConfigStore((state) => state.bootloaderOutdated);
   const [advancedModalOpened, { open: openAdvancedModal, close: closeAdvancedModal }] =
     useDisclosure(false);
   const [udevModalOpened, { open: openUdevModal, close: closeUdevModal }] = useDisclosure(false);
@@ -460,7 +462,7 @@ export function ConnectPage() {
           </Alert>
         )}
 
-        {!latest && !firmwareNewer && connected && !hung && (
+        {!latest && !firmwareNewer && !bootloaderOutdated && connected && !hung && (
           <Alert
             variant="light"
             color="red"
@@ -493,33 +495,7 @@ export function ConnectPage() {
         {needsUf2Update && connected && !hung && (
           <>
             <Space h="md" />
-            <Alert
-              variant="light"
-              color="yellow"
-              title={t('connect.missingDongleFirmwareTitle')}
-              icon={<IconExclamationCircle />}
-            >
-              {t('connect.missingDongleFirmware')}
-              <Space h="md" />
-              <Group>
-                <Button
-                  component="a"
-                  download="santroller_pico1.uf2"
-                  href={`santroller_pico1.uf2?v=${__CONFIGURATOR_COMMIT__}`}
-                  target="_blank"
-                >
-                  {t('connect.downloadPico1')}
-                </Button>
-                <Button
-                  component="a"
-                  download="santroller_pico2.uf2"
-                  href={`santroller_pico2.uf2?v=${__CONFIGURATOR_COMMIT__}`}
-                  target="_blank"
-                >
-                  {t('connect.downloadPico2')}
-                </Button>
-              </Group>
-            </Alert>
+            <Uf2UpdateAlert />
           </>
         )}
 

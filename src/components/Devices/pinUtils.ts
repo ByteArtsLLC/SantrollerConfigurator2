@@ -10,6 +10,10 @@ export function getLabel(
   customer: boolean,
   bracketed: boolean = true
 ) {
+  // No pin selected, so nothing else can be on it
+  if (pin < 0) {
+    return '';
+  }
   const labels = Object.entries(guiDevices)
     .filter((x) => x[1].label?.pin === pin && (!customer || x[1].label?.showToCustomer))
     .map((x) => x[1].label?.label)

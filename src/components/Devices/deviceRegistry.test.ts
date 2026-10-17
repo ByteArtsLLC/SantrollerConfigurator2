@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   canAddDeviceKind,
+  createDeviceConfig,
   DEVICE_CATEGORIES,
   deviceKinds,
   getDeviceCategory,
+  getDevicePins,
   getGroupedDevices,
   isSingletonDeviceKind,
 } from './deviceRegistry';
@@ -97,5 +99,26 @@ describe('singleton devices', () => {
     // Non-singleton devices can always be added even if existing
     expect(canAddDeviceKind('ws2812', ['ws2812'])).toBe(true);
     expect(canAddDeviceKind('multiplexer', ['multiplexer'])).toBe(true);
+  });
+});
+
+describe('device pins', () => {
+  // A freshly added device has its pins unset (-1). Those aren't pins, so they mustn't show up as
+  // conflicts between unconfigured devices, and a pin derived from one (eg USB host's D-) mustn't
+  // turn into GP0
+  it('reports no pins for any freshly added device kind', () => {
+    for (const kind of deviceKinds) {
+      for (const pin of getDevicePins(createDeviceConfig(kind, 0))) {
+        expect(pin, kind).toBeGreaterThanOrEqual(0);
+      }
+    }
+    expect(getDevicePins(createDeviceConfig('usbHost', 0))).toEqual([]);
+    expect(getDevicePins(createDeviceConfig('encoder', 0))).toEqual([]);
+  });
+
+  it('still reports pins derived from a set one', () => {
+    const usbHost = createDeviceConfig('usbHost', 0);
+    usbHost.usbHost!.firstPin = 10;
+    expect(getDevicePins(usbHost)).toEqual([10, 11]);
   });
 });

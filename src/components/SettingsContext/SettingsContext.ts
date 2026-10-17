@@ -44,7 +44,9 @@ export function usbDeviceKey(event: proto.IUsbDeviceHotplugEvent): number {
 
 // Older firmware encodes SubType signed from a byte, so Unknown (255) arrives as -1
 export function normalizeSubType(subtype: number): proto.SubType;
-export function normalizeSubType(subtype: number | null | undefined): proto.SubType | null | undefined;
+export function normalizeSubType(
+  subtype: number | null | undefined
+): proto.SubType | null | undefined;
 export function normalizeSubType(subtype: number | null | undefined) {
   return subtype == null ? subtype : ((subtype & 0xff) as proto.SubType);
 }
@@ -173,7 +175,10 @@ async function readActiveProfiles(
 ): Promise<{ activeProfiles: number[]; deferredMode: proto.ConsoleMode | null }> {
   let payload: Uint8Array | undefined;
   try {
-    const profileData = await receiveFeatureReport(device, proto.ReportId.ReportIdGetActiveProfiles);
+    const profileData = await receiveFeatureReport(
+      device,
+      proto.ReportId.ReportIdGetActiveProfiles
+    );
     payload = new Uint8Array(
       profileData.buffer,
       profileData.byteOffset,
@@ -532,6 +537,8 @@ export interface ConfigState {
   // Guitar Hero Arcade cabinet side the device saved for itself, written back untouched
   ghArcadeSide: number | null;
   missingStaticFirmware: boolean;
+  // The bootloader's flash layout is older than the firmware's, so updates have to go through a UF2
+  bootloaderOutdated: boolean;
   needsUf2Update: boolean;
   // The controller takes firmware uploads streamed as output reports (see firmwareUpdate)
   streamedFirmwareUpload: boolean;
@@ -744,6 +751,7 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     tlvEntries: aux.tlvEntries ?? [],
     ghArcadeSide: aux.ghArcadeSide ?? null,
     missingStaticFirmware: false,
+    bootloaderOutdated: false,
     needsUf2Update: false,
     streamedFirmwareUpload: false,
     legacyImportWarnings: [],
@@ -2435,6 +2443,11 @@ export const useConfigStore = create<ConfigState & Actions>()(
         console.error('Cannot update firmware without a connected HID device');
         return;
       }
+      // The device refuses it anyway, the update has to come from a UF2 with the matching bootloader
+      if (state.bootloaderOutdated) {
+        console.error('Cannot update firmware over OTA with an outdated bootloader');
+        return;
+      }
       const hidDevice = state.hidDevice;
       set((state) => {
         state.updatePercentage = 1;
@@ -2898,6 +2911,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               firmwareBuild,
               updateError: undefined,
               missingStaticFirmware: !!info.missingStaticFirmware,
+              bootloaderOutdated: !!info.bootloaderOutdated,
               needsUf2Update: !!info.needsUf2Update,
               streamedFirmwareUpload: !!info.streamedFirmwareUpload,
               keepaliveTimeout: timeout,

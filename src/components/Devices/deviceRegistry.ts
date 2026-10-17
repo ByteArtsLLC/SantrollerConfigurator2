@@ -120,7 +120,7 @@ const deviceRegistry: DeviceDefinitions = {
       dmFirst: false,
       mappingMode: proto.MappingMode.PerInput,
     }),
-    pins: ({ firstPin }) => [firstPin, firstPin + 1],
+    pins: ({ firstPin }) => (firstPin >= 0 ? [firstPin, firstPin + 1] : []),
     formatStatus: (status, pins) =>
       `${Object.values(status.usbDevices).length ? i18next.t('connected', 'Connected') : i18next.t('disconnected', 'Disconnected')}, ${pins}`,
   },
@@ -235,7 +235,7 @@ const deviceRegistry: DeviceDefinitions = {
   encoder: {
     category: 'expansion',
     create: () => ({ dataPin: -1 }),
-    pins: ({ dataPin }) => [dataPin, dataPin + 1],
+    pins: ({ dataPin }) => (dataPin >= 0 ? [dataPin, dataPin + 1] : []),
   },
   debug: {
     category: 'other',
@@ -438,7 +438,8 @@ export function createDeviceConfig(kind: DeviceKind, deviceid: number): proto.ID
 
 function resolveDevicePins<Kind extends DeviceKind>(kind: Kind, device: proto.IDevice): number[] {
   const value = device[kind];
-  return value ? (deviceRegistry[kind].pins?.(value) ?? []) : [];
+  // Unset pins are -1, which isn't a pin anything can share
+  return value ? (deviceRegistry[kind].pins?.(value) ?? []).filter((pin) => pin >= 0) : [];
 }
 
 function resolveDeviceDetail<Kind extends DeviceKind>(kind: Kind, device: proto.IDevice): string {

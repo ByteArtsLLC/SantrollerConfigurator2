@@ -32,6 +32,7 @@ import {
   Title,
 } from '@mantine/core';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
+import { Uf2UpdateAlert } from '@/components/Uf2Update/Uf2UpdateAlert';
 import { GuideList } from '../components/GuideList';
 import { StepWorkbench } from '../components/StepWorkbench';
 import { GuideStepProps } from '../types';
@@ -281,6 +282,7 @@ export function SetupConnectStep(props: GuideStepProps) {
   const updatePercentage = useConfigStore((state) => state.updatePercentage);
   const applyingUpdate = useConfigStore((state) => state.applyingUpdate);
   const firmwareUpdate = useConfigStore((state) => state.firmwareUpdate);
+  const bootloaderOutdated = useConfigStore((state) => state.bootloaderOutdated);
 
   const guideContent = (
     <Stack gap="md">
@@ -293,7 +295,9 @@ export function SetupConnectStep(props: GuideStepProps) {
   // The main page has the full set of update messages; this covers the common case
   const workbenchContent = connected && !hung && (
     <>
-      {!latest && !firmwareNewer ? (
+      {bootloaderOutdated ? (
+        <Uf2UpdateAlert />
+      ) : !latest && !firmwareNewer ? (
         <Alert
           variant="light"
           color="red"
