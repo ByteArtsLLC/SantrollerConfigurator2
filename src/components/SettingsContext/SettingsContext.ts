@@ -7,6 +7,7 @@ import { immer } from 'zustand/middleware/immer';
 import type {} from '@redux-devtools/extension';
 
 import { Reader } from 'protobufjs/minimal';
+import { savedDeviceName } from './savedDeviceName';
 import { decodeBlock, encodeBlock, UF2BlockData } from 'uf2';
 import { getAssignmentHostType, getDefaultMappings } from '@/components/Defaults/defaultMappings';
 import { getPresetMappings, MAPPING_PRESETS } from '@/components/Defaults/mappingPresets';
@@ -43,6 +44,7 @@ import { truncateProfileName } from './profileName';
 
 // sourceId is unique per interface (including virtual wireless controller slots), older
 // firmware doesn't send it so fall back to port / interface
+
 export function usbDeviceKey(event: proto.IUsbDeviceHotplugEvent): number {
   return event.sourceId ?? event.port! * 256 + event.interface!;
 }
@@ -601,9 +603,13 @@ export interface Actions {
   refreshActiveProfiles: () => Promise<void>;
   commitConfig: () => Promise<void>;
   discardChanges: () => Promise<void>;
-  // Resolves true once the device has the current config, false if it didn't get sent
-  saveConfig: (immediate?: boolean) => Promise<boolean>;
-  buildConfigBuffer: (shareable?: boolean) => {
+  // Resolves true once the device has the current config, false if it didn't get sent. Settings that
+  // only apply on save (eg the device name) are only sent when committing.
+  saveConfig: (immediate?: boolean, committing?: boolean) => Promise<boolean>;
+  buildConfigBuffer: (
+    shareable?: boolean,
+    committing?: boolean
+  ) => {
     buffer: Uint8Array;
     mainLen: number;
     auxLen: number;
@@ -941,7 +947,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       while (get().writing && Date.now() < waitUntil) {
         await delay(50);
       }
-      if (!(await get().saveConfig(true))) {
+      if (!(await get().saveConfig(true, true))) {
         console.error('Config did not reach the device, not saving it');
         return;
       }
@@ -2157,7 +2163,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       const { buffer, mainLen, auxLen } = get().buildConfigBuffer(true);
       buildUf2FromConfig(pico2, { buffer, mainLen, auxLen });
     },
-    saveConfig: async (immediate = false) => {
+    saveConfig: async (immediate = false, committing = false) => {
       const state = get();
       // hidDevice is gone while the device re-enumerates after a reload, reconnect sends this
       // config once it is back
@@ -2183,7 +2189,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       set((state) => {
         state.lastUpdate = now;
       });
-      const { buffer, mainLen, auxLen } = get().buildConfigBuffer();
+      const { buffer, mainLen, auxLen } = get().buildConfigBuffer(false, committing);
       const crc = new CRC32().calculate(buffer);
       // Don't write if nothing has changed
       if (crc === state.crc) {
@@ -2244,8 +2250,13 @@ export const useConfigStore = create<ConfigState & Actions>()(
       });
       return true;
     },
-    buildConfigBuffer: (shareable = false) => {
+    buildConfigBuffer: (shareable = false, committing = true) => {
       const { config, aux } = get().buildConfig();
+      if (!committing) {
+        // Every write reloads the device, so typing a name would reload it on each keystroke. The
+        // device keeps the saved name until the next save
+        config.deviceName = savedDeviceName(get().savedConfig);
+      }
       const bufferMain = proto.Config.encode(config).finish();
       const bufferAux = proto.AuxConfigBlock.encode(
         shareable ? withoutPairings(aux) : aux

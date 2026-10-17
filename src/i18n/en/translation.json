@@ -286,6 +286,10 @@
       "label": "Device to emulate",
       "description": "Pick the device to emulate. This is how you pick if your emulating a guitar or gamepad."
     },
+    "device_name": {
+      "label": "Device name",
+      "description": "What the whole controller is called over USB, shared by every profile. Over bluetooth the profile's name is used, and this is only used when no profile is using bluetooth. Leave it empty to use Santroller."
+    },
     "profile_name": {
       "label": "Profile name"
     },

@@ -82,7 +82,9 @@ export class BluetoothConfigDevice extends EventTarget {
 
   static async request() {
     const device = await navigator.bluetooth.requestDevice({
-      filters: [{ namePrefix: 'Santroller' }],
+      // Found by the config service it advertises, as the device or its profile can be named anything.
+      // Older firmware only advertised the name.
+      filters: [{ services: [SANTROLLER_CONFIG_SERVICE] }, { namePrefix: 'Santroller' }],
       optionalServices: [SANTROLLER_CONFIG_SERVICE],
     });
     return new BluetoothConfigDevice(device);

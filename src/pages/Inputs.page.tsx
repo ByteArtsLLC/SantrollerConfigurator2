@@ -87,6 +87,7 @@ import {
 } from '@/components/Devices/pinUtils';
 import { DropdownBox, StandardEnum } from '@/components/Inputs/DropdownBox';
 import { InactivitySettings } from '@/components/Inputs/InactivitySettings';
+import { DeviceNameSetting } from '@/components/Inputs/DeviceNameSetting';
 import {
   DetectInputRequest,
   detectInputRequest,
@@ -9547,6 +9548,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
               </ActionIcon>
             )}
           </Group>
+          <Space h="md" />
+          <DeviceNameSetting />
           <Space h="md" />
           <TextInput
             value={profile.opts.name}
