@@ -1,3 +1,4 @@
+import { addMatrixPins, withMatrixPins } from '@/components/Devices/matrixPins';
 import { proto } from '@/components/SettingsContext/config';
 import { ConfigState, useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { AnalogPins } from '@/devices/pico/pins';
@@ -861,26 +862,21 @@ export function configureRbMatrixFrets(): void {
     return;
   }
 
-  const inPins = (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5) | (1 << 6);
-  const outPins = (1 << 14) | (1 << 15);
+  const inPins = [2, 3, 4, 5, 6];
+  const outPins = [14, 15];
 
   let devId = findDeviceStatus(store, 'matrix')?.id;
 
   if (!devId) {
     devId = store.addDevice('matrix', undefined, (device) => {
-      device.matrix = { ...device.matrix!, inPins, outPins };
+      device.matrix = withMatrixPins(withMatrixPins(device.matrix, 'in', inPins), 'out', outPins);
     });
   } else {
     const existing = store.deviceStatus[devId];
-    const currentInPins = existing.device.matrix?.inPins ?? 0;
-    const currentOutPins = existing.device.matrix?.outPins ?? 0;
     store.updateDevice(
       {
         ...existing.device,
-        matrix: {
-          inPins: currentInPins | inPins,
-          outPins: currentOutPins | outPins,
-        },
+        matrix: addMatrixPins(addMatrixPins(existing.device.matrix, 'in', inPins), 'out', outPins),
       },
       devId
     );

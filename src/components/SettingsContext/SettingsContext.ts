@@ -18,6 +18,11 @@ import {
   isSingletonDeviceKind,
 } from '@/components/Devices/deviceRegistry';
 import {
+  detectedInput,
+  detectInputCommand,
+  DetectInputRequest,
+} from '@/components/Inputs/inputDetection';
+import {
   getProfileSlotKey,
   getProfileSlots,
   inputUsesDevice,
@@ -101,6 +106,9 @@ async function checkFirmwareVersion(device: HIDDevice) {
 let firmwareApplyTimer: ReturnType<typeof setInterval> | undefined;
 // How long to wait for the controller to come back after it reloads
 const RELOAD_RECONNECT_TIMEOUT_MS = 10000;
+// The firmware gives up on a detect after 10 seconds without saying so, so stop waiting then too
+const DETECT_TIMEOUT_MS = 10000;
+let detectTimer: ReturnType<typeof setTimeout> | undefined;
 let reloadReconnectTimer: ReturnType<typeof setTimeout> | undefined;
 function stopReloadReconnectTimer() {
   if (reloadReconnectTimer) {
@@ -513,6 +521,9 @@ export interface ConfigState {
   detectedActivation?: number;
   detectedInnerMapping?: number;
   detectedLed?: number;
+  // The input found by detectInput, for the input editor to take, and what it asked for
+  detectedInput?: proto.IInput;
+  detectInputRequest?: DetectInputRequest;
   detecting: boolean;
   lastUpdate: number;
   writeTimeout?: NodeJS.Timeout;
@@ -623,6 +634,14 @@ export interface Actions {
     led: number | undefined,
     innerMapping: number | undefined,
     type: proto.PinDetectType
+  ) => void;
+  // Detect which input of a device (a wii extension, usb host controller etc) gets pressed or moved
+  detectInput: (
+    activation: number | undefined,
+    mapping: number | undefined,
+    led: number | undefined,
+    innerMapping: number | undefined,
+    request: DetectInputRequest
   ) => void;
   testLed: (profileId: number, ledId?: number, durationMs?: number) => Promise<void>;
 }
@@ -830,6 +849,43 @@ function encodeBase64Url(message: Uint8Array) {
 async function sha256(message: string) {
   const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message));
   return encodeBase64Url(new Uint8Array(hashBuffer));
+}
+
+// Starts a pin or input detect, for the input at those indices to take the result of
+async function startDetect(
+  get: () => ConfigState & Actions,
+  set: (fn: (state: ConfigState & Actions) => void) => void,
+  activation: number | undefined,
+  mapping: number | undefined,
+  led: number | undefined,
+  innerMapping: number | undefined,
+  request: DetectInputRequest | undefined,
+  command: proto.ICommand
+) {
+  const dev = get().hidDevice;
+  if (!dev) {
+    return;
+  }
+  set((state) => {
+    state.detected = -1;
+    state.detectedInput = undefined;
+    state.detectInputRequest = request;
+    state.detecting = true;
+    state.detectedLed = led;
+    state.detectedMapping = mapping;
+    state.detectedActivation = activation;
+    state.detectedInnerMapping = innerMapping;
+  });
+  clearTimeout(detectTimer);
+  detectTimer = setTimeout(() => {
+    set((state) => {
+      state.detecting = false;
+    });
+  }, DETECT_TIMEOUT_MS);
+  const infoBuffer = proto.Command.encode(proto.Command.create(command)).ldelim().finish();
+  const outBuffer = new ArrayBuffer(63);
+  new Uint8Array(outBuffer).set(infoBuffer);
+  await dev.sendFeatureReport(proto.ReportId.ReportIdCommand, outBuffer);
 }
 
 export const useConfigStore = create<ConfigState & Actions>()(
@@ -1175,6 +1231,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
           ],
         };
         state.detected = -1;
+        state.detectedInput = undefined;
         state.mappingStatus[id] = Object.fromEntries(
           profile.mappings!.map((x, i) => [i, new MappingStatus(i, x)])
         );
@@ -1214,6 +1271,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
             ],
           };
           state.detected = -1;
+          state.detectedInput = undefined;
           state.mappingStatus[id] = Object.fromEntries(
             profile.mappings!.map((x, i) => [i, new MappingStatus(i, x)])
           );
@@ -1349,30 +1407,20 @@ export const useConfigStore = create<ConfigState & Actions>()(
       innerMapping: number | undefined,
       type: proto.PinDetectType
     ) => {
-      const dev = get().hidDevice;
-      if (!dev) {
-        return;
-      }
-      set((state) => {
-        state.detected = -1;
-        state.detecting = true;
-        state.detectedLed = led;
-        state.detectedMapping = mapping;
-        state.detectedActivation = activation;
-        state.detectedInnerMapping = innerMapping;
+      await startDetect(get, set, activation, mapping, led, innerMapping, undefined, {
+        detectPin: proto.DetectPinCommand.create({ detectType: type }),
       });
-      const infoBuffer2 = proto.Command.encode(
-        proto.Command.create({
-          detectPin: proto.DetectPinCommand.create({
-            detectType: type,
-          }),
-        })
-      )
-        .ldelim()
-        .finish();
-      const outBuffer2 = new ArrayBuffer(63);
-      new Uint8Array(outBuffer2).set(infoBuffer2);
-      await dev.sendFeatureReport(proto.ReportId.ReportIdCommand, outBuffer2);
+    },
+    detectInput: async (
+      activation: number | undefined,
+      mapping: number | undefined,
+      led: number | undefined,
+      innerMapping: number | undefined,
+      request: DetectInputRequest
+    ) => {
+      await startDetect(get, set, activation, mapping, led, innerMapping, request, {
+        detectInput: proto.DetectInputCommand.create(detectInputCommand(request)),
+      });
     },
 
     testLed: async (profileId: number, ledId?: number, durationMs: number = 2000) => {
@@ -1693,6 +1741,13 @@ export const useConfigStore = create<ConfigState & Actions>()(
           }
           if (deviceEvent.pin) {
             state.detected = deviceEvent.pin.pin;
+            state.detecting = false;
+          }
+          if (deviceEvent.inputDetection && state.detectInputRequest) {
+            state.detectedInput = detectedInput(
+              state.detectInputRequest,
+              deviceEvent.inputDetection
+            );
             state.detecting = false;
           }
           if (deviceEvent.trigger) {

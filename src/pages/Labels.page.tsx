@@ -28,6 +28,7 @@ import { DeviceStatus, proto, useConfigStore } from '../components/SettingsConte
 import '@/i18n/config';
 
 import { useTranslation } from 'react-i18next';
+import { matrixHasPin } from '@/components/Devices/matrixPins';
 import { PinBox } from '@/components/Devices/Pins';
 import { isLed } from '@/components/Devices/pinUtils';
 import { getLabelKind, LabelKind } from '@/components/Labels/labelRegistry';
@@ -425,8 +426,8 @@ function MatrixLabel({
           label="matrix.input_pin"
           pin={label.matrixLabel!.inputPin!}
           valid={Object.fromEntries(
-            Object.entries(AllPinsNamed).filter(
-              (x) => (device?.device.matrix?.inPins ?? 0) & (1 << parseInt(x[0], 10))
+            Object.entries(AllPinsNamed).filter((x) =>
+              matrixHasPin(device?.device.matrix, 'in', parseInt(x[0], 10))
             )
           )}
           dispatch={(pin) =>
@@ -440,8 +441,8 @@ function MatrixLabel({
           label="matrix.output_pin"
           pin={label.matrixLabel!.outputPin!}
           valid={Object.fromEntries(
-            Object.entries(AllPinsNamed).filter(
-              (x) => (device?.device.matrix?.outPins ?? 0) & (1 << parseInt(x[0], 10))
+            Object.entries(AllPinsNamed).filter((x) =>
+              matrixHasPin(device?.device.matrix, 'out', parseInt(x[0], 10))
             )
           )}
           dispatch={(pin) =>

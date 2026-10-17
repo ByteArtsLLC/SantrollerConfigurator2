@@ -725,6 +725,7 @@
     }
   },
   "pin_detect": "Detect Pin",
+  "input_detect": "Detect Input",
   "pin_use_current": "Use current value",
   "trigger": {
     "min": "Trigger Min",

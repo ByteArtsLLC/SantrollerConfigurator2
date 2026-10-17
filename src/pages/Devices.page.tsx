@@ -55,6 +55,7 @@ import {
   getGroupedDevices,
   isDeviceKind,
 } from '@/components/Devices/deviceRegistry';
+import { matrixPins, withMatrixPins } from '@/components/Devices/matrixPins';
 import { DeviceContext, PinBox } from '@/components/Devices/Pins';
 import {
   AllPinsNamed,
@@ -2371,9 +2372,7 @@ function MatrixDevice({ id }: { id: string }) {
     >
       <MultiSelect
         label={t('matrix.output_pins')}
-        value={Array.from(Array(32).keys())
-          .filter((x) => matrix.outPins! & (1 << x))
-          .map((x) => x.toString())}
+        value={matrixPins(matrix, 'out').map((x) => x.toString())}
         data={Object.entries(AllPinsNamed).map((item) => ({
           value: item[0],
           label: t(item[1].label, item[1]),
@@ -2384,10 +2383,11 @@ function MatrixDevice({ id }: { id: string }) {
           updateDevice(
             {
               deviceid: parseInt(id, 10),
-              matrix: {
-                ...matrix,
-                outPins: val.reduce((acc, x) => acc | (1 << parseInt(x, 10)), 0),
-              },
+              matrix: withMatrixPins(
+                matrix,
+                'out',
+                val.map((x) => parseInt(x, 10))
+              ),
             },
             id
           )
@@ -2396,9 +2396,7 @@ function MatrixDevice({ id }: { id: string }) {
       />
       <MultiSelect
         label={t('matrix.input_pins')}
-        value={Array.from(Array(32).keys())
-          .filter((x) => matrix.inPins! & (1 << x))
-          .map((x) => x.toString())}
+        value={matrixPins(matrix, 'in').map((x) => x.toString())}
         data={Object.entries(AllPinsNamed).map((item) => ({
           value: item[0],
           label: t(item[1].label, item[1]),
@@ -2409,10 +2407,11 @@ function MatrixDevice({ id }: { id: string }) {
           updateDevice(
             {
               deviceid: parseInt(id, 10),
-              matrix: {
-                ...matrix,
-                inPins: val.reduce((acc, x) => acc | (1 << parseInt(x, 10)), 0),
-              },
+              matrix: withMatrixPins(
+                matrix,
+                'in',
+                val.map((x) => parseInt(x, 10))
+              ),
             },
             id
           )

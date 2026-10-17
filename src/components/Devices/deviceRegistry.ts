@@ -1,4 +1,5 @@
 import i18next from 'i18next';
+import { matrixAllPins } from '@/components/Devices/matrixPins';
 import { proto } from '@/components/SettingsContext/config';
 
 export type DeviceKind = Exclude<keyof proto.IDevice, 'deviceid'>;
@@ -278,8 +279,7 @@ const deviceRegistry: DeviceDefinitions = {
   matrix: {
     category: 'expansion',
     create: () => ({ inPins: 0, outPins: 0 }),
-    pins: ({ inPins, outPins }) =>
-      Array.from(Array(32).keys()).filter((pin) => (outPins | inPins) & (1 << pin)),
+    pins: (matrix) => matrixAllPins(matrix),
     formatStatus: (_, pins) => pins,
   },
   switchNetwork: {

@@ -1,3 +1,4 @@
+import { addMatrixPins } from '@/components/Devices/matrixPins';
 import { proto } from '@/components/SettingsContext/config';
 import { ConvertedInput, INT16_OFFSET, LegacyImportContext, setI2c } from './context';
 import { legacy } from './legacy';
@@ -193,12 +194,12 @@ function matrix(ctx: LegacyImportContext, { serializedMatrixInput: m }: legacy.I
   const pin = m!.pin ?? -1;
   const outPin = m!.outPin ?? -1;
   const deviceid = ctx.addDevice('matrix', 'main');
-  const device = ctx.devices.find((d) => d.deviceid === deviceid)!.matrix!;
+  const device = ctx.devices.find((d) => d.deviceid === deviceid)!;
   if (pin >= 0) {
-    device.inPins = (device.inPins ?? 0) | (1 << pin);
+    device.matrix = addMatrixPins(device.matrix, 'in', [pin]);
   }
   if (outPin >= 0) {
-    device.outPins = (device.outPins ?? 0) | (1 << outPin);
+    device.matrix = addMatrixPins(device.matrix, 'out', [outPin]);
   }
   return {
     input: { matrix: { deviceid, pin, outputPin: outPin } },

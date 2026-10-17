@@ -75,6 +75,7 @@ import {
 } from '@/components/Defaults/defaultMappings';
 import { presetsFor } from '@/components/Defaults/mappingPresets';
 import { hasDefaultMappings, isInputDeviceKind } from '@/components/Devices/deviceRegistry';
+import { matrixHasPin } from '@/components/Devices/matrixPins';
 import { PinBox } from '@/components/Devices/Pins';
 import {
   getLabel,
@@ -86,6 +87,11 @@ import {
 } from '@/components/Devices/pinUtils';
 import { DropdownBox, StandardEnum } from '@/components/Inputs/DropdownBox';
 import { InactivitySettings } from '@/components/Inputs/InactivitySettings';
+import {
+  DetectInputRequest,
+  detectInputRequest,
+  detectMidiRequest,
+} from '@/components/Inputs/inputDetection';
 import { RegisteredInputEditor } from '@/components/Inputs/InputEditorRegistry';
 import {
   createDeviceInput,
@@ -2330,6 +2336,38 @@ function inputKey(input: proto.IInput | null | undefined) {
     : undefined;
 }
 
+// Detects which input of a device gets pressed or moved, for the input at these indices to take
+function InputDetectButton({
+  request,
+  activationIdx,
+  mappingIdx,
+  ledIdx,
+  innerIdx,
+}: {
+  request: DetectInputRequest | undefined;
+  activationIdx?: number;
+  mappingIdx?: number;
+  ledIdx?: number;
+  innerIdx?: number;
+}) {
+  const { t } = useTranslation();
+  const detecting = useConfigStore((state) => state.detecting);
+  const detectInput = useConfigStore((state) => state.detectInput);
+  if (!request) {
+    return null;
+  }
+  return (
+    <Button
+      w="100%"
+      mt="xs"
+      onClick={() => detectInput(activationIdx, mappingIdx, ledIdx, innerIdx, request)}
+      disabled={detecting}
+    >
+      {t('input_detect')}
+    </Button>
+  );
+}
+
 function SantrollerInput({
   input,
   axis,
@@ -2365,6 +2403,22 @@ function SantrollerInput({
   const detectedInnerMapping = useConfigStore.getState().detectedInnerMapping;
   const detectedActivation = useConfigStore.getState().detectedActivation;
   const detectedLed = useConfigStore.getState().detectedLed;
+  const detectedInputValue = useConfigStore((state) => state.detectedInput);
+  useEffect(() => {
+    const state = useConfigStore.getState();
+    const isDetectTarget =
+      (innerIdx === null || state.detectedInnerMapping === innerIdx) &&
+      ((state.detectedMapping !== undefined && state.detectedMapping === mappingIdx) ||
+        (state.detectedActivation !== undefined && state.detectedActivation === activationIdx) ||
+        (state.detectedLed !== undefined && state.detectedLed === ledIdx));
+    if (!detectedInputValue || !isDetectTarget) {
+      return;
+    }
+    useConfigStore.setState((state) => {
+      state.detectedInput = undefined;
+    });
+    dispatch(detectedInputValue);
+  }, [detectedInputValue, innerIdx, mappingIdx, activationIdx, ledIdx, dispatch]);
   const detecting = useConfigStore((state) => state.detecting);
   const simpleMode = useConfigStore((state) => state.simpleMode);
   const currentProfile = useConfigStore((state) => state.currentProfile);
@@ -2591,6 +2645,7 @@ function SantrollerInput({
       dispatch({ peripheral: { ...input.peripheral!, pin: detected } });
     }
   }
+  const detectProps = { activationIdx, mappingIdx, ledIdx, innerIdx };
   return (
     <>
       {(deviceCombobox.dropdownOpened && (
@@ -2997,36 +3052,46 @@ function SantrollerInput({
           !input.usbButton &&
           !input.btAxis &&
           !input.btButton)) && (
-        <DropdownOutputBox
-          title="input"
-          valMidi={input.midi ?? undefined}
-          label="outputs"
-          midi
-          legendMode={legendMode}
-          type={proto.SubType.Midi}
-          dispatch={(_) => {}}
-          dispatch2={(_) => {}}
-          dispatchMidi={(midi) =>
-            dispatch({
-              midi: {
-                ...midi!,
-                deviceid: deviceId,
-                sourceType: midiInputSourceType(matchingSlot?.deviceKind),
-                ...(matchingSlot?.midiChannel != null && {
-                  midiNote: midi?.midiNote
-                    ? { ...midi.midiNote, channel: matchingSlot.midiChannel }
-                    : undefined,
-                  midiControlChange: midi?.midiControlChange
-                    ? { ...midi.midiControlChange, channel: matchingSlot.midiChannel }
-                    : undefined,
-                  midiPitchBend: midi?.midiPitchBend
-                    ? { ...midi.midiPitchBend, channel: matchingSlot.midiChannel }
-                    : undefined,
-                }),
-              },
-            })
-          }
-        />
+        <>
+          <DropdownOutputBox
+            title="input"
+            valMidi={input.midi ?? undefined}
+            label="outputs"
+            midi
+            legendMode={legendMode}
+            type={proto.SubType.Midi}
+            dispatch={(_) => {}}
+            dispatch2={(_) => {}}
+            dispatchMidi={(midi) =>
+              dispatch({
+                midi: {
+                  ...midi!,
+                  deviceid: deviceId,
+                  sourceType: midiInputSourceType(matchingSlot?.deviceKind),
+                  ...(matchingSlot?.midiChannel != null && {
+                    midiNote: midi?.midiNote
+                      ? { ...midi.midiNote, channel: matchingSlot.midiChannel }
+                      : undefined,
+                    midiControlChange: midi?.midiControlChange
+                      ? { ...midi.midiControlChange, channel: matchingSlot.midiChannel }
+                      : undefined,
+                    midiPitchBend: midi?.midiPitchBend
+                      ? { ...midi.midiPitchBend, channel: matchingSlot.midiChannel }
+                      : undefined,
+                  }),
+                },
+              })
+            }
+          />
+          <InputDetectButton
+            {...detectProps}
+            request={detectMidiRequest(
+              deviceId,
+              midiInputSourceType(matchingSlot?.deviceKind),
+              matchingSlot?.midiChannel
+            )}
+          />
+        </>
       )}
       {(device?.type === 'wii' ||
         matchingSlot?.deviceKind === 'wii' ||
@@ -3071,6 +3136,14 @@ function SantrollerInput({
               })
             }
           />
+          <InputDetectButton
+            {...detectProps}
+            request={detectInputRequest(
+              proto.InputDetectKind.DetectWii,
+              (input.wiiAxis?.deviceid || input.wiiButton?.deviceid || deviceId)!,
+              axis
+            )}
+          />
         </>
       )}
       {(device?.type === 'psx' ||
@@ -3100,6 +3173,10 @@ function SantrollerInput({
               })
             }
           />
+          <InputDetectButton
+            {...detectProps}
+            request={detectInputRequest(proto.InputDetectKind.DetectPS2, deviceId, axis)}
+          />
         </>
       )}
       {(device?.type === 'snes' || input.snesAxis || input.snesButton) && (
@@ -3125,6 +3202,10 @@ function SantrollerInput({
                 snesButton: { button: snesButtonVal as proto.SNESButtonType, deviceid: deviceId },
               })
             }
+          />
+          <InputDetectButton
+            {...detectProps}
+            request={detectInputRequest(proto.InputDetectKind.DetectSNES, deviceId, axis)}
           />
         </>
       )}
@@ -3154,6 +3235,10 @@ function SantrollerInput({
                 },
               })
             }
+          />
+          <InputDetectButton
+            {...detectProps}
+            request={detectInputRequest(proto.InputDetectKind.DetectJoybus, deviceId, axis)}
           />
         </>
       )}
@@ -3207,6 +3292,19 @@ function SantrollerInput({
             output={input.usbButton?.button}
             dispatch={(button) => dispatch({ usbButton: { ...input.usbButton!, button } })}
           />
+          <InputDetectButton
+            {...detectProps}
+            request={
+              effectiveUsbType === proto.SubType.Midi
+                ? detectMidiRequest(deviceId, midiInputSourceType(matchingSlot?.deviceKind))
+                : detectInputRequest(
+                    proto.InputDetectKind.DetectUsb,
+                    (input.usbAxis?.deviceid || input.usbButton?.deviceid || deviceId)!,
+                    axis,
+                    effectiveUsbType
+                  )
+            }
+          />
         </>
       )}
       {(device?.type === 'bt' ||
@@ -3255,6 +3353,19 @@ function SantrollerInput({
             output={input.btButton?.button}
             dispatch={(button) => dispatch({ btButton: { ...input.btButton!, button } })}
           />
+          <InputDetectButton
+            {...detectProps}
+            request={
+              effectiveBtType === proto.SubType.Midi
+                ? detectMidiRequest(deviceId, midiInputSourceType(matchingSlot?.deviceKind))
+                : detectInputRequest(
+                    proto.InputDetectKind.DetectBluetooth,
+                    (input.btAxis?.deviceid || input.btButton?.deviceid || deviceId)!,
+                    axis,
+                    effectiveBtType
+                  )
+            }
+          />
         </>
       )}
       <RegisteredInputEditor input={input} dispatch={dispatch} />
@@ -3277,8 +3388,8 @@ function SantrollerInput({
             label={t('matrix.input_pin')}
             pin={input.matrix.pin}
             valid={Object.fromEntries(
-              Object.entries(AllPinsNamed).filter(
-                (x) => (device?.device.matrix?.inPins ?? 0) & (1 << parseInt(x[0], 10))
+              Object.entries(AllPinsNamed).filter((x) =>
+                matrixHasPin(device?.device.matrix, 'in', parseInt(x[0], 10))
               )
             )}
             dispatch={(pin) => dispatch({ matrix: { ...input.matrix!, pin } })}
@@ -3287,8 +3398,8 @@ function SantrollerInput({
             label={t('matrix.output_pin')}
             pin={input.matrix.outputPin}
             valid={Object.fromEntries(
-              Object.entries(AllPinsNamed).filter(
-                (x) => (device?.device.matrix?.outPins ?? 0) & (1 << parseInt(x[0], 10))
+              Object.entries(AllPinsNamed).filter((x) =>
+                matrixHasPin(device?.device.matrix, 'out', parseInt(x[0], 10))
               )
             )}
             dispatch={(pin) => dispatch({ matrix: { ...input.matrix!, outputPin: pin } })}
