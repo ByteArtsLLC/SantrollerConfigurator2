@@ -33,6 +33,7 @@ import {
 } from '@/components/DesktopDownload/DesktopDownloadButton';
 import { Layout } from '@/components/Layout/Layout';
 import { translateLegacyWarning } from '@/components/Legacy/warnings';
+import { NixosUdevSnippet } from '@/components/NixosUdev/NixosUdevSnippet';
 import { BluetoothConfigDevice } from '@/components/SettingsContext/BluetoothConfigDevice';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { Uf2UpdateAlert } from '@/components/Uf2Update/Uf2UpdateAlert';
@@ -177,6 +178,22 @@ export function ConnectPage() {
             </List.Item>
             <List.Item>{t('connect.linuxWebUdevManualStep3')}</List.Item>
           </List>
+          <Space h="xs" />
+          <Text size="xs" c="dimmed">
+            {t('connect.linuxWebUdevNoLogind')}
+          </Text>
+          <Space h="xs" />
+          <Code block>sudo usermod -aG input $USER</Code>
+          <Space h="md" />
+          <Text size="sm" fw={600}>
+            {t('connect.linuxWebUdevOptionNixos')}
+          </Text>
+          <Space h="xs" />
+          <Text size="xs" c="dimmed">
+            {t('connect.nixosUdevDesc')}
+          </Text>
+          <Space h="xs" />
+          <NixosUdevSnippet />
         </Modal>
         {!navigator.hid && !bluetoothSupported && (
           <Alert
@@ -332,6 +349,14 @@ export function ConnectPage() {
               icon={<IconAlertTriangle />}
             >
               <Text size="sm">{t('connect.udevRulesDesc')}</Text>
+              {udevStatus.isNixos && (
+                <>
+                  <Space h="xs" />
+                  <Text size="sm">{t('connect.nixosUdevDesc')}</Text>
+                  <Space h="xs" />
+                  <NixosUdevSnippet />
+                </>
+              )}
               {udevInstallError && (
                 <>
                   <Space h="xs" />
@@ -340,27 +365,63 @@ export function ConnectPage() {
                   </Text>
                 </>
               )}
-              <Space h="sm" />
-              <Button
-                size="xs"
-                loading={installingUdev}
-                onClick={async () => {
-                  setInstallingUdev(true);
-                  setUdevInstallError(null);
-                  try {
-                    await installUdevRules();
-                    const status = await checkUdevRules();
-                    setUdevStatus(status);
-                    setUdevInstalledSuccess(true);
-                  } catch (e) {
-                    setUdevInstallError(String(e));
-                  } finally {
-                    setInstallingUdev(false);
-                  }
-                }}
-              >
-                {t('connect.installUdevRules')}
-              </Button>
+              {!udevStatus.isNixos && (
+                <>
+                  <Space h="sm" />
+                  <Button
+                    size="xs"
+                    loading={installingUdev}
+                    onClick={async () => {
+                      setInstallingUdev(true);
+                      setUdevInstallError(null);
+                      try {
+                        await installUdevRules();
+                        const status = await checkUdevRules();
+                        setUdevStatus(status);
+                        setUdevInstalledSuccess(true);
+                      } catch (e) {
+                        setUdevInstallError(String(e));
+                      } finally {
+                        setInstallingUdev(false);
+                      }
+                    }}
+                  >
+                    {t('connect.installUdevRules')}
+                  </Button>
+                </>
+              )}
+            </Alert>
+          </>
+        )}
+
+        {udevStatus?.needsInputGroup && (
+          <>
+            <Space h="md" />
+            <Alert
+              variant="light"
+              color="blue"
+              title={t('connect.inputGroupTitle')}
+              icon={<IconAlertTriangle />}
+            >
+              <Text size="sm">{t('connect.inputGroupDesc')}</Text>
+              <Space h="xs" />
+              <Group align="flex-start" gap="xs">
+                <Code block style={{ flex: 1 }}>
+                  sudo usermod -aG input $USER
+                </Code>
+                <CopyButton value="sudo usermod -aG input $USER">
+                  {({ copied, copy }) => (
+                    <Button
+                      size="xs"
+                      variant="default"
+                      color={copied ? 'teal' : 'gray'}
+                      onClick={copy}
+                    >
+                      {copied ? t('connect.copied') : t('connect.copy')}
+                    </Button>
+                  )}
+                </CopyButton>
+              </Group>
             </Alert>
           </>
         )}

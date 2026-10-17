@@ -279,7 +279,9 @@ export async function installNativeHid() {
 export interface UdevStatus {
   isLinux: boolean;
   isAppImage: boolean;
+  isNixos: boolean;
   rulesNeeded: boolean;
+  needsInputGroup: boolean;
 }
 
 export async function checkUdevRules(): Promise<UdevStatus | null> {

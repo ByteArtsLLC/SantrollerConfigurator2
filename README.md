@@ -11,7 +11,7 @@ browsers without WebHID. It needs [Rust](https://rustup.rs) and, on Linux, the
 - `yarn tauri:build` builds an installer into `src-tauri/target/release/bundle`
 
 On Linux the `.deb` and `.rpm` install a udev rule so controllers can be configured without root.
-With the AppImage, copy `src-tauri/udev/70-santroller.rules` to `/etc/udev/rules.d/` yourself.
+With the AppImage, copy `public/70-santroller.rules` to `/etc/udev/rules.d/` yourself.
 
 Every push to `main` is released: the release workflow builds it for Linux, Windows and macOS and
 publishes the installers once all three have built.

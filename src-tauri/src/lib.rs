@@ -334,20 +334,43 @@ async fn hid_receive_feature_report(
 struct UdevStatus {
     is_linux: bool,
     is_app_image: bool,
+    // /etc is generated from configuration.nix, so the rules have to be added there instead
+    is_nixos: bool,
     rules_needed: bool,
+    // Without logind uaccess does nothing, so the user has to be in the input group the rules use
+    needs_input_group: bool,
 }
 
 #[cfg(target_os = "linux")]
 const UDEV_RULES: &str = include_str!("../../public/70-santroller.rules");
 
+// The groups this process has, so adding yourself to input only counts once you log in again
+#[cfg(target_os = "linux")]
+fn in_input_group() -> bool {
+    std::process::Command::new("id")
+        .arg("-nG")
+        .output()
+        .is_ok_and(|output| {
+            String::from_utf8_lossy(&output.stdout)
+                .split_whitespace()
+                .any(|group| group == "input")
+        })
+}
+
 #[tauri::command]
 async fn check_udev_rules() -> Result<UdevStatus, String> {
     #[cfg(target_os = "linux")]
     {
+        // systemd-logind and elogind both create this
+        let has_logind = Path::new("/run/systemd/seats").exists();
+
         let check_file = |path_str: &str| -> bool {
             let path = Path::new(path_str);
             if let Ok(content) = std::fs::read_to_string(path) {
-                content.contains("2883") && content.contains("2882")
+                content.contains("2883")
+                    && content.contains("2882")
+                    // older rules only had uaccess
+                    && (has_logind || content.contains("GROUP=\"input\""))
             } else {
                 false
             }
@@ -360,10 +383,25 @@ async fn check_udev_rules() -> Result<UdevStatus, String> {
             || check_file("/usr/lib/udev/rules.d/68-santroller.rules")
             || check_file("/lib/udev/rules.d/68-santroller.rules");
 
+        let is_nixos = Path::new("/etc/NIXOS").exists()
+            || std::fs::read_to_string("/etc/os-release")
+                .is_ok_and(|os_release| os_release.lines().any(|line| line == "ID=nixos"));
+
+        // services.udev.extraRules ends up in 99-local.rules, so look through everything
+        let installed = installed
+            || (is_nixos
+                && std::fs::read_dir("/etc/udev/rules.d").is_ok_and(|entries| {
+                    entries
+                        .flatten()
+                        .any(|entry| check_file(&entry.path().to_string_lossy()))
+                }));
+
         Ok(UdevStatus {
             is_linux: true,
             is_app_image: std::env::var_os("APPIMAGE").is_some(),
+            is_nixos,
             rules_needed: !installed,
+            needs_input_group: !has_logind && !in_input_group(),
         })
     }
     #[cfg(not(target_os = "linux"))]
@@ -371,7 +409,9 @@ async fn check_udev_rules() -> Result<UdevStatus, String> {
         Ok(UdevStatus {
             is_linux: false,
             is_app_image: false,
+            is_nixos: false,
             rules_needed: false,
+            needs_input_group: false,
         })
     }
 }
