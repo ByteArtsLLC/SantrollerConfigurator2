@@ -1382,7 +1382,7 @@
   "usb": {
     "hostPower": {
       "label": "USB Host 5V Power",
-      "description": "For Adafruit Feather boards with USB Host. Supplies 5V to connected USB devices."
+      "description": "For Adafruit Feather boards with USB Host. Turns on the Feather's built-in 5V boost converter, which powers the USB host port."
     },
     "dp": {
       "label": "D+ Pin"
