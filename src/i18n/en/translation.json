@@ -1044,7 +1044,7 @@
       },
       "adapter": {
         "title": "A Wii or PS1/2 adapter",
-        "body": "One rule with <strong>USB</strong> and the controller type as a connected controller, for example <strong>Wii Extension: Guitar</strong>. Add another profile with <strong>Wii Extension: Drums</strong> if you want different mappings when drums are plugged in instead."
+        "body": "One rule with <strong>USB</strong> and the controller type as a connected controller, for example <strong>Wii Extension: Guitar</strong>. The adapter only works with the controller types your profiles list, so add another profile with <strong>Wii Extension: Drums</strong> if you want it to support drums, and one for each other controller type you want to use."
       },
       "wiredWireless": {
         "title": "Different settings over USB and Bluetooth",
