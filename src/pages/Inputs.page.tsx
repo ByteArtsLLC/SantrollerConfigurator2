@@ -483,6 +483,56 @@ function ValueRow({
   );
 }
 
+// Like ValueRow, but for a 0-65535 value that is a fraction of something (such as calibrated
+// travel), so it is shown and edited as a percentage
+function PercentRow({
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  label: string;
+  description?: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const percent = Math.round((value / 65535) * 10000) / 100;
+  const set = (pct: number) =>
+    onChange(Math.round((Math.min(Math.max(pct, 0), 100) / 100) * 65535));
+  return (
+    <>
+      <Input.Label mb={3}>{label}</Input.Label>
+      {description && (
+        <Text size="xs" c="dimmed">
+          {description}
+        </Text>
+      )}
+      <Group>
+        <Slider
+          flex={1}
+          value={percent}
+          min={0}
+          max={100}
+          step={0.1}
+          label={(v) => `${v}%`}
+          onChange={set}
+        />
+        <NumberInput
+          value={percent}
+          min={0}
+          max={100}
+          step={0.1}
+          decimalScale={2}
+          suffix="%"
+          onChange={(e) => set(parseFloat(e.toString()) || 0)}
+          w={100}
+        />
+      </Group>
+      <Space h="sm" />
+    </>
+  );
+}
+
 // Filters for an analog input's raw value. High pass and zero point drift settle on a rest
 // point, which only axes have, so buttons just get the smoothing filters.
 function AnalogFilters({
@@ -614,8 +664,9 @@ function AnalogFilters({
   );
 }
 
-// Rapid trigger works on calibrated travel, so it brings its own min / max / deadzone, and
-// uses triggerValue as the actuation point within that travel
+// Rapid trigger works on calibrated travel, so it brings its own min / max, and uses
+// triggerValue as the actuation point within that travel. A deadzone there just moves where
+// travel starts, so older configs that have one get it folded into min instead.
 function RapidTriggerSettings({
   mapping,
   mappingIdx,
@@ -631,49 +682,52 @@ function RapidTriggerSettings({
   const rapid = mapping.rapidTrigger!;
   const current = () =>
     useConfigStore.getState().mappingStatus[profileIdx]?.[mappingIdx]?.stateRaw ?? 0;
+  // the firmware treats min == max as uncalibrated and uses the full raw range
+  const uncalibrated = (mapping.min ?? 0) === (mapping.max ?? 65535);
+  const min = uncalibrated ? 0 : (mapping.min ?? 0);
+  const max = uncalibrated ? 65535 : (mapping.max ?? 65535);
+  const deadzone = mapping.deadzone ?? 0;
+  const released = min > max ? min - deadzone : min + deadzone;
+  const update = (changes: Partial<proto.IMapping>) =>
+    dispatch({ ...mapping, ...(deadzone ? { min: released, max, deadzone: 0 } : {}), ...changes });
   const setRapid = (changes: Partial<proto.IRapidTrigger>) =>
-    dispatch({ ...mapping, rapidTrigger: { ...rapid, ...changes } });
+    update({ rapidTrigger: { ...rapid, ...changes } });
   return (
     <>
       <StateSlider
         mappingIdx={mappingIdx}
         profileIdx={profileIdx}
         center={0}
-        min={mapping.min ?? 0}
-        max={mapping.max ?? 65535}
+        min={released}
+        max={max}
         deadzone={0}
         raw
       />
       <ValueRow
         label={t('rapidTrigger.min')}
-        value={mapping.min ?? 0}
-        onChange={(min) => dispatch({ ...mapping, min })}
+        value={released}
+        onChange={(min) => update({ min })}
         current={current}
       />
       <ValueRow
         label={t('rapidTrigger.max')}
-        value={mapping.max ?? 65535}
-        onChange={(max) => dispatch({ ...mapping, max })}
+        value={max}
+        onChange={(max) => update({ max })}
         current={current}
       />
-      <ValueRow
-        label={t('calibration.deadzone')}
-        value={mapping.deadzone ?? 0}
-        onChange={(deadzone) => dispatch({ ...mapping, deadzone })}
-      />
-      <ValueRow
+      <PercentRow
         label={t('rapidTrigger.actuation.label')}
         description={t('rapidTrigger.actuation.description')}
         value={mapping.triggerValue ?? 32767}
-        onChange={(triggerValue) => dispatch({ ...mapping, triggerValue })}
+        onChange={(triggerValue) => update({ triggerValue })}
       />
-      <ValueRow
+      <PercentRow
         label={t('rapidTrigger.down.label')}
         description={t('rapidTrigger.down.description')}
         value={rapid.downSensitivity ?? 0}
         onChange={(downSensitivity) => setRapid({ downSensitivity })}
       />
-      <ValueRow
+      <PercentRow
         label={t('rapidTrigger.up.label')}
         description={t('rapidTrigger.up.description')}
         value={rapid.upSensitivity ?? 0}
