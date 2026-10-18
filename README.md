@@ -35,3 +35,4 @@ the last number is how many commits the repo has, so it goes up with every relea
 (`node scripts/version.mjs` prints it). The firmware reports its own commit count as a build
 number next to its commit hash, so the configurator can tell firmware newer than the one it ships
 apart from older firmware, and won't offer to downgrade it.
+ 
