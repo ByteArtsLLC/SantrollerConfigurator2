@@ -938,9 +938,13 @@
         "title": "Any one rule is enough",
         "body": "Extra rules are alternatives, shown with <strong>OR</strong> between them. The first rule that matches is used and the rest are ignored."
       },
+      "claim": {
+        "title": "A matching profile claims what it uses",
+        "body": "When a rule matches, its profile claims the connected controllers in that rule and any <strong>Bluetooth</strong> or console port it outputs to. Nothing else can use a claimed device, so profiles higher in the sidebar get first pick. <strong>USB</strong> output is the exception: any number of profiles can share it."
+      },
       "pins": {
         "title": "Board pins don't need assigning",
-        "body": "Buttons, sensors and peripherals wired directly to the board are always available to every profile. Only external controllers and adapters need to be added to a rule."
+        "body": "Buttons, sensors and peripherals wired directly to the board are available to every profile unless a profile claims them with <strong>Claim this device's own inputs</strong>. Only external controllers and adapters need to be added to a rule."
       }
     },
     "anatomy": {
@@ -950,7 +954,7 @@
         "body": "How this device presents itself to the console or PC: <strong>USB</strong>, <strong>Bluetooth</strong>, the <strong>PS1/2 port</strong>, a <strong>Wii extension</strong>, the <strong>GameCube / N64 port</strong> or the <strong>SNES / NES port</strong>. Bluetooth needs a board with Bluetooth, and the console port targets only match once a console is actually talking to the device on that port."
       },
       "source": {
-        "body": "An external controller this profile reads from: a Wii extension, a PS1/2 controller, a USB or Bluetooth controller (by type or a specific device), or a MIDI channel. The rule only matches while a matching controller is connected, and each one gets a <strong>slot number</strong> that your inputs use to read from it."
+        "body": "An external controller this profile reads from: a Wii extension, a PS1/2 controller, a USB or Bluetooth controller (by type or a specific device), or a MIDI channel. The rule only matches while a matching controller is connected and no other profile has claimed it, and each one gets a <strong>slot number</strong> that your inputs use to read from it."
       },
       "trigger": {
         "body": "An optional button condition, either <strong>held at startup</strong> or <strong>pressed any time</strong>. Use it to switch between profiles from the controller itself."
@@ -968,7 +972,7 @@
       "mappingGamepad": "<strong>Start, Select, Home and the D-pad</strong> come from <strong>{{slot}}</strong>.",
       "notesTitle": "Things to know",
       "notes": {
-        "allRequired": "Every controller in a rule has to be connected for it to match, which is why Rule #2 is there. Slot numbers are shared between rules, so your pad mappings keep working whichever rule matched.",
+        "allRequired": "Every controller in a rule has to be connected and unclaimed for it to match, which is why Rule #2 is there. Slot numbers are shared between rules, so your pad mappings keep working whichever rule matched.",
         "midiSeen": "A MIDI channel only counts as connected once the kit has sent something on it. After plugging in, hit a pad and the profile will pick it up.",
         "hub": "Two USB devices on the host port need a USB hub. If your kit has a 5-pin MIDI output, you can use a MIDI DIN input instead and leave the USB port free for the gamepad.",
         "anyCombo": "The same idea works with any mix of sources, such as a Wii guitar with a USB gamepad for navigation."
@@ -985,19 +989,19 @@
         },
         "exclusive": {
           "title": "Bluetooth, PS1/2, Wii, GameCube / N64 and SNES / NES targets go to one profile",
-          "body": "Those ports can only act as one controller, so the first matching profile takes the port. Later profiles that ask for the same target won't match it."
+          "body": "Those ports can only act as one controller, so the first matching profile claims the port. Later profiles that ask for the same target won't match while it's claimed."
         },
         "usb": {
           "title": "USB can be shared",
           "body": "Every profile whose rule matches over USB becomes active at the same time, and the console or PC sees one controller per profile on the same cable. This is how a single board can act as several players, but it also means two profiles with plain USB rules will <strong>both</strong> show up."
         },
         "claim": {
-          "title": "Each connected controller belongs to one profile",
-          "body": "When a rule matches, it claims the controllers it used, so a later profile can't read from the same one. If more identical controllers are still free, the same profile is used again for each of them, so two USB guitars through a hub give you two players from one profile."
+          "title": "Each connected controller is claimed by one profile",
+          "body": "When a rule matches, its profile claims the controllers it used, and a claimed controller can't be read by any other profile. If more identical controllers are still unclaimed, the same profile is used again for each of them, so two USB guitars through a hub give you two players from one profile."
         },
         "localInputs": {
-          "title": "This device's own inputs can belong to one profile",
-          "body": "Turn on <strong>Uses this device's own inputs</strong> in a rule and it only matches if no profile above it has already claimed the buttons and sensors wired to this board. Use it when several profiles output the same inputs over different connections but only one should be active at a time. USB rules only match while a PC or console is connected, so a USB profile placed above a Bluetooth one takes over when plugged in and hands back to Bluetooth when running from a battery or charger."
+          "title": "This device's own inputs can be claimed too",
+          "body": "Turn on <strong>Claim this device's own inputs</strong> in a rule and it claims the buttons and sensors wired to this board, so it only matches if no profile above it has already claimed them. Use it when several profiles output the same inputs over different connections but only one should be active at a time. USB rules only match while a PC or console is connected, so a USB profile placed above a Bluetooth one takes over when plugged in and hands back to Bluetooth when running from a battery or charger."
         }
       }
     },
@@ -1045,19 +1049,19 @@
       },
       "wiredWireless": {
         "title": "Different settings over USB and Bluetooth",
-        "body": "Make two profiles: one with a <strong>USB</strong> rule and one with a <strong>Bluetooth</strong> rule, and turn on <strong>Uses this device's own inputs</strong> in both. Put the USB profile first. While plugged into a PC or console the USB profile claims the inputs and Bluetooth stays off, and on a battery or charger the Bluetooth profile takes over. Without the toggle, both are active while plugged in and you'd get two controllers."
+        "body": "Make two profiles: one with a <strong>USB</strong> rule and one with a <strong>Bluetooth</strong> rule, and turn on <strong>Claim this device's own inputs</strong> in both. Put the USB profile first. While plugged into a PC or console the USB profile claims the inputs and Bluetooth stays off, and on a battery or charger the Bluetooth profile takes over. Without the toggle, both are active while plugged in and you'd get two controllers."
       },
       "festivalWired": {
         "title": "Holding a button at startup to change profiles (direct wired)",
-        "body": "For a guitar with everything wired to the board's pins, make a keyboard profile such as a Fortnite Festival layout and a normal guitar profile, and turn on <strong>Uses this device's own inputs</strong> in both. Put the keyboard profile first and give it <strong>Hold Button at Startup</strong>. Holding the button while plugging in makes the keyboard profile claim the inputs, so the guitar profile can't match and the PC only sees a keyboard. Plug in without holding it and the guitar profile gets them instead. The choice lasts until the guitar is unplugged."
+        "body": "For a guitar with everything wired to the board's pins, make a keyboard profile such as a Fortnite Festival layout and a normal guitar profile, and turn on <strong>Claim this device's own inputs</strong> in both. Put the keyboard profile first and give it <strong>Hold Button at Startup</strong>. Holding the button while plugging in makes the keyboard profile claim the inputs, so the guitar profile can't match and the PC only sees a keyboard. Plug in without holding it and the guitar profile claims them instead. The choice lasts until the guitar is unplugged."
       },
       "festivalAdapter": {
         "title": "Holding a button at startup to change profiles (adapter)",
-        "body": "When the guitar comes through an adapter, such as a Wii guitar on a Wii adapter, add it as a connected controller to both profiles instead, for example <strong>Wii Extension: Guitar</strong>. Put the keyboard profile first with <strong>Hold Button at Startup</strong>, using a button on the guitar. The adapter's controller can only belong to one profile, so once the keyboard profile has taken it the guitar profile can't match. <strong>Uses this device's own inputs</strong> isn't needed here, since the inputs come from the adapter rather than the board's pins."
+        "body": "When the guitar comes through an adapter, such as a Wii guitar on a Wii adapter, add it as a connected controller to both profiles instead, for example <strong>Wii Extension: Guitar</strong>. Put the keyboard profile first with <strong>Hold Button at Startup</strong>, using a button on the guitar. Once the keyboard profile has claimed the adapter's controller, the guitar profile can't match. <strong>Claim this device's own inputs</strong> isn't needed here, since the inputs come from the adapter rather than the board's pins."
       },
       "twoPlayers": {
         "title": "Two USB guitars through one board",
-        "body": "One profile with <strong>USB</strong> and <strong>USB Host (By Type): Guitar</strong>. Each guitar plugged in gets its own copy of the profile, and the console sees two guitars."
+        "body": "One profile with <strong>USB</strong> and <strong>USB Host (By Type): Guitar</strong>. Each guitar plugged in is claimed by its own copy of the profile, and the console sees two guitars."
       },
       "profileA": "Profile A",
       "profileB": "Profile B",
@@ -1067,11 +1071,11 @@
       "title": "When something doesn't show up",
       "items": {
         "noRule": "A profile with no rules, or no target connection, is never used. The Profiles page warns about both.",
-        "notConnected": "A rule with a connected controller only matches while that controller is plugged in and detected. Check the Devices page to see what the board can see.",
-        "taken": "If a profile never activates over Bluetooth or a console port, a profile higher up the list probably took that port first.",
+        "notConnected": "A rule with a connected controller only matches while that controller is plugged in, detected, and not claimed by a profile higher up the list. Check the Devices page to see what the board can see.",
+        "taken": "If a profile never activates over Bluetooth or a console port, a profile higher up the list probably claimed that port first.",
         "duplicate": "If the PC sees more controllers than you expect, more than one profile matched over USB. Add a trigger or a connected-controller condition so only the one you want matches.",
         "slotMissing": "If a controller doesn't appear when mapping an input, add it under Connected Controller / Adapter in that profile's rules first.",
-        "localInputs": "If a profile with Uses this device's own inputs never activates, a profile higher up the list with the same toggle probably matched first. Reorder them so the one you'd rather use comes first."
+        "localInputs": "If a profile with Claim this device's own inputs turned on never activates, a profile higher up the list with the same toggle probably claimed the inputs first. Reorder them so the one you'd rather use comes first."
       }
     }
   },
@@ -1735,8 +1739,8 @@
     "specificConsoleDesc": "Enable to apply this profile when plugged into a specific device, for example setting this to PS3 would only apply this profile when plugged into a PS3.",
     "forcedType": "Force device type",
     "forcedTypeDesc": "Enable to ignore console detection and always use a specific mode for this profile.",
-    "localInputs": "Uses this device's own inputs",
-    "localInputsDesc": "Only one profile using the buttons and sensors wired to this board is active at a time. The highest one in the sidebar wins.",
+    "localInputs": "Claim this device's own inputs",
+    "localInputsDesc": "Claims the buttons and sensors wired to this board. Only one profile can claim them at a time, and the highest one in the sidebar wins.",
     "missingEmulation": "Missing Emulation",
     "missingDevice": "This profile is missing an emulation assignment. Without one, Santroller doesn't know when it should use this profile, so it won't be used.",
     "missing": "This profile is missing an assignment! Without one, it won't ever be assigned.",
@@ -1910,7 +1914,7 @@
     "snesEmulation": "SNES / NES Controller Emulation",
     "bluetoothType": "Bluetooth Host By Type",
     "bluetoothDevice": "Bluetooth Host Specific",
-    "localInputs": "This Device's Own Inputs"
+    "localInputs": "Claims This Device's Own Inputs"
   },
   "assignmentTypeDesc": {
     "wiiExt": "Match when a Wii Extension is plugged into this device",
@@ -1929,7 +1933,7 @@
     "snesEmulation": "Match when plugged into a SNES or NES via the controller port",
     "bluetoothType": "Match when a Bluetooth device type is connected to this device via Bluetooth host",
     "bluetoothDevice": "Match when a specific Bluetooth device is connected to this device via Bluetooth host",
-    "localInputs": "Match unless an earlier profile already uses the inputs wired to this device (pins, ADC, I2C devices etc), so only one of them is used at a time"
+    "localInputs": "Claim the inputs wired to this device (pins, ADC, I2C devices etc). Matches unless an earlier profile has already claimed them, so only one of them is used at a time"
   },
   "activation": {
     "usbType": "USB Controller Type",

@@ -9,6 +9,7 @@ import {
   IconLayersLinked,
   IconListCheck,
   IconListNumbers,
+  IconLock,
   IconMusic,
   IconSettings,
   IconUsb,
@@ -42,6 +43,7 @@ const SUMMARY_CARDS = [
   { key: 'rules', color: 'blue', Icon: IconListCheck },
   { key: 'and', color: 'teal', Icon: IconLayersLinked },
   { key: 'or', color: 'violet', Icon: IconGitMerge },
+  { key: 'claim', color: 'orange', Icon: IconLock },
   { key: 'pins', color: 'gray', Icon: IconCpu },
 ] as const;
 
@@ -188,7 +190,7 @@ export function AssignmentsBasicsStep(props: GuideStepProps) {
         <Title order={2} size="h3" mb="sm">
           {t('assignmentsGuide.summary.title')}
         </Title>
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3, xl: 5 }} spacing="md">
           {SUMMARY_CARDS.map(({ key, color, Icon }) => (
             <Card key={key} withBorder radius="md" p="md">
               <ThemeIcon color={color} variant="light" size="lg" radius="md" mb="xs">
