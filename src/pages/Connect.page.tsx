@@ -59,6 +59,12 @@ export function ConnectPage() {
   const firmwareBuild = useConfigStore((state) => state.firmwareBuild);
   const firmwareNewer = useConfigStore((state) => state.firmwareNewer);
   const hung = useConfigStore((state) => state.hung);
+  const configLoadError = useConfigStore((state) => state.configLoadError);
+  const configLoadErrorMessage = useConfigStore((state) => state.configLoadErrorMessage);
+  const hidDevice = useConfigStore((state) => state.hidDevice);
+  const connectDevice = useConfigStore((state) => state.connectDevice);
+  // The config here isn't the controller's, so there's nothing to export or replace
+  const noConfig = hung || !!configLoadError;
   const updating = useConfigStore((state) => state.updating);
   const updatePercentage = useConfigStore((state) => state.updatePercentage);
   const applyingUpdate = useConfigStore((state) => state.applyingUpdate);
@@ -256,30 +262,34 @@ export function ConnectPage() {
         {connected && !simpleMode && (
           <>
             <Space h="md" />
-            <Button disabled={updating || hung} onClick={bootloader}>
+            <Button disabled={updating || hung || configLoadError === 'inUse'} onClick={bootloader}>
               {t('connect.bootloader')}
             </Button>
             <Space h="md" />
-            <Button disabled={updating || hung} onClick={exportConfig}>
+            <Button disabled={updating || noConfig} onClick={exportConfig}>
               {t('connect.export')}
             </Button>
             <Space h="md" />
-            <FileButton disabled={updating || hung} onChange={loadConfig} accept="application/json">
+            <FileButton
+              disabled={updating || noConfig}
+              onChange={loadConfig}
+              accept="application/json"
+            >
               {(props) => (
-                <Button disabled={updating || hung} {...props}>
+                <Button disabled={updating || noConfig} {...props}>
                   {t('connect.load')}
                 </Button>
               )}
             </FileButton>
             <Space h="md" />
             <FileButton
-              disabled={updating || hung}
+              disabled={updating || noConfig}
               onChange={importLegacy}
               accept=".picoconfig"
               multiple
             >
               {(props) => (
-                <Button disabled={updating || hung} {...props}>
+                <Button disabled={updating || noConfig} {...props}>
                   {t('connect.importLegacy')}
                 </Button>
               )}
@@ -324,6 +334,41 @@ export function ConnectPage() {
             icon={<IconExclamationCircle />}
           >
             {t('connect.hung')}
+          </Alert>
+        )}
+        {!hung && configLoadError === 'inUse' && (
+          <Alert
+            variant="light"
+            color="yellow"
+            title={t('connect.inUseTitle')}
+            icon={<IconAlertTriangle />}
+          >
+            {t('connect.inUse')}
+          </Alert>
+        )}
+        {!hung && configLoadError === 'failed' && (
+          <Alert
+            variant="light"
+            color="red"
+            title={t('connect.configLoadFailedTitle')}
+            icon={<IconExclamationCircle />}
+          >
+            {t('connect.configLoadFailed')}
+            {configLoadErrorMessage && (
+              <>
+                <Space h="xs" />
+                <Code block>{configLoadErrorMessage}</Code>
+              </>
+            )}
+            <Space h="xs" />
+            <Button
+              size="xs"
+              variant="default"
+              disabled={!hidDevice}
+              onClick={() => hidDevice && connectDevice(hidDevice)}
+            >
+              {t('connect.configLoadRetry')}
+            </Button>
           </Alert>
         )}
         {!connected && (

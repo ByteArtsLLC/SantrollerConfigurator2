@@ -129,7 +129,18 @@ type DeviceType = keyof Omit<proto.IDevice, 'deviceid'>;
 class HidResponseTimeoutError extends Error {}
 // The config came back incomplete or corrupted, so reading it again may work
 class ConfigReadError extends Error {}
+// Another configurator has the controller open over the other transport (USB or bluetooth)
+class ConfigInUseError extends Error {}
 const CONFIG_READ_ATTEMPTS = 3;
+// How often to check whether the other configurator has closed
+const IN_USE_RETRY_MS = 2000;
+let inUseRetryTimer: ReturnType<typeof setTimeout> | undefined;
+function stopInUseRetryTimer() {
+  if (inUseRetryTimer) {
+    clearTimeout(inUseRetryTimer);
+    inUseRetryTimer = undefined;
+  }
+}
 
 const equals = (a: Uint8Array, b: Uint8Array) =>
   a.length === b.length && a.every((val, index) => val === b[index]);
@@ -509,6 +520,10 @@ export interface ConfigState {
   savedConfig: Uint8Array;
   connected: boolean;
   hung: boolean;
+  // Connected, but the config couldn't be read. Nothing is sent to the controller then, as the config
+  // here isn't the controller's and saving it would replace the controller's
+  configLoadError: 'inUse' | 'failed' | null;
+  configLoadErrorMessage?: string;
   latest: boolean;
   // The firmware is newer than the one this tool ships
   firmwareNewer: boolean;
@@ -762,6 +777,7 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     applyingUpdate: false,
     connected: false,
     hung: false,
+    configLoadError: null,
     detecting: false,
     seller: false,
     sellerCheck: false,
@@ -1929,6 +1945,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
     },
 
     disconnect: async () => {
+      stopInUseRetryTimer();
       const state = get();
       const dev = state.hidDevice;
       dev?.removeEventListener('inputreport', state.onReport);
@@ -1958,6 +1975,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.keepaliveTimeout = undefined;
         state.connected = state.waitingForReload;
         state.hung = false;
+        state.configLoadError = null;
         state.updating = false;
         state.hidDevice = undefined;
       });
@@ -2184,6 +2202,9 @@ export const useConfigStore = create<ConfigState & Actions>()(
     },
     saveConfig: async (immediate = false, committing = false) => {
       const state = get();
+      if (state.configLoadError) {
+        return false;
+      }
       // hidDevice is gone while the device re-enumerates after a reload, reconnect sends this
       // config once it is back
       if (!state.hidDevice || !state.connected) {
@@ -2943,6 +2964,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
     },
     connectDevice: async (device: HIDDevice) => {
       stopReloadReconnectTimer();
+      stopInUseRetryTimer();
       if (!device.opened) {
         await device.open();
       }
@@ -2987,6 +3009,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               seller: old.seller,
               connected: true,
               hung: false,
+              configLoadError: null,
               updating: false,
               hidDevice: device,
               crc: info.dataCrc,
@@ -3010,6 +3033,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
           );
           await device.sendFeatureReport(proto.ReportId.ReportIdLoaded, new Uint8Array([0]));
         } catch (e) {
+          const inUse = e instanceof ConfigInUseError;
           console.error('Failed to load config on connect', e);
           set(
             (old) => ({
@@ -3019,9 +3043,21 @@ export const useConfigStore = create<ConfigState & Actions>()(
               firmwareVersion,
               firmwareBuild,
               crc: 0,
+              configLoadError: inUse ? 'inUse' : 'failed',
+              configLoadErrorMessage: e instanceof Error ? e.message : String(e),
             }),
             true
           );
+          if (inUse) {
+            // Open it as soon as the other configurator lets go
+            inUseRetryTimer = setTimeout(() => {
+              inUseRetryTimer = undefined;
+              const current = get();
+              if (current.hidDevice === device && current.configLoadError === 'inUse') {
+                current.connectDevice(device);
+              }
+            }, IN_USE_RETRY_MS);
+          }
         }
       } catch (e) {
         if (e instanceof HidResponseTimeoutError) {
@@ -3060,6 +3096,9 @@ async function fetchConfigData(device: HIDDevice, saved: boolean) {
     throw new ConfigReadError(
       `${saved ? 'saved' : 'current'} config info was unreadable (${infoBytes.length} bytes: ${hexBytes(infoBytes)}): ${e}`
     );
+  }
+  if (info.inUseByOtherTool) {
+    throw new ConfigInUseError('the controller is open in another configurator');
   }
   if (info.magic >>> 0 !== magic) {
     console.log('magic didnt match!');
