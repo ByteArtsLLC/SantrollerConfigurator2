@@ -677,6 +677,24 @@
       "AccelerometerAdc1": "ADC 1 (LIS3DH only)",
       "AccelerometerAdc2": "ADC 2 (LIS3DH only)",
       "AccelerometerAdc3": "ADC 3 (LIS3DH only)"
+    },
+    "filters": {
+      "title": "Filters",
+      "description": "Run on every sample from the accelerometer, before any mapping uses it. For tilt, the gate and median remove strum bar hits, and a low pass around 5 - 10 Hz removes the vibration left over.",
+      "gate": {
+        "label": "Motion gate",
+        "description": "Ignores samples whose total acceleration is too far from gravity, as a strum bar hit or a bump causes them instead of tilt. The last good reading is held meanwhile.",
+        "tolerance": "Tolerance (g)"
+      },
+      "median": {
+        "label": "Median",
+        "description": "Uses the middle of the last few samples, so short spikes are dropped instead of being smoothed in.",
+        "samples": "Samples (3 - 9)"
+      },
+      "lowPass": {
+        "label": "Low pass",
+        "description": "Smooths out vibration faster than the cutoff, more steeply than the low pass on a mapping. Lower cutoffs are smoother, but react more slowly."
+      }
     }
   },
   "wii": {

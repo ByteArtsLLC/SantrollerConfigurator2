@@ -556,6 +556,11 @@ function AccelerometerDevice({ id }: { id: string }) {
     throw new Error('device null!');
   }
   const accelerometer = device.accelerometer;
+  const update = (changes: Partial<proto.IAccelerometerDevice>) =>
+    updateDevice(
+      { deviceid: parseInt(id, 10), accelerometer: { ...accelerometer, ...changes } },
+      id
+    );
   return (
     <DeviceCard
       connected={status.connected}
@@ -563,16 +568,92 @@ function AccelerometerDevice({ id }: { id: string }) {
       image="covers/devices/accelerometer.svg"
       deleteDevice={() => deleteDevice(id)}
     >
-      <I2CDevice
-        device={accelerometer.i2c}
-        dispatch={(val) =>
-          updateDevice(
-            { deviceid: parseInt(id, 10), accelerometer: { ...accelerometer, i2c: val } },
-            id
-          )
-        }
-      />
+      <I2CDevice device={accelerometer.i2c} dispatch={(val) => update({ i2c: val })} />
+      <AccelerometerFilters accelerometer={accelerometer} update={update} />
     </DeviceCard>
+  );
+}
+// Filters the firmware runs on every accelerometer sample, before any mapping sees it
+function AccelerometerFilters({
+  accelerometer,
+  update,
+}: {
+  accelerometer: proto.IAccelerometerDevice;
+  update: (changes: Partial<proto.IAccelerometerDevice>) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Accordion>
+      <Accordion.Item value="filters">
+        <Accordion.Control>{t('accelerometer.filters.title')}</Accordion.Control>
+        <Accordion.Panel>
+          <Text size="sm" c="dimmed">
+            {t('accelerometer.filters.description')}
+          </Text>
+          <Space h="md" />
+          <Switch
+            label={t('accelerometer.filters.gate.label')}
+            description={t('accelerometer.filters.gate.description')}
+            checked={accelerometer.gateTolerance != null}
+            onChange={(event) =>
+              update({ gateTolerance: event.currentTarget.checked ? 0.3 : null })
+            }
+          />
+          {accelerometer.gateTolerance != null && (
+            <NumberInput
+              mt="xs"
+              label={t('accelerometer.filters.gate.tolerance')}
+              decimalScale={2}
+              min={0.05}
+              step={0.05}
+              value={accelerometer.gateTolerance}
+              onChange={(val) => update({ gateTolerance: Number(val) || 0.05 })}
+            />
+          )}
+          <Space h="md" />
+          <Switch
+            label={t('accelerometer.filters.median.label')}
+            description={t('accelerometer.filters.median.description')}
+            checked={accelerometer.medianSamples != null}
+            onChange={(event) => update({ medianSamples: event.currentTarget.checked ? 5 : null })}
+          />
+          {accelerometer.medianSamples != null && (
+            <NumberInput
+              mt="xs"
+              label={t('accelerometer.filters.median.samples')}
+              min={3}
+              max={9}
+              step={1}
+              allowDecimal={false}
+              value={accelerometer.medianSamples}
+              onChange={(val) =>
+                update({
+                  medianSamples: Math.min(9, Math.max(3, parseInt(val.toString(), 10) || 3)),
+                })
+              }
+            />
+          )}
+          <Space h="md" />
+          <Switch
+            label={t('accelerometer.filters.lowPass.label')}
+            description={t('accelerometer.filters.lowPass.description')}
+            checked={accelerometer.lowPassCutoff != null}
+            onChange={(event) => update({ lowPassCutoff: event.currentTarget.checked ? 8 : null })}
+          />
+          {accelerometer.lowPassCutoff != null && (
+            <NumberInput
+              mt="xs"
+              label={t('filter.cutoff')}
+              decimalScale={2}
+              min={0.1}
+              step={1}
+              value={accelerometer.lowPassCutoff}
+              onChange={(val) => update({ lowPassCutoff: Number(val) || 0.1 })}
+            />
+          )}
+        </Accordion.Panel>
+      </Accordion.Item>
+    </Accordion>
   );
 }
 function MPR121Device({ id }: { id: string }) {
