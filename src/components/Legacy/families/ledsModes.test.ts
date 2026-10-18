@@ -621,9 +621,11 @@ describe('config settings', () => {
     });
     expect(deviceOf(ctx, 'bt')).toBeDefined();
     expect(deviceOf(ctx, 'max1704x')!.max1704x!.i2c).toMatchObject({ sda: 18, scl: 19, block: 1 });
-    expect(settings.assignments[0].assignments).toContainEqual({
-      bluetooth: proto.BluetoothMode.BTStandard,
-    });
+    // USB, then the same rule over bluetooth for when there is no USB host
+    expect(settings.assignments.map((x) => x.assignments![0])).toEqual([
+      expect.objectContaining({ consoleType: expect.anything() }),
+      { bluetooth: proto.BluetoothMode.BTStandard },
+    ]);
     expect(settings.inactivity).toEqual({
       sleepTimeoutSec: 120,
       wakePin: 3,
@@ -636,7 +638,7 @@ describe('config settings', () => {
     const { settings } = run({
       emulationType: legacy.EmulationType.EmulationType_BluetoothKeyboardMouse,
     });
-    expect(settings.assignments[0].assignments).toContainEqual({
+    expect(settings.assignments[1].assignments).toContainEqual({
       bluetooth: proto.BluetoothMode.BTStandard,
     });
   });

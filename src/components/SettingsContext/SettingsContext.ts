@@ -35,6 +35,7 @@ import { createLabelConfig, getNextLabelId } from '@/components/Labels/labelRegi
 import { importLegacyConfigs } from '@/components/Legacy/importLegacyConfig';
 import { legacyErrorReason, legacyWarning, LegacyWarning } from '@/components/Legacy/warnings';
 import { CRC32 } from '@/CRC32.js';
+import { splitExtraTargets } from './assignmentTargets';
 import { BluetoothConfigDevice } from './BluetoothConfigDevice';
 import { proto } from './config.js';
 import { parseVersionReport } from './firmwareVersion';
@@ -665,6 +666,7 @@ export interface Actions {
 }
 
 function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState {
+  const splitTargets = splitExtraTargets(config);
   config.profiles?.forEach((profile) => {
     profile.assignments?.forEach((list) => {
       list.assignments?.forEach((assignment) => {
@@ -752,7 +754,8 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     config,
     savedConfig: proto.Config.encode(config).finish(),
     updatePercentage: 0,
-    configModified: false,
+    // so the repaired config can be saved
+    configModified: splitTargets,
     waitingForReload: false,
     reloadLost: false,
     updating: false,
@@ -2976,10 +2979,11 @@ export const useConfigStore = create<ConfigState & Actions>()(
           const config = proto.Config.decode(data, info.mainSize);
           const aux = proto.AuxConfigBlock.decode(data.slice(info.mainSize), info.auxSize);
           const timeout = startKeepaliveTimer(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
+          const fresh = InitState(config, aux);
           set(
             (old) => ({
               ...old,
-              ...InitState(config, aux),
+              ...fresh,
               seller: old.seller,
               connected: true,
               hung: false,
@@ -3000,7 +3004,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               activeProfiles,
               deferredMode,
               savedConfig: dataSaved,
-              configModified: !equals(dataSaved, data),
+              configModified: fresh.configModified || !equals(dataSaved, data),
             }),
             true
           );

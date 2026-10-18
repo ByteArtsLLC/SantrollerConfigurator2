@@ -123,6 +123,10 @@ import { ledOverlaps } from '@/components/Inputs/ledOverlap';
 import { migrateSlotIds } from '@/components/Inputs/slotRemap';
 import { Layout } from '@/components/Layout/Layout';
 import { RequireDevice } from '@/components/RequireDevice/RequireDevice';
+import {
+  retargetRule,
+  TARGET_ASSIGNMENT_TYPES,
+} from '@/components/SettingsContext/assignmentTargets';
 import { proto } from '@/components/SettingsContext/config';
 import { truncateProfileName } from '@/components/SettingsContext/profileName';
 import {
@@ -6566,14 +6570,7 @@ const HostProfileAssignmentTypes: ProfileAssignmentTypes[] = [
   'midiChannel',
   'midiProGuitar',
 ];
-const DeviceProfileAssignmentTypes: ProfileAssignmentTypes[] = [
-  'ps2Emulation',
-  'wiiEmulation',
-  'joybusEmulation',
-  'snesEmulation',
-  'bluetooth',
-  'consoleType',
-];
+const DeviceProfileAssignmentTypes = TARGET_ASSIGNMENT_TYPES;
 type EmulationMode =
   | 'consoleType'
   | 'bluetooth'
@@ -7742,14 +7739,9 @@ function SantrollerAssignmentList({
       type === 'worldTourDrum'
   );
 
+  // A rule has one output, so this replaces any others along with it
   const updateEmulation = (newEmul: proto.IProfileAssignmentInfo) => {
-    const next = [...assignments];
-    if (emulationIdx !== -1) {
-      next[emulationIdx] = newEmul;
-    } else {
-      next.unshift(newEmul);
-    }
-    dispatch({ ...mapping, assignments: next });
+    dispatch({ ...mapping, assignments: retargetRule(assignments, newEmul) });
   };
 
   const addHostSource = (sourceType: string) => {

@@ -1,3 +1,4 @@
+import { retargetRule } from '@/components/SettingsContext/assignmentTargets';
 import { proto } from '@/components/SettingsContext/config';
 import {
   ConvertedInput,
@@ -648,17 +649,27 @@ export function convertLedsModesSettings(ctx: LegacyImportContext): LedsModesSet
     ctx.addDevice('max1704x', 'main', (dev) => setI2c(dev.i2c, old.max1704XSda, old.max1704XScl));
   }
 
-  // Bluetooth output goes alongside USB in every assignment list
-  const shared: proto.IProfileAssignmentInfo[] = [];
+  // A rule has one output, so each USB rule gets a Bluetooth copy right after it. USB rules stop
+  // matching without a host, so the controller is USB while plugged in and Bluetooth otherwise
   const T = legacy.EmulationType;
-  if (
+  const bluetooth =
     old.isBluetoothTx ||
     old.emulationType === T.EmulationType_Bluetooth ||
-    old.emulationType === T.EmulationType_BluetoothKeyboardMouse
-  ) {
+    old.emulationType === T.EmulationType_BluetoothKeyboardMouse;
+  if (bluetooth) {
     ctx.addDevice('bt', 'main');
-    shared.push({ bluetooth: proto.BluetoothMode.BTStandard });
   }
+  const withBluetooth = (list: proto.IProfileAssignment): proto.IProfileAssignment[] =>
+    bluetooth
+      ? [
+          list,
+          {
+            assignments: retargetRule(list.assignments ?? [], {
+              bluetooth: proto.BluetoothMode.BTStandard,
+            }),
+          },
+        ]
+      : [list];
 
   // PS4 instrument mode needed a controller on the USB host port to authenticate
   const ps4OrPs5Mode = !!old.ps4Instruments && PS4_INSTRUMENTS.has(ctx.subType) && usesUsbHost(old);
@@ -670,21 +681,20 @@ export function convertLedsModesSettings(ctx: LegacyImportContext): LedsModesSet
     },
   });
   const assignments: proto.IProfileAssignment[] = [
-    ...st.modes.map(({ mode, trigger }) => ({
-      assignments: [usb(mode), ...shared, ...ctx.assignments, { input: trigger }],
-    })),
-    { assignments: [usb(), ...shared, ...ctx.assignments] },
+    ...st.modes.flatMap(({ mode, trigger }) =>
+      withBluetooth({ assignments: [usb(mode), ...ctx.assignments, { input: trigger }] })
+    ),
+    ...withBluetooth({ assignments: [usb(), ...ctx.assignments] }),
   ];
   // Keyboards don't need authenticating
   const keyboardUsb = { consoleType: { ps4OrPs5Mode: false } };
-  const festivalList = (trigger: proto.IProfileAssignmentInfo) => ({
-    assignments: [keyboardUsb, ...shared, ...ctx.assignments, trigger],
-  });
+  const festivalList = (trigger: proto.IProfileAssignmentInfo) =>
+    withBluetooth({ assignments: [keyboardUsb, ...ctx.assignments, trigger] });
   const festival = hasFestival
     ? {
         assignments: [
-          ...st.festival.map((trigger) => festivalList({ input: trigger })),
-          ...st.festivalToggles.map((input) => festivalList({ inputAnyTime: { input } })),
+          ...st.festival.flatMap((trigger) => festivalList({ input: trigger })),
+          ...st.festivalToggles.flatMap((input) => festivalList({ inputAnyTime: { input } })),
         ],
         leds: festivalLeds,
       }

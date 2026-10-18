@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { getDevicePins } from '@/components/Devices/deviceRegistry';
+import { migrateSlotIds } from '@/components/Inputs/slotRemap';
+import { retargetRule } from '@/components/SettingsContext/assignmentTargets';
 import { proto } from '@/components/SettingsContext/config';
 import { ConfigState, useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { findDeviceStatus } from '../guideConfig';
@@ -95,10 +97,9 @@ export function profileBluetoothMode(state: ConfigState): proto.BluetoothMode | 
  * Makes the active profile act as a Bluetooth controller: adds the bt device (the Pico W's radio)
  * and a Bluetooth output to the profile.
  *
- * Only one assignment list per profile is ever claimed, so a separate Bluetooth list would never
- * run next to the USB one. Like the legacy config importer, the Bluetooth output is added to every
- * list that outputs over USB instead, so the controller works over USB and Bluetooth at once. It
- * goes on the end of each list, so the slots already in it keep their numbers.
+ * A rule has one output, and only one rule per profile is ever claimed. A USB rule stops matching
+ * without a USB host, so each USB rule gets a Bluetooth copy right after it, reading the same
+ * devices: the controller is USB while plugged into something and Bluetooth otherwise.
  */
 export function enableBluetoothOutput() {
   const store = useConfigStore.getState();
@@ -107,18 +108,22 @@ export function enableBluetoothOutput() {
   }
   const state = useConfigStore.getState();
   const profileIdx = state.currentProfile;
-  const profile = state.config.profiles?.[profileIdx];
-  if (!profile || profileHasBluetoothOutput(state)) {
+  const current = state.config.profiles?.[profileIdx];
+  if (!current || profileHasBluetoothOutput(state)) {
     return;
   }
+  // Copies of a rule only keep reading the same devices with profile wide slot ids
+  const profile = migrateSlotIds(current);
   const lists = profile.assignments ?? [];
   const isUsbList = (list: proto.IProfileAssignment) =>
     (list.assignments ?? []).some((item) => item.consoleType != null);
   const assignments = lists.some(isUsbList)
-    ? lists.map((list) =>
-        isUsbList(list) ? { ...list, assignments: [...(list.assignments ?? []), BT_OUTPUT] } : list
+    ? lists.flatMap((list) =>
+        isUsbList(list)
+          ? [list, { assignments: retargetRule(list.assignments ?? [], BT_OUTPUT) }]
+          : [list]
       )
-    : [...lists, { assignments: [defaultConsoleAssignment, BT_OUTPUT] }];
+    : [...lists, { assignments: [defaultConsoleAssignment] }, { assignments: [BT_OUTPUT] }];
   state.updateProfile({ ...profile, assignments }, profileIdx);
 }
 
