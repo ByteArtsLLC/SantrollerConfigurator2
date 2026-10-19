@@ -22,6 +22,12 @@ export function getInputSlotKind(input: proto.IInput): string | undefined {
   if (input.wiiAxis || input.wiiButton) {
     return 'wii';
   }
+  if (input.snesAxis || input.snesButton) {
+    return 'snes';
+  }
+  if (input.joybusAxis || input.joybusButton) {
+    return 'joybus';
+  }
   switch (input.midi?.sourceType) {
     case proto.MidiInputSourceType.MidiInputSourceType_MIDI:
       return 'midi';
@@ -48,6 +54,10 @@ const SLOT_INPUT_KINDS = [
   'ps2Button',
   'wiiAxis',
   'wiiButton',
+  'snesAxis',
+  'snesButton',
+  'joybusAxis',
+  'joybusButton',
   'midi',
 ] as const;
 
@@ -162,6 +172,8 @@ function slotKeys(profile: proto.IProfile) {
         item.bluetoothDevice?.subtype,
         item.ps2Cnt,
         item.wiiExt,
+        item.snesCnt,
+        item.joybusCnt,
       ]);
       const n = (counts.get(`${kind}:${type}`) ?? 0) + 1;
       counts.set(`${kind}:${type}`, n);

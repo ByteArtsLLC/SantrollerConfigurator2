@@ -49,6 +49,8 @@ const SOURCE_FIELDS: Partial<
 > = {
   wiiExt: { field: 'wiiExt', enumKey: 'wiiExt', values: proto.WiiExtType },
   ps2Cnt: { field: 'ps2Cnt', enumKey: 'ps2Cnt', values: proto.PS2ControllerType },
+  snesCnt: { field: 'snesCnt', enumKey: 'snesCnt', values: proto.SNESControllerType },
+  joybusCnt: { field: 'joybusCnt', enumKey: 'joybusCnt', values: proto.JoybusControllerType },
   usbType: { field: 'usbType', enumKey: 'subType', values: proto.SubType },
   bluetoothType: { field: 'bluetoothType', enumKey: 'subType', values: proto.SubType },
   midiProGuitar: { field: 'midiProGuitar', enumKey: 'subType', values: proto.SubType },

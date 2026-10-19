@@ -470,6 +470,8 @@ export function requiresAssignment(deviceType: string, device?: proto.IDevice | 
     deviceType === 'usbHost' ||
     deviceType === 'psx' ||
     deviceType === 'wii' ||
+    deviceType === 'snes' ||
+    deviceType === 'joybus' ||
     deviceType === 'midiSerial' ||
     deviceType === 'bhDrum' ||
     deviceType === 'worldTourDrum'
@@ -503,6 +505,12 @@ export function isDeviceAssigned(
   }
   if (deviceType === 'wii') {
     return allAssignments.some((x) => x.wiiExt != null);
+  }
+  if (deviceType === 'snes') {
+    return allAssignments.some((x) => x.snesCnt != null);
+  }
+  if (deviceType === 'joybus') {
+    return allAssignments.some((x) => x.joybusCnt != null);
   }
   if (deviceType === 'midiSerial' || deviceType === 'bhDrum' || deviceType === 'worldTourDrum') {
     return allAssignments.some((x) => x.midiChannel != null || x.midiProGuitar != null);

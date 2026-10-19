@@ -2304,6 +2304,17 @@ const USB_HOST_SUBTYPES_ENUM = createBiEnum(
   Object.fromEntries(USB_HOST_SUBTYPES.map((st) => [proto.SubType[st], st]))
 );
 
+// The controller types a SNES / joybus slot can be assigned to, without "Disconnected"
+const SNES_CONTROLLER_TYPES_ENUM = createBiEnum({
+  SNESControllerSNES: proto.SNESControllerType.SNESControllerSNES,
+  SNESControllerNES: proto.SNESControllerType.SNESControllerNES,
+  SNESControllerMouse: proto.SNESControllerType.SNESControllerMouse,
+});
+const JOYBUS_CONTROLLER_TYPES_ENUM = createBiEnum({
+  JoybusControllerGameCube: proto.JoybusControllerType.JoybusControllerGameCube,
+  JoybusControllerN64: proto.JoybusControllerType.JoybusControllerN64,
+});
+
 // The Pro Guitars that can be told apart over MIDI, by the sysex they send
 const MIDI_PRO_GUITAR_SUBTYPES_ENUM = createBiEnum({
   ProGuitarSquier: proto.SubType.ProGuitarSquier,
@@ -2552,12 +2563,19 @@ function SantrollerInput({
     );
   }, [matchingSlot, device?.ps2CntType]);
   const snesInputFilters = useMemo(
-    () => getSNESInputFilters(device?.snesCntType),
-    [device?.snesCntType]
+    () =>
+      getSNESInputFilters(
+        matchingSlot?.items.find((item) => item.snesCnt != null)?.snesCnt ?? device?.snesCntType
+      ),
+    [matchingSlot, device?.snesCntType]
   );
   const joybusInputFilters = useMemo(
-    () => getJoybusInputFilters(device?.joybusCntType),
-    [device?.joybusCntType]
+    () =>
+      getJoybusInputFilters(
+        matchingSlot?.items.find((item) => item.joybusCnt != null)?.joybusCnt ??
+          device?.joybusCntType
+      ),
+    [matchingSlot, device?.joybusCntType]
   );
 
   const effectiveUsbType = input.midi
@@ -3253,7 +3271,10 @@ function SantrollerInput({
           />
         </>
       )}
-      {(device?.type === 'snes' || input.snesAxis || input.snesButton) && (
+      {(device?.type === 'snes' ||
+        matchingSlot?.deviceKind === 'snes' ||
+        input.snesAxis ||
+        input.snesButton) && (
         <>
           <DropdownOutputBox
             title="input"
@@ -3283,7 +3304,10 @@ function SantrollerInput({
           />
         </>
       )}
-      {(device?.type === 'joybus' || input.joybusAxis || input.joybusButton) && (
+      {(device?.type === 'joybus' ||
+        matchingSlot?.deviceKind === 'joybus' ||
+        input.joybusAxis ||
+        input.joybusButton) && (
         <>
           <DropdownOutputBox
             title="input"
@@ -6618,6 +6642,8 @@ const LocalAssignmentTypes: ProfileAssignmentTypes[] = ['localInputs'];
 const HostProfileAssignmentTypes: ProfileAssignmentTypes[] = [
   'wiiExt',
   'ps2Cnt',
+  'snesCnt',
+  'joybusCnt',
   'usbType',
   'usbDevice',
   'bluetoothDevice',
@@ -6904,6 +6930,12 @@ export function SantrollerAssignment({
                   ps2Cnt: proto.PS2ControllerType.PS2ControllerTypeDigital,
                 });
                 break;
+              case 'snesCnt':
+                dispatch({ snesCnt: proto.SNESControllerType.SNESControllerSNES });
+                break;
+              case 'joybusCnt':
+                dispatch({ joybusCnt: proto.JoybusControllerType.JoybusControllerGameCube });
+                break;
               case 'usbType':
                 dispatch({ usbType: proto.SubType.Gamepad });
                 break;
@@ -7148,6 +7180,24 @@ export function SantrollerAssignment({
             val={mapping.ps2Cnt}
             label="ps2Cnt"
             dispatch={(ps2Cnt) => dispatch({ ps2Cnt })}
+          />
+        )}
+        {mapping.snesCnt && (
+          <DropdownBox
+            title="activation.snesCnt"
+            e={SNES_CONTROLLER_TYPES_ENUM}
+            val={mapping.snesCnt}
+            label="snesCnt"
+            dispatch={(snesCnt) => dispatch({ snesCnt })}
+          />
+        )}
+        {mapping.joybusCnt && (
+          <DropdownBox
+            title="activation.joybusCnt"
+            e={JOYBUS_CONTROLLER_TYPES_ENUM}
+            val={mapping.joybusCnt}
+            label="joybusCnt"
+            dispatch={(joybusCnt) => dispatch({ joybusCnt })}
           />
         )}
         {mapping.usbDevice && (
@@ -7406,6 +7456,8 @@ export function ControllerSourcesEditor({
   hasMidi,
   hasWii,
   hasPsx,
+  hasSnes,
+  hasJoybus,
 }: {
   assignments: proto.IProfileAssignmentInfo[];
   // The slot id of each assignment
@@ -7418,6 +7470,8 @@ export function ControllerSourcesEditor({
   hasMidi: boolean;
   hasWii: boolean;
   hasPsx: boolean;
+  hasSnes: boolean;
+  hasJoybus: boolean;
 }) {
   const { t } = useTranslation();
   const hostIndices = useMemo(() => {
@@ -7443,7 +7497,10 @@ export function ControllerSourcesEditor({
     hasMidi || assignments.some((x) => x.midiChannel != null || x.midiProGuitar != null);
   const showWii = hasWii || assignments.some((x) => x.wiiExt != null);
   const showPsx = hasPsx || assignments.some((x) => x.ps2Cnt != null);
-  const hasAnySource = showUsbHost || showBluetooth || showMidi || showWii || showPsx;
+  const showSnes = hasSnes || assignments.some((x) => x.snesCnt != null);
+  const showJoybus = hasJoybus || assignments.some((x) => x.joybusCnt != null);
+  const hasAnySource =
+    showUsbHost || showBluetooth || showMidi || showWii || showPsx || showSnes || showJoybus;
 
   return (
     <Stack gap="xs">
@@ -7485,6 +7542,24 @@ export function ControllerSourcesEditor({
                 val={item.ps2Cnt ?? proto.PS2ControllerType.PS2ControllerTypeGuitar}
                 label="ps2Cnt"
                 dispatch={(ps2Cnt) => onUpdateSource(idx, { ps2Cnt })}
+              />
+            )}
+            {hType === 'snesCnt' && (
+              <DropdownBox
+                title="activation.snesCnt"
+                e={SNES_CONTROLLER_TYPES_ENUM}
+                val={item.snesCnt ?? proto.SNESControllerType.SNESControllerSNES}
+                label="snesCnt"
+                dispatch={(snesCnt) => onUpdateSource(idx, { snesCnt })}
+              />
+            )}
+            {hType === 'joybusCnt' && (
+              <DropdownBox
+                title="activation.joybusCnt"
+                e={JOYBUS_CONTROLLER_TYPES_ENUM}
+                val={item.joybusCnt ?? proto.JoybusControllerType.JoybusControllerGameCube}
+                label="joybusCnt"
+                dispatch={(joybusCnt) => onUpdateSource(idx, { joybusCnt })}
               />
             )}
             {hType === 'usbType' && (
@@ -7715,6 +7790,16 @@ export function ControllerSourcesEditor({
               {t('assignments.source.ps2Cnt')}
             </Menu.Item>
           )}
+          {showSnes && (
+            <Menu.Item onClick={() => onAddSource('snesCnt')}>
+              {t('assignments.source.snesCnt')}
+            </Menu.Item>
+          )}
+          {showJoybus && (
+            <Menu.Item onClick={() => onAddSource('joybusCnt')}>
+              {t('assignments.source.joybusCnt')}
+            </Menu.Item>
+          )}
         </Menu.Dropdown>
       </Menu>
     </Stack>
@@ -7784,6 +7869,8 @@ function SantrollerAssignmentList({
   const hasSnesEmu = deviceTypes.includes('snesEmulation');
   const hasWii = deviceTypes.includes('wii');
   const hasPsx = deviceTypes.includes('psx');
+  const hasSnes = deviceTypes.includes('snes');
+  const hasJoybus = deviceTypes.includes('joybus');
   const hasUsbHost = deviceTypes.includes('usbHost');
   const hasMidi = deviceTypes.some(
     (type) =>
@@ -7807,6 +7894,12 @@ function SantrollerAssignmentList({
         break;
       case 'ps2Cnt':
         next.push({ ps2Cnt: proto.PS2ControllerType.PS2ControllerTypeGuitar });
+        break;
+      case 'snesCnt':
+        next.push({ snesCnt: proto.SNESControllerType.SNESControllerSNES });
+        break;
+      case 'joybusCnt':
+        next.push({ joybusCnt: proto.JoybusControllerType.JoybusControllerGameCube });
         break;
       case 'usbType':
         next.push({ usbType: proto.SubType.Gamepad });
@@ -8414,6 +8507,8 @@ function SantrollerAssignmentList({
               hasMidi={hasMidi}
               hasWii={hasWii}
               hasPsx={hasPsx}
+              hasSnes={hasSnes}
+              hasJoybus={hasJoybus}
             />
 
             <Switch
@@ -8652,6 +8747,8 @@ function BlankProfileWizard({
   const hasSnesEmu = deviceTypes.includes('snesEmulation');
   const hasWii = deviceTypes.includes('wii');
   const hasPsx = deviceTypes.includes('psx');
+  const hasSnes = deviceTypes.includes('snes');
+  const hasJoybus = deviceTypes.includes('joybus');
   const hasUsbHost = deviceTypes.includes('usbHost');
   const hasMidi = deviceTypes.some(
     (type) =>
@@ -8847,6 +8944,12 @@ function BlankProfileWizard({
         break;
       case 'ps2Cnt':
         next = { ps2Cnt: proto.PS2ControllerType.PS2ControllerTypeGuitar };
+        break;
+      case 'snesCnt':
+        next = { snesCnt: proto.SNESControllerType.SNESControllerSNES };
+        break;
+      case 'joybusCnt':
+        next = { joybusCnt: proto.JoybusControllerType.JoybusControllerGameCube };
         break;
       case 'usbType':
         next = { usbType: proto.SubType.Gamepad };
@@ -9203,6 +9306,8 @@ function BlankProfileWizard({
           hasMidi={hasMidi}
           hasWii={hasWii}
           hasPsx={hasPsx}
+          hasSnes={hasSnes}
+          hasJoybus={hasJoybus}
         />
 
         <Divider />

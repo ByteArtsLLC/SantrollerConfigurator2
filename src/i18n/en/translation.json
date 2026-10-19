@@ -1816,6 +1816,8 @@
       "label": "Input Source",
       "wiiExt": "Wii Extension Port",
       "ps2Cnt": "PS1/2 Controller Port",
+      "snesCnt": "SNES / NES Controller Port",
+      "joybusCnt": "GameCube / N64 Controller Port",
       "usbType": "USB Host (By Type)",
       "usbTypeWithSubtype": "USB Host",
       "usbDevice": "USB Host (Specific Device)",
@@ -1852,6 +1854,8 @@
       "usb": "USB ({{type}})",
       "wii": "Wii ({{type}})",
       "ps2": "PS2 ({{type}})",
+      "snes": "SNES ({{type}})",
+      "joybus": "GameCube / N64 ({{type}})",
       "bluetooth": "Bluetooth ({{type}})",
       "midiChannel": "MIDI Ch {{channel}}",
       "midi": "MIDI ({{type}})"
@@ -1892,6 +1896,17 @@
     "PS2ControllerTypeFishingRod": "Fishing Rod Controller",
     "PS2ControllerTypeUnknown": "Disconnected"
   },
+  "snesCnt": {
+    "SNESControllerSNES": "SNES Controller",
+    "SNESControllerNES": "NES Controller",
+    "SNESControllerMouse": "SNES Mouse",
+    "SNESControllerNone": "Disconnected"
+  },
+  "joybusCnt": {
+    "JoybusControllerN64": "N64 Controller",
+    "JoybusControllerGameCube": "GameCube Controller",
+    "JoybusControllerNone": "Disconnected"
+  },
   "bluetooth": {
     "BTStandard": "Standard Bluetooth",
     "BTWiimote": "Wii Remote Emulation"
@@ -1925,6 +1940,8 @@
   "assignmentType": {
     "wiiExt": "Wii Extension Host",
     "ps2Cnt": "PS1/2 Controller Host",
+    "snesCnt": "SNES / NES Controller Host",
+    "joybusCnt": "GameCube / N64 Controller Host",
     "usbType": "USB Host By Type",
     "usbDevice": "USB Host Specific",
     "input": "Input Based - At startup",
@@ -1944,6 +1961,8 @@
   "assignmentTypeDesc": {
     "wiiExt": "Match when a Wii Extension is plugged into this device",
     "ps2Cnt": "Match when a PS1/2 Controller is plugged into this device",
+    "snesCnt": "Match when a SNES or NES Controller is plugged into this device",
+    "joybusCnt": "Match when a GameCube or N64 Controller is plugged into this device",
     "usbType": "Match when a USB device type is plugged into this device via USB host",
     "usbDevice": "Match when a specific USB device is plugged into this device via USB host",
     "input": "Match if an input is held when powering on this device",
@@ -1965,6 +1984,8 @@
     "consoleType": "Plugged in device type",
     "wiiExt": "Wii extension type",
     "ps2Cnt": "PS2 Controller Type",
+    "snesCnt": "SNES Controller Type",
+    "joybusCnt": "GameCube / N64 Controller Type",
     "forcedType": "Device type",
     "bluetooth": "Bluetooth mode",
     "bluetoothType": "Bluetooth controller type",

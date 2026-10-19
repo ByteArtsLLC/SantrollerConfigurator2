@@ -196,6 +196,34 @@ describe('MIDI slots', () => {
     });
   });
 
+  it('uses SNES and joybus assignments as slot-backed controller inputs', () => {
+    const padProfile: proto.IProfile = {
+      ...profile,
+      assignments: [
+        {
+          assignments: [
+            { consoleType: { consoleType: null } },
+            { snesCnt: proto.SNESControllerType.SNESControllerSNES },
+            { joybusCnt: proto.JoybusControllerType.JoybusControllerGameCube },
+          ],
+        },
+      ],
+    };
+    const slots = getProfileSlots(padProfile);
+    const snes = slots.find((entry) => entry.deviceKind === 'snes')!;
+    const joybus = slots.find((entry) => entry.deviceKind === 'joybus')!;
+
+    // Each kind is numbered on its own
+    expect(snes.slotId).toBe(1);
+    expect(joybus.slotId).toBe(1);
+    const snesInput = createSlotInput(snes, { axis: false, button: true })!;
+    const joybusInput = createSlotInput(joybus, { axis: false, button: true })!;
+    expect(snesInput.snesButton?.deviceid).toBe(1);
+    expect(joybusInput.joybusButton?.deviceid).toBe(1);
+    expect(getProfileSlotForInput(snesInput, slots)?.key).toBe(snes.key);
+    expect(getProfileSlotForInput(joybusInput, slots)?.key).toBe(joybus.key);
+  });
+
   it('gives each MIDI Pro Guitar its own slot, and pro guitar inputs for new mappings', () => {
     const proGuitarProfile: proto.IProfile = {
       ...profile,

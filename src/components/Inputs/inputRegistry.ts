@@ -524,6 +524,12 @@ export const getHostSourceType = (item: proto.IProfileAssignmentInfo): string | 
   if (item.ps2Cnt != null) {
     return 'ps2Cnt';
   }
+  if (item.snesCnt != null) {
+    return 'snesCnt';
+  }
+  if (item.joybusCnt != null) {
+    return 'joybusCnt';
+  }
   if (item.usbType != null) {
     return 'usbType';
   }
@@ -593,9 +599,13 @@ export function getSlotDeviceKind(item: proto.IProfileAssignmentInfo): string | 
       ? 'wii'
       : source === 'ps2Cnt'
         ? 'psx'
-        : source.startsWith('bluetooth')
-          ? 'bt'
-          : 'usbHost';
+        : source === 'snesCnt'
+          ? 'snes'
+          : source === 'joybusCnt'
+            ? 'joybus'
+            : source.startsWith('bluetooth')
+              ? 'bt'
+              : 'usbHost';
 }
 
 // Slots without a subtype (MIDI channels, and specific devices that don't name one). Matches the
@@ -609,6 +619,8 @@ export function getSlotSubtype(item: proto.IProfileAssignmentInfo): number {
     item.bluetoothType ??
     item.bluetoothDevice?.subtype ??
     item.ps2Cnt ??
+    item.snesCnt ??
+    item.joybusCnt ??
     item.wiiExt ??
     item.midiProGuitar ??
     SLOT_UNTYPED
@@ -746,9 +758,13 @@ export function getProfileSlotLabel(
           ? `subType.${proto.SubType[item.midiProGuitar]}`
           : item.ps2Cnt != null
             ? `ps2Cnt.${proto.PS2ControllerType[item.ps2Cnt]}`
-            : item.wiiExt != null
-              ? `wiiExt.${proto.WiiExtType[item.wiiExt]}`
-              : undefined;
+            : item.snesCnt != null
+              ? `snesCnt.${proto.SNESControllerType[item.snesCnt]}`
+              : item.joybusCnt != null
+                ? `joybusCnt.${proto.JoybusControllerType[item.joybusCnt]}`
+                : item.wiiExt != null
+                  ? `wiiExt.${proto.WiiExtType[item.wiiExt]}`
+                  : undefined;
   const typeLabel = type ? (t?.(type) ?? type.split('.').at(-1)) : undefined;
   const sourceLabelKey =
     typeLabel && source === 'usbType'
@@ -826,6 +842,18 @@ export function getRuleSummaryParts(
       hostParts.push(
         t('assignments.summary.ps2', {
           type: t(`ps2Cnt.${proto.PS2ControllerType[item.ps2Cnt]}`),
+        })
+      );
+    } else if (item.snesCnt != null) {
+      hostParts.push(
+        t('assignments.summary.snes', {
+          type: t(`snesCnt.${proto.SNESControllerType[item.snesCnt]}`),
+        })
+      );
+    } else if (item.joybusCnt != null) {
+      hostParts.push(
+        t('assignments.summary.joybus', {
+          type: t(`joybusCnt.${proto.JoybusControllerType[item.joybusCnt]}`),
         })
       );
     } else if (item.usbType != null) {
@@ -949,6 +977,10 @@ export function getProfileSlotForInput(input: proto.IInput, slots: ProfileSlot[]
     deviceKind = 'wii';
   } else if (input.ps2Axis || input.ps2Button) {
     deviceKind = 'psx';
+  } else if (input.snesAxis || input.snesButton) {
+    deviceKind = 'snes';
+  } else if (input.joybusAxis || input.joybusButton) {
+    deviceKind = 'joybus';
   } else if (
     input.usbAxis ||
     input.usbButton ||
