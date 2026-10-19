@@ -138,6 +138,7 @@ import {
   requiresAssignment,
   useConfigStore,
 } from '@/components/SettingsContext/SettingsContext';
+import { countMappingsDroppedBySubType } from '@/components/SettingsContext/subTypeMappings';
 import {
   ASCII_TO_HID,
   CODE_TO_HID,
@@ -9397,6 +9398,11 @@ function Profile({ profileIdx }: { profileIdx: number }) {
   const [opened4, { open: open4, close: close4 }] = useDisclosure(false);
   const [deleteProfileOpened, { open: openDeleteProfile, close: closeDeleteProfile }] =
     useDisclosure(false);
+  // A device type change that would drop mappings the new type has no outputs for, held until confirmed
+  const [pendingSubType, setPendingSubType] = useState<{
+    subType: proto.SubType;
+    dropped: number;
+  } | null>(null);
   const { t } = useTranslation();
   const profiles = useConfigStore((state) => state.config.profiles!);
   const updateProfile = useConfigStore((state) => state.updateProfile);
@@ -9570,6 +9576,43 @@ function Profile({ profileIdx }: { profileIdx: number }) {
         </Flex>
       </Modal>
       <Modal
+        opened={pendingSubType != null}
+        onClose={() => setPendingSubType(null)}
+        title={t('change_subtype_dialog.title')}
+        centered
+      >
+        {pendingSubType &&
+          t('change_subtype_dialog.desc', {
+            count: pendingSubType.dropped,
+            subType: t(`subType.${proto.SubType[pendingSubType.subType]}`),
+          })}
+        <Space h="md" />
+        <Flex justify="flex-end">
+          <Group align="flex-end">
+            <Button
+              onClick={() => {
+                if (pendingSubType) {
+                  updateProfile(
+                    {
+                      ...profile,
+                      opts: { ...profile.opts, deviceToEmulate: pendingSubType.subType },
+                    },
+                    profileIdx
+                  );
+                }
+                setPendingSubType(null);
+              }}
+              color="red"
+            >
+              {t('change_subtype_dialog.confirm')}
+            </Button>
+            <Button onClick={() => setPendingSubType(null)}>
+              {t('change_subtype_dialog.cancel')}
+            </Button>
+          </Group>
+        </Flex>
+      </Modal>
+      <Modal
         opened={deleteProfileOpened}
         onClose={closeDeleteProfile}
         title={t('delete_profile_dialog.title')}
@@ -9638,9 +9681,14 @@ function Profile({ profileIdx }: { profileIdx: number }) {
             e={proto.SubType}
             val={profile.opts.deviceToEmulate!}
             label="subType"
-            dispatch={(deviceToEmulate) =>
-              updateProfile({ ...profile, opts: { ...profile.opts, deviceToEmulate } }, profileIdx)
-            }
+            dispatch={(deviceToEmulate) => {
+              const dropped = countMappingsDroppedBySubType(profile, deviceToEmulate);
+              if (dropped > 0) {
+                setPendingSubType({ subType: deviceToEmulate, dropped });
+                return;
+              }
+              updateProfile({ ...profile, opts: { ...profile.opts, deviceToEmulate } }, profileIdx);
+            }}
           />
         </>
       )}

@@ -1741,6 +1741,13 @@
     "confirm": "Delete assignment",
     "cancel": "Cancel"
   },
+  "change_subtype_dialog": {
+    "title": "Changing device type",
+    "desc_one": "{{count}} input is mapped to an output that {{subType}} doesn't have. Changing the device type will delete it.",
+    "desc_other": "{{count}} inputs are mapped to outputs that {{subType}} doesn't have. Changing the device type will delete them.",
+    "confirm": "Change and delete",
+    "cancel": "Cancel"
+  },
   "delete_profile_dialog": {
     "title": "Deleting profile",
     "desc": "Are you sure you wish to delete this profile?",

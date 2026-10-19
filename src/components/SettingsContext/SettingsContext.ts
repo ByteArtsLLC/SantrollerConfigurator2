@@ -39,6 +39,7 @@ import { splitExtraTargets } from './assignmentTargets';
 import { BluetoothConfigDevice } from './BluetoothConfigDevice';
 import { proto } from './config.js';
 import { parseVersionReport } from './firmwareVersion';
+import { remapMappingsForSubType } from './subTypeMappings';
 import { KeepaliveTimer, startKeepaliveTimer, stopKeepaliveTimer } from './keepaliveTimer';
 import { truncateProfileName } from './profileName';
 import { savedDeviceName } from './savedDeviceName';
@@ -1259,6 +1260,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
         ) {
           profile.mappings = profile.mappings?.map(fixInput);
         }
+        profile.mappings = remapMappingsForSubType(
+          state.config.profiles![id].opts.deviceToEmulate,
+          profile
+        );
         state.config = {
           ...state.config,
           profiles: [
@@ -1299,6 +1304,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
           ) {
             profile.mappings = profile.mappings?.map(fixInput);
           }
+          profile.mappings = remapMappingsForSubType(
+            state.config.profiles![id]?.opts.deviceToEmulate,
+            profile
+          );
           state.config = {
             ...state.config,
             profiles: [

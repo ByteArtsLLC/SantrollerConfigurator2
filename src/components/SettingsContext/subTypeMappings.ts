@@ -1,0 +1,105 @@
+import { proto } from './config.js';
+
+type OutputKey = keyof proto.IOutput;
+
+// The emulated types each instrument specific output can drive. The firmware picks the report
+// layout from the output, not the profile, so these write the wrong report on any other type.
+// Gamepad, keyboard, mouse, action and MIDI outputs work on every type, so they are left out.
+const INSTRUMENT_OUTPUTS: Partial<Record<OutputKey, proto.SubType[]>> = {
+  ghButton: [proto.SubType.GuitarHeroGuitar],
+  ghAxis: [proto.SubType.GuitarHeroGuitar],
+  rbButton: [proto.SubType.RockBandGuitar, proto.SubType.PowerGigGuitar],
+  rbAxis: [proto.SubType.RockBandGuitar, proto.SubType.PowerGigGuitar],
+  ghDrumAxis: [proto.SubType.GuitarHeroDrums],
+  rbDrumButton: [proto.SubType.RockBandDrums, proto.SubType.PowerGigDrum],
+  rbDrumAxis: [proto.SubType.RockBandDrums, proto.SubType.PowerGigDrum],
+  ghlButton: [proto.SubType.LiveGuitar],
+  ghlAxis: [proto.SubType.LiveGuitar],
+  proButton: [proto.SubType.ProGuitarMustang, proto.SubType.ProGuitarSquier],
+  proAxis: [proto.SubType.ProGuitarMustang, proto.SubType.ProGuitarSquier],
+  djhButton: [proto.SubType.DjHeroTurntable],
+  djhAxis: [proto.SubType.DjHeroTurntable],
+  divaAxis: [proto.SubType.ProjectDiva],
+  divaTouch: [proto.SubType.ProjectDiva],
+  gfButton: [proto.SubType.GuitarFreaks],
+  dmButton: [proto.SubType.DrumMania],
+  bmButton: [proto.SubType.BeatMania],
+  popnButton: [proto.SubType.PopNMusic],
+  kbmButton: [proto.SubType.KeyboardMania],
+  proKeySingle: [proto.SubType.ProKeys],
+  proKeyMultiple: [proto.SubType.ProKeys, proto.SubType.KeyboardMania],
+  proKeyboardAxis: [proto.SubType.ProKeys],
+  proKeyboardButton: [proto.SubType.ProKeys],
+};
+
+function setOutputKey(output: proto.IOutput | null | undefined): OutputKey | undefined {
+  if (!output) {
+    return undefined;
+  }
+  return (Object.keys(output) as OutputKey[]).find((key) => output[key] != null);
+}
+
+/**
+ * Swaps GH guitar outputs for RB ones (or the reverse) on a GH / RB guitar profile. The ids line up
+ * (frets 1-5, tap / solo 6-10, pedal 18, whammy 1, tilt 2), so only the output type changes.
+ */
+function convertGuitarFamily(m: proto.IMapping, subType: proto.SubType): proto.IMapping {
+  const out = m.mapping;
+  if (subType === proto.SubType.RockBandGuitar) {
+    if (out?.ghButton != null) {
+      return { ...m, mapping: { rbButton: out.ghButton as number } };
+    }
+    if (out?.ghAxis != null) {
+      return { ...m, mapping: { rbAxis: out.ghAxis as number } };
+    }
+  }
+  if (subType === proto.SubType.GuitarHeroGuitar) {
+    if (out?.rbButton != null) {
+      return { ...m, mapping: { ghButton: out.rbButton as number } };
+    }
+    // RB's pickup selector has no GH equivalent, so it is left to be dropped
+    if (out?.rbAxis != null && out.rbAxis !== proto.RockBandGuitarAxisType.RockBandGuitar_Pickup) {
+      return { ...m, mapping: { ghAxis: out.rbAxis as number } };
+    }
+  }
+  return m;
+}
+
+function suitsSubType(m: proto.IMapping, subType: proto.SubType | null | undefined): boolean {
+  const key = setOutputKey(m.mapping);
+  const allowed = key && INSTRUMENT_OUTPUTS[key];
+  return !allowed || (subType != null && allowed.includes(subType));
+}
+
+/**
+ * Fits a profile's mappings to the type it now emulates: GH and RB guitar outputs are converted,
+ * and any other instrument output the new type can't drive is dropped instead of being left to
+ * write the wrong report. Mappings are untouched unless the type changed.
+ */
+export function remapMappingsForSubType(
+  prevSubType: proto.SubType | null | undefined,
+  profile: proto.IProfile
+): proto.IMapping[] | undefined {
+  const subType = profile.opts?.deviceToEmulate;
+  if (prevSubType === subType || !profile.mappings) {
+    return profile.mappings;
+  }
+  return profile.mappings
+    .map((m) => (subType != null ? convertGuitarFamily(m, subType) : m))
+    .filter((m) => suitsSubType(m, subType));
+}
+
+/**
+ * How many of a profile's mappings switching it to a new type would drop.
+ */
+export function countMappingsDroppedBySubType(
+  profile: proto.IProfile,
+  subType: proto.SubType
+): number {
+  const before = profile.mappings?.length ?? 0;
+  const after = remapMappingsForSubType(profile.opts?.deviceToEmulate, {
+    ...profile,
+    opts: { ...profile.opts, deviceToEmulate: subType },
+  })?.length;
+  return before - (after ?? 0);
+}
