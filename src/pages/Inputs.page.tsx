@@ -9652,11 +9652,9 @@ function Profile({ profileIdx }: { profileIdx: number }) {
             >
               <IconCopy style={{ width: '70%', height: '70%' }} />
             </ActionIcon>
-            {profiles.length > 1 && (
-              <ActionIcon color="red" title={t('main.delete_profile')} onClick={openDeleteProfile}>
-                <IconTrash style={{ width: '70%', height: '70%' }} />
-              </ActionIcon>
-            )}
+            <ActionIcon color="red" title={t('main.delete_profile')} onClick={openDeleteProfile}>
+              <IconTrash style={{ width: '70%', height: '70%' }} />
+            </ActionIcon>
           </Group>
           <Space h="md" />
           <DeviceNameSetting />

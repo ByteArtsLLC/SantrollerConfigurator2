@@ -54,6 +54,7 @@ export function ConnectPage() {
   const legacyImportWarnings = useConfigStore((state) => state.legacyImportWarnings);
   const clearLegacyImportWarnings = useConfigStore((state) => state.clearLegacyImportWarnings);
   const firmwareUpdate = useConfigStore((state) => state.firmwareUpdate);
+  const factoryReset = useConfigStore((state) => state.factoryReset);
   const connected = useConfigStore((state) => state.connected);
   const firmwareVersion = useConfigStore((state) => state.firmwareVersion);
   const firmwareBuild = useConfigStore((state) => state.firmwareBuild);
@@ -77,6 +78,7 @@ export function ConnectPage() {
   const [advancedModalOpened, { open: openAdvancedModal, close: closeAdvancedModal }] =
     useDisclosure(false);
   const [udevModalOpened, { open: openUdevModal, close: closeUdevModal }] = useDisclosure(false);
+  const [resetModalOpened, { open: openResetModal, close: closeResetModal }] = useDisclosure(false);
   const updateCheckStatus = useUpdateCheck((state) => state.status);
   const { t } = useTranslation();
   const bluetoothSupported = BluetoothConfigDevice.isSupported();
@@ -121,6 +123,31 @@ export function ConnectPage() {
               </Button>
               <Button variant="default" onClick={closeAdvancedModal}>
                 {t('connect.advancedMode.cancel')}
+              </Button>
+            </Group>
+          </Flex>
+        </Modal>
+        <Modal
+          opened={resetModalOpened}
+          onClose={closeResetModal}
+          title={t('connect.factoryReset.title')}
+          centered
+        >
+          <Text size="sm">{t('connect.factoryReset.desc')}</Text>
+          <Space h="md" />
+          <Flex justify="flex-end">
+            <Group align="flex-end">
+              <Button
+                onClick={() => {
+                  factoryReset();
+                  closeResetModal();
+                }}
+                color="red"
+              >
+                {t('connect.factoryReset.confirm')}
+              </Button>
+              <Button variant="default" onClick={closeResetModal}>
+                {t('connect.factoryReset.cancel')}
               </Button>
             </Group>
           </Flex>
@@ -294,6 +321,10 @@ export function ConnectPage() {
                 </Button>
               )}
             </FileButton>
+            <Space h="md" />
+            <Button disabled={updating || noConfig} color="red" onClick={openResetModal}>
+              {t('connect.factoryReset.button')}
+            </Button>
           </>
         )}
         {connected && simpleMode && (

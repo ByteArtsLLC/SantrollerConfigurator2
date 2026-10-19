@@ -39,10 +39,10 @@ import { splitExtraTargets } from './assignmentTargets';
 import { BluetoothConfigDevice } from './BluetoothConfigDevice';
 import { proto } from './config.js';
 import { parseVersionReport } from './firmwareVersion';
-import { remapMappingsForSubType } from './subTypeMappings';
 import { KeepaliveTimer, startKeepaliveTimer, stopKeepaliveTimer } from './keepaliveTimer';
 import { truncateProfileName } from './profileName';
 import { savedDeviceName } from './savedDeviceName';
+import { remapMappingsForSubType } from './subTypeMappings';
 
 // sourceId is unique per interface (including virtual wireless controller slots), older
 // firmware doesn't send it so fall back to port / interface
@@ -648,6 +648,14 @@ export interface Actions {
   loadConfig: (file: File | null) => void;
   // Each file becomes a profile of its own
   importLegacyConfig: (files: File[]) => void;
+  // Swaps in a whole new config, sent live but not saved to flash until committed
+  replaceConfig: (
+    config: proto.Config,
+    aux: proto.AuxConfigBlock,
+    extra?: Partial<ConfigState>
+  ) => Promise<void>;
+  // Back to how the firmware comes out of the box: no devices or profiles
+  factoryReset: () => void;
   clearLegacyImportWarnings: () => void;
   pollInputs: (poll: boolean) => void;
   loadDefaults: (device: DeviceStatus | ProfileSlot | undefined, presetId?: string) => void;
@@ -1236,10 +1244,15 @@ export const useConfigStore = create<ConfigState & Actions>()(
         }
       });
       const state = get();
+      // With no profiles left (eg after a factory reset) there's nothing for the device to poll
+      const profile = state.config.profiles?.[newProfile];
+      if (!profile) {
+        return;
+      }
       const infoBuffer2 = proto.Command.encode(
         proto.Command.create({
           setProfile: proto.SetProfileCommand.create({
-            profileId: state.config.profiles![parseInt(id ?? '0', 10)].opts.uid,
+            profileId: profile.opts.uid,
             instanceId: instance,
           }),
         })
@@ -1339,7 +1352,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
     },
     deleteProfile: (id: number) => {
       set((state) => {
-        if (!state.config.profiles || state.config.profiles.length <= 1) {
+        if (!state.config.profiles?.[id]) {
           return;
         }
         if (state.currentProfile === id) {
@@ -2120,30 +2133,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         const data = JSON.parse((await file?.text()) ?? '');
         const config = proto.Config.fromObject(data.config);
         const aux = proto.AuxConfigBlock.fromObject(data.aux);
-        stopKeepaliveTimer(get().keepaliveTimeout);
-        const timeout = startKeepaliveTimer(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
-        set(
-          (old) => ({
-            ...old,
-            ...InitState(config, aux),
-            // A save still sending its chunks would interleave with ours, so let it finish first
-            writing: old.writing,
-            writeTimeout: old.writeTimeout,
-            // Sending it only changes the live config, flash still has the old one until it's saved
-            savedConfig: old.savedConfig,
-            // The device keeps its own pairings, whatever the file has
-            bluetoothStates: old.bluetoothStates,
-            tlvEntries: old.tlvEntries,
-            configModified: true,
-            connected: true,
-            keepaliveTimeout: timeout,
-          }),
-          true
-        );
-        await get().saveConfig();
-        // The device reloads the new config in place and keeps polling the profile the tool last
-        // picked, which may not exist any more, so pick the current one again
-        await get().setActiveProfile(get().currentProfile.toString());
+        await get().replaceConfig(config, aux);
       } catch (e) {
         console.log(e);
       }
@@ -2175,24 +2165,29 @@ export const useConfigStore = create<ConfigState & Actions>()(
         });
         return;
       }
+      await get().replaceConfig(result.config, result.aux, {
+        legacyImportWarnings: result.warnings,
+      });
+    },
+    replaceConfig: async (config, aux, extra) => {
       stopKeepaliveTimer(get().keepaliveTimeout);
       const timeout = startKeepaliveTimer(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
       set(
         (old) => ({
           ...old,
-          ...InitState(result.config, result.aux),
+          ...InitState(config, aux),
           // A save still sending its chunks would interleave with ours, so let it finish first
           writing: old.writing,
           writeTimeout: old.writeTimeout,
           // Sending it only changes the live config, flash still has the old one until it's saved
           savedConfig: old.savedConfig,
-          // The device keeps its own pairings, whatever the file has
+          // The device keeps its own pairings, whatever the new config has
           bluetoothStates: old.bluetoothStates,
           tlvEntries: old.tlvEntries,
           configModified: true,
           connected: true,
           keepaliveTimeout: timeout,
-          legacyImportWarnings: result.warnings,
+          ...extra,
         }),
         true
       );
@@ -2200,6 +2195,18 @@ export const useConfigStore = create<ConfigState & Actions>()(
       // The device reloads the new config in place and keeps polling the profile the tool last
       // picked, which may not exist any more, so pick the current one again
       await get().setActiveProfile(get().currentProfile.toString());
+    },
+    factoryReset: async () => {
+      const { config } = get().buildConfig();
+      await get().replaceConfig(
+        proto.Config.create({
+          devices: [],
+          profiles: [],
+          // Whether this board boots as a peripheral is part of how it was flashed, not its setup
+          peripheralBoot: config.peripheralBoot,
+        }),
+        proto.AuxConfigBlock.create({ states: [], bluetoothStates: [], tlvEntries: [] })
+      );
     },
     clearLegacyImportWarnings: () =>
       set((state) => {

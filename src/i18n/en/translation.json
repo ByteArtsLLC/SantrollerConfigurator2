@@ -2474,6 +2474,13 @@
       "warningDesc": "Changing these settings can cause buttons or features to stop working. Only proceed if you are confident modifying hardware configuration.",
       "confirm": "Enable Advanced Mode",
       "cancel": "Keep Simple Mode"
+    },
+    "factoryReset": {
+      "button": "Factory Reset",
+      "title": "Factory reset this controller?",
+      "desc": "This deletes every profile and device, putting the controller back to how it came out of the box. Bluetooth pairings are kept. Nothing is saved until you save your changes, so you can still discard it.",
+      "confirm": "Factory Reset",
+      "cancel": "Cancel"
     }
   },
   "labels": {
