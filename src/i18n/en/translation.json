@@ -2487,6 +2487,8 @@
     "missingDongleFirmware": "Your device is missing the Xbox Wireless dongle firmware. This can't be updated over OTA, so you'll need to reflash via UF2 to restore dongle support.",
     "bootloaderOutdatedTitle": "Firmware Update Needs a UF2",
     "bootloaderOutdated": "This update changes how the device's flash is laid out, which the bootloader has to know about. That can't be updated over OTA, so you'll need to reflash via UF2 this once. Updates after that can go over OTA again.",
+    "slowBootStageTitle": "Reflash via UF2 for Better Performance",
+    "slowBootStage": "Your device's bootloader reads its flash much more slowly than it should, which can lower its polling rate. OTA updates can't replace the bootloader, so reflash via UF2 once to fix it. Updates after that can go over OTA as usual.",
     "advancedMode": {
       "button": "Switch to Advanced Mode",
       "title": "Enable Advanced Mode?",

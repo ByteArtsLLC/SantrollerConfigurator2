@@ -589,6 +589,8 @@ export interface ConfigState {
   missingStaticFirmware: boolean;
   // The bootloader's flash layout is older than the firmware's, so updates have to go through a UF2
   bootloaderOutdated: boolean;
+  // The bootloader reads flash slowly. OTA updates still work, but only a UF2 replaces the bootloader
+  slowBootStage: boolean;
   needsUf2Update: boolean;
   // The controller takes firmware uploads streamed as output reports (see firmwareUpdate)
   streamedFirmwareUpload: boolean;
@@ -825,6 +827,7 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     ghArcadeSide: aux.ghArcadeSide ?? null,
     missingStaticFirmware: false,
     bootloaderOutdated: false,
+    slowBootStage: false,
     needsUf2Update: false,
     streamedFirmwareUpload: false,
     legacyImportWarnings: [],
@@ -3051,6 +3054,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               updateError: undefined,
               missingStaticFirmware: !!info.missingStaticFirmware,
               bootloaderOutdated: !!info.bootloaderOutdated,
+              slowBootStage: !!info.slowBootStage,
               needsUf2Update: !!info.needsUf2Update,
               streamedFirmwareUpload: !!info.streamedFirmwareUpload,
               keepaliveTimeout: timeout,
