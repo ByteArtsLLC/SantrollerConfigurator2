@@ -151,33 +151,60 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tauriScript: yarn tauri
-          # each platform adds itself to the release's latest.json, which the app checks for updates
-          includeUpdaterJson: true
+          # latest.json is written once by the publish job: platforms finishing together would
+          # each replace it, so one would fail or lose another's entry
+          includeUpdaterJson: false
           releaseId: ${{ needs.release.outputs.id }}
-          # still needed so latest.json links to the tag rather than the draft's untagged-* url
-          tagName: v${{ env.VERSION }}
           args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
 
   publish:
-    needs: [release, desktop]
+    needs: [web, release, desktop]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       RELEASE: repos/${{ github.repository }}/releases/${{ needs.release.outputs.id }}
+      VERSION: ${{ needs.web.outputs.version }}
     steps:
-      # The platforms all write to the same latest.json, so make sure none of them were lost before
-      # the app starts offering this release as an update
-      - name: Check the updater manifest
+      # The app checks latest.json for updates. Every bundle and its signature has to be on the
+      # release, so a platform that didn't upload fails here rather than being left out.
+      - name: Write the updater manifest
         run: |
-          asset=$(gh api "$RELEASE" --jq '.assets[] | select(.name == "latest.json") | .url')
-          [ -n "$asset" ] || { echo "the release has no latest.json"; exit 1; }
-          gh api -H 'Accept: application/octet-stream' "$asset" > latest.json
-          for platform in linux-x86_64 windows-x86_64 darwin-x86_64 darwin-aarch64; do
-            jq -e --arg p "$platform" '.platforms[$p].signature | length > 0' latest.json > /dev/null \
-              || { echo "latest.json is missing $platform"; cat latest.json; exit 1; }
-          done
+          gh api "$RELEASE" > release.json
+          # links to the tag rather than the draft's untagged-* url, so they work once published
+          download="https://github.com/$GITHUB_REPOSITORY/releases/download/v$VERSION"
+          platforms='{}'
+          # adds each platform key to the manifest, pointing at the one bundle whose name matches
+          add() {
+            local pattern=$1 name sig_url signature
+            shift
+            name=$(jq -r --arg re "$pattern" '[.assets[] | select(.name | test($re))]
+              | if length == 1 then .[0].name
+                else error("expected one asset matching \($re), found \(length)") end' release.json)
+            sig_url=$(jq -r --arg n "$name.sig" '.assets[] | select(.name == $n) | .url' release.json)
+            [ -n "$sig_url" ] || { echo "$name has no signature"; exit 1; }
+            signature=$(gh api -H 'Accept: application/octet-stream' "$sig_url")
+            for key in "$@"; do
+              platforms=$(jq --arg k "$key" --arg s "$signature" --arg u "$download/$name" \
+                '.[$k] = {signature: $s, url: $u}' <<< "$platforms")
+            done
+          }
+          add '\.AppImage$' linux-x86_64 linux-x86_64-appimage
+          add '\.deb$' linux-x86_64-deb
+          add '\.rpm$' linux-x86_64-rpm
+          add '\.msi$' windows-x86_64 windows-x86_64-msi
+          add '-setup\.exe$' windows-x86_64-nsis
+          add '\.app\.tar\.gz$' darwin-x86_64 darwin-aarch64 darwin-x86_64-app darwin-aarch64-app
+          jq -n --arg v "$VERSION" --arg d "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson p "$platforms" \
+            '{version: $v, notes: "", pub_date: $d, platforms: $p}' > latest.json
+          cat latest.json
+          # replaces one left by an earlier attempt at this release
+          old=$(jq -r '.assets[] | select(.name == "latest.json") | .id' release.json)
+          [ -z "$old" ] || gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$old"
+          upload=$(jq -r '.upload_url | sub("\\{.*"; "")' release.json)
+          gh api -X POST "$upload?name=latest.json" -H 'Content-Type: application/json' \
+            --input latest.json --silent
       - name: Publish the release
         run: gh api -X PATCH "$RELEASE" -F draft=false -f make_latest=true --silent
       # Runs cancelled by a newer push leave their drafts behind. Only drafts created before this
