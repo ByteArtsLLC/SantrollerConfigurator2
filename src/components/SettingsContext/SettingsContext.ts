@@ -38,7 +38,7 @@ import { CRC32 } from '@/CRC32.js';
 import { splitExtraTargets } from './assignmentTargets';
 import { BluetoothConfigDevice } from './BluetoothConfigDevice';
 import { proto } from './config.js';
-import { parseVersionReport } from './firmwareVersion';
+import { hasSlowBootStageBuild, parseVersionReport } from './firmwareVersion';
 import { KeepaliveTimer, startKeepaliveTimer, stopKeepaliveTimer } from './keepaliveTimer';
 import { truncateProfileName } from './profileName';
 import { savedDeviceName, savedSellerConfig } from './savedConfigFields';
@@ -3035,6 +3035,10 @@ export const useConfigStore = create<ConfigState & Actions>()(
           const aux = proto.AuxConfigBlock.decode(data.slice(info.mainSize), info.auxSize);
           const timeout = startKeepaliveTimer(() => get().sendKeepAlive(), KEEPALIVE_INTERVAL_MS);
           const fresh = InitState(config, aux);
+          // Firmware too old to report it is caught by its build instead, so it goes straight to a
+          // UF2 rather than an OTA update first
+          const slowBootStage =
+            !!info.slowBootStage || hasSlowBootStageBuild(deviceType, firmwareBuild);
           set(
             (old) => ({
               ...old,
@@ -3054,8 +3058,8 @@ export const useConfigStore = create<ConfigState & Actions>()(
               updateError: undefined,
               missingStaticFirmware: !!info.missingStaticFirmware,
               bootloaderOutdated: !!info.bootloaderOutdated,
-              slowBootStage: !!info.slowBootStage,
-              needsUf2Update: !!info.needsUf2Update,
+              slowBootStage,
+              needsUf2Update: !!info.needsUf2Update || slowBootStage,
               streamedFirmwareUpload: !!info.streamedFirmwareUpload,
               keepaliveTimeout: timeout,
               activeProfiles,

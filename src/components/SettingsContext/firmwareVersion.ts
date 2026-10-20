@@ -15,3 +15,19 @@ export function parseVersionReport(report: DataView) {
   }
   return { version, build };
 }
+
+// pico_w_compat builds booted with the slow generic_03h boot stage from when the board was added
+// (build 2850) until 3439. The boot stage is in the bootloader, which OTA updates don't replace.
+// Firmware from 3439 on reports slowBootStage itself, as an OTA update past it still leaves the old
+// bootloader, but older firmware can't, so for those the build says it.
+const SLOW_BOOT_STAGE_FIRST_BUILD = 2850;
+const SLOW_BOOT_STAGE_FIXED_BUILD = 3439;
+
+export function hasSlowBootStageBuild(type: string, build: number | undefined) {
+  return (
+    type === 'pico_w_compat' &&
+    build !== undefined &&
+    build >= SLOW_BOOT_STAGE_FIRST_BUILD &&
+    build < SLOW_BOOT_STAGE_FIXED_BUILD
+  );
+}

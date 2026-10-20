@@ -283,6 +283,7 @@ export function SetupConnectStep(props: GuideStepProps) {
   const applyingUpdate = useConfigStore((state) => state.applyingUpdate);
   const firmwareUpdate = useConfigStore((state) => state.firmwareUpdate);
   const bootloaderOutdated = useConfigStore((state) => state.bootloaderOutdated);
+  const slowBootStage = useConfigStore((state) => state.slowBootStage);
 
   const guideContent = (
     <Stack gap="md">
@@ -295,7 +296,7 @@ export function SetupConnectStep(props: GuideStepProps) {
   // The main page has the full set of update messages; this covers the common case
   const workbenchContent = connected && !hung && (
     <>
-      {bootloaderOutdated ? (
+      {bootloaderOutdated || slowBootStage ? (
         <Uf2UpdateAlert />
       ) : !latest && !firmwareNewer ? (
         <Alert
