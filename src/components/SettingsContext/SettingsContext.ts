@@ -41,7 +41,7 @@ import { proto } from './config.js';
 import { parseVersionReport } from './firmwareVersion';
 import { KeepaliveTimer, startKeepaliveTimer, stopKeepaliveTimer } from './keepaliveTimer';
 import { truncateProfileName } from './profileName';
-import { savedDeviceName } from './savedDeviceName';
+import { savedDeviceName, savedSellerConfig } from './savedConfigFields';
 import { remapMappingsForSubType } from './subTypeMappings';
 
 // sourceId is unique per interface (including virtual wireless controller slots), older
@@ -2320,6 +2320,12 @@ export const useConfigStore = create<ConfigState & Actions>()(
         // Every write reloads the device, so typing a name would reload it on each keystroke. The
         // device keeps the saved name until the next save
         config.deviceName = savedDeviceName(get().savedConfig);
+        // Same for the seller tool name and logo
+        const seller = savedSellerConfig(get().savedConfig);
+        config.guiConfig = (config.guiConfig ?? []).filter((x) => !x.seller);
+        if (seller) {
+          config.guiConfig.push({ deviceid: 0, seller });
+        }
       }
       const bufferMain = proto.Config.encode(config).finish();
       const bufferAux = proto.AuxConfigBlock.encode(
