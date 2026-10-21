@@ -1325,7 +1325,14 @@
     }
   },
   "mpr121": {
-    "touchpad_count": "Touchpad Count"
+    "touchpad_count": "Touchpad Count",
+    "mode": "Input mode",
+    "modes": {
+      "Touch": "Capacitive touch",
+      "Digital": "Digital GPIO"
+    },
+    "pin": "Electrode",
+    "digital_description": "Only electrodes 4 to 11 support GPIO. Touch sensing must stop before the first electrode used as GPIO."
   },
   "snes": {
     "clock_pin": "Clock Pin",

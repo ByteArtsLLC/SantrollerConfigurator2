@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NumberInput, Stack } from '@mantine/core';
+import { NumberInput, Select, Stack } from '@mantine/core';
 import { proto } from '@/components/SettingsContext/config';
 import { DropdownBox } from './DropdownBox';
 import { getSelectedInput, InputKind } from './inputRegistry';
@@ -11,6 +11,7 @@ type InputEditorProps = {
 };
 
 const inputEditors: Partial<Record<InputKind, ComponentType<InputEditorProps>>> = {
+  mpr121: ({ input, dispatch }) => <Mpr121InputEditor input={input} dispatch={dispatch} />,
   crkd: ({ input, dispatch }) => (
     <DropdownBox
       title="input.title"
@@ -89,6 +90,65 @@ const inputEditors: Partial<Record<InputKind, ComponentType<InputEditorProps>>> 
     />
   ),
 };
+
+function Mpr121InputEditor({ input, dispatch }: InputEditorProps) {
+  const { t } = useTranslation();
+  const mpr121 = input.mpr121!;
+  const digital = mpr121.mode === proto.Mpr121PinMode.Digital;
+  const firstPin = digital ? 4 : 0;
+  return (
+    <Stack gap="xs">
+      <DropdownBox
+        title="mpr121.mode"
+        e={proto.Mpr121PinMode}
+        val={mpr121.mode}
+        label="mpr121.modes"
+        dispatch={(mode) =>
+          dispatch({
+            mpr121: {
+              ...mpr121,
+              mode,
+              pin: mode === proto.Mpr121PinMode.Digital ? Math.max(4, mpr121.pin) : mpr121.pin,
+            },
+          })
+        }
+      />
+      <Select
+        label={t('mpr121.pin')}
+        description={digital ? t('mpr121.digital_description') : undefined}
+        data={Array.from({ length: 12 - firstPin }, (_, index) => {
+          const pin = firstPin + index;
+          return { value: `${pin}`, label: t('leds.mpr121_electrode', { pin }) };
+        })}
+        value={`${mpr121.pin}`}
+        allowDeselect={false}
+        onChange={(value) => {
+          if (value !== null) {
+            dispatch({ mpr121: { ...mpr121, pin: Number(value) } });
+          }
+        }}
+      />
+      {digital && (
+        <Select
+          label={t('gpio.mode.label')}
+          data={[proto.PinMode.PullUp, proto.PinMode.PullDown, proto.PinMode.Floating].map(
+            (pinMode) => ({
+              value: `${pinMode}`,
+              label: t(`gpio.mode.${proto.PinMode[pinMode]}`),
+            })
+          )}
+          value={`${mpr121.pinMode}`}
+          allowDeselect={false}
+          onChange={(value) => {
+            if (value !== null) {
+              dispatch({ mpr121: { ...mpr121, pinMode: Number(value) } });
+            }
+          }}
+        />
+      )}
+    </Stack>
+  );
+}
 
 function EncoderInputEditor({ input, dispatch }: InputEditorProps) {
   const { t } = useTranslation();

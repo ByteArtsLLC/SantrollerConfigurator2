@@ -323,6 +323,16 @@ const inputRegistry: Record<InputKind, InputDefinition> = {
 };
 
 const deviceInputRegistry: Record<string, DeviceInputDefinition> = {
+  mpr121: {
+    create: (deviceid) => ({
+      mpr121: {
+        deviceid,
+        pin: 0,
+        mode: proto.Mpr121PinMode.Touch,
+        pinMode: proto.PinMode.PullUp,
+      },
+    }),
+  },
   wii: {
     create: (deviceid, { axis, button }) =>
       axis
