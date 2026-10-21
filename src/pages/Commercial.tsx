@@ -1,13 +1,16 @@
 import { IconExclamationCircle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, FileButton, Image, Space, TextInput } from '@mantine/core';
+import { Alert, Button, Space, TextInput } from '@mantine/core';
+import { DeviceIdentitySettings } from '@/components/Inputs/DeviceNameSetting';
 import { Layout } from '@/components/Layout/Layout';
+import { SellerImageUpload } from '@/components/SettingsContext/SellerImageUpload';
 import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 
 export function CommercialToolPage() {
   const connect = useConfigStore((state) => state.connect);
   const setSellerToolName = useConfigStore((state) => state.setSellerToolName);
   const setSellerToolLogo = useConfigStore((state) => state.setSellerToolLogo);
+  const setSellerToolFavicon = useConfigStore((state) => state.setSellerToolFavicon);
   const buildUf2 = useConfigStore((state) => state.buildUf2);
   const connected = useConfigStore((state) => state.connected);
   const updating = useConfigStore((state) => state.updating);
@@ -94,32 +97,30 @@ export function CommercialToolPage() {
               {t('commercial.buildUf2Pico2')}
             </Button>
             <Space h="md" />
+            <DeviceIdentitySettings commercial />
+            <Space h="md" />
             <TextInput
               label={t('commercial.toolName')}
               value={toolInfo?.name ?? ''}
               onChange={(event) => setSellerToolName(event.currentTarget.value)}
             />
             <Space h="md" />
-            <FileButton
+            <SellerImageUpload
               disabled={updating}
-              onChange={(f) => setSellerToolLogo(f!)}
-              accept="image/png,image/jpeg"
-            >
-              {(props) => (
-                <Button disabled={updating} {...props}>
-                  {t('commercial.toolLogo')}
-                </Button>
-              )}
-            </FileButton>
-            <Image
-              w={200}
-              src={
-                toolInfo?.logo
-                  ? URL.createObjectURL(
-                      new Blob([new Uint8Array(toolInfo.logo)], { type: 'image/png' })
-                    )
-                  : ''
-              }
+              image={toolInfo?.logo}
+              label={t('commercial.toolLogo')}
+              errorTitle={t('commercial.toolLogoError')}
+              previewWidth={200}
+              onUpload={setSellerToolLogo}
+            />
+            <Space h="md" />
+            <SellerImageUpload
+              disabled={updating}
+              image={toolInfo?.favicon}
+              label={t('commercial.toolFavicon')}
+              errorTitle={t('commercial.toolFaviconError')}
+              previewWidth={32}
+              onUpload={setSellerToolFavicon}
             />
           </>
         )}

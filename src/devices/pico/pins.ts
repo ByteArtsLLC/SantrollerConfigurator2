@@ -6,8 +6,8 @@ export const I2CPins = {
     scl: [1, 5, 9, 13, 17, 21],
   },
   1: {
-    sda: [2, 6, 10, 14, 18, 26],
-    scl: [3, 7, 11, 15, 19, 27],
+    sda: [2, 6, 10, 14, 18, 22, 26],
+    scl: [3, 7, 11, 15, 19, 23, 27],
   },
 };
 export const I2CGroups = Object.fromEntries(
@@ -29,8 +29,8 @@ export const SPIPins = {
   0: {
     miso: [0, 4, 16, 20],
     csn: [1, 5, 17, 21],
-    sck: [2, 6, 18],
-    mosi: [3, 7, 19],
+    sck: [2, 6, 18, 22],
+    mosi: [3, 7, 19, 23],
   },
   1: {
     miso: [8, 12, 28],

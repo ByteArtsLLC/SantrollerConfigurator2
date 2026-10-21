@@ -85,7 +85,7 @@ import {
   hasDefaults,
   isLed,
 } from '@/components/Devices/pinUtils';
-import { DeviceNameSetting } from '@/components/Inputs/DeviceNameSetting';
+import { DeviceIdentitySettings } from '@/components/Inputs/DeviceNameSetting';
 import { DropdownBox, StandardEnum } from '@/components/Inputs/DropdownBox';
 import { InactivitySettings } from '@/components/Inputs/InactivitySettings';
 import {
@@ -9762,7 +9762,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
             </ActionIcon>
           </Group>
           <Space h="md" />
-          <DeviceNameSetting />
+          <DeviceIdentitySettings />
           <Space h="md" />
           <TextInput
             value={profile.opts.name}

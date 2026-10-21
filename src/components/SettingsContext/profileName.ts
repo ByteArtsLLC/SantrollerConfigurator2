@@ -1,5 +1,5 @@
 // The firmware keeps a profile's name in a 32 byte buffer (Santroller/proto/config.options:
-// proto.ProfileOpts.name max_size:32, as is proto.Config.deviceName), which includes the terminating NUL. A longer name can't be
+// proto.ProfileOpts.name max_size:32, as are Config.deviceName and manufacturerName), which includes the terminating NUL. A longer name can't be
 // decoded, so names are limited to what fits, counted in UTF-8 bytes.
 export const MAX_PROFILE_NAME_BYTES = 31;
 

@@ -83,6 +83,30 @@ describe('Dancepad defaults', () => {
   });
 });
 
+describe('DJ Hero turntable defaults', () => {
+  it('includes all face buttons and d-pad directions', () => {
+    const mappings = getDefaultMappings('gpio', proto.SubType.DjHeroTurntable);
+
+    expect(
+      mappings
+        .map((mapping) => mapping.mapping?.gamepadButton)
+        .filter((button) => button != null)
+    ).toEqual([
+      proto.GamepadButtonType.Gamepad_A,
+      proto.GamepadButtonType.Gamepad_B,
+      proto.GamepadButtonType.Gamepad_X,
+      proto.GamepadButtonType.Gamepad_Y,
+      proto.GamepadButtonType.Gamepad_DpadUp,
+      proto.GamepadButtonType.Gamepad_DpadDown,
+      proto.GamepadButtonType.Gamepad_DpadLeft,
+      proto.GamepadButtonType.Gamepad_DpadRight,
+      proto.GamepadButtonType.Gamepad_Back,
+      proto.GamepadButtonType.Gamepad_Start,
+      proto.GamepadButtonType.Gamepad_Guide,
+    ]);
+  });
+});
+
 // An axis output driven by a digital input needs a pressed value, and an analog one needs a
 // range: with neither, the firmware calibrates against 0-0 and the axis never moves.
 const isAxisOutput = (m: proto.IMapping) =>

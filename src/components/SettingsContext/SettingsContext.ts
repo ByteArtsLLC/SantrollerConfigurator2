@@ -41,7 +41,8 @@ import { proto } from './config.js';
 import { hasSlowBootStageBuild, parseVersionReport } from './firmwareVersion';
 import { KeepaliveTimer, startKeepaliveTimer, stopKeepaliveTimer } from './keepaliveTimer';
 import { truncateProfileName } from './profileName';
-import { savedDeviceName, savedSellerConfig } from './savedConfigFields';
+import { savedDeviceName, savedManufacturerName, savedSellerConfig } from './savedConfigFields';
+import { resizeSellerFavicon, resizeSellerLogo } from './sellerLogo';
 import { remapMappingsForSubType } from './subTypeMappings';
 import { centerTilt } from './tiltCenter';
 
@@ -644,9 +645,9 @@ export interface Actions {
   refreshActiveProfiles: () => Promise<void>;
   commitConfig: () => Promise<void>;
   discardChanges: () => Promise<void>;
-  // Resolves true once the device has the current config, false if it didn't get sent. Settings that
+  // Resolves to the uploaded main config once the device has it, false if it didn't get sent. Settings that
   // only apply on save (eg the device name) are only sent when committing.
-  saveConfig: (immediate?: boolean, committing?: boolean) => Promise<boolean>;
+  saveConfig: (immediate?: boolean, committing?: boolean) => Promise<Uint8Array | false>;
   buildConfigBuffer: (
     shareable?: boolean,
     committing?: boolean
@@ -675,7 +676,8 @@ export interface Actions {
   clearMidi: () => void;
   buildUf2: (pico2: boolean) => void;
   setSellerToolName: (name: string) => void;
-  setSellerToolLogo: (image: File) => void;
+  setSellerToolLogo: (image: File) => Promise<void>;
+  setSellerToolFavicon: (image: File) => Promise<void>;
   setSimpleMode: (mode: boolean) => void;
   updateCrkdDrumCalibration: (
     id: string,
@@ -1001,9 +1003,13 @@ export const useConfigStore = create<ConfigState & Actions>()(
       while (get().writing && Date.now() < waitUntil) {
         await delay(50);
       }
-      if (!(await get().saveConfig(true, true))) {
-        console.error('Config did not reach the device, not saving it');
-        return;
+      const device = get().hidDevice;
+      if (!device) {
+        throw new Error('Cannot save configuration without a connected device');
+      }
+      const savedConfig = await get().saveConfig(true, true);
+      if (savedConfig === false) {
+        throw new Error('Config did not reach the device, not saving it');
       }
       const infoBuffer2 = proto.Command.encode(
         proto.Command.create({
@@ -1014,11 +1020,11 @@ export const useConfigStore = create<ConfigState & Actions>()(
         .finish();
       const outBuffer2 = new ArrayBuffer(63);
       new Uint8Array(outBuffer2).set(infoBuffer2);
-      await state.hidDevice?.sendFeatureReport(proto.ReportId.ReportIdCommand, outBuffer2);
+      await device.sendFeatureReport(proto.ReportId.ReportIdCommand, outBuffer2);
       set((state) => {
-        state.savedConfig = proto.Config.encode(state.config).finish();
-        state.configModified = false;
+        state.savedConfig = savedConfig;
       });
+      get().buildConfig();
     },
     discardChanges: async () => {
       const state = get();
@@ -1085,7 +1091,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       get().saveConfig();
     },
     setSellerToolLogo: async (image: File) => {
-      const logo = new Uint8Array(await image.arrayBuffer());
+      const logo = await resizeSellerLogo(image);
       set((state) => {
         if (!state.toolInfo) {
           state.toolInfo = {
@@ -1094,6 +1100,18 @@ export const useConfigStore = create<ConfigState & Actions>()(
           };
         }
         state.toolInfo = { ...state.toolInfo, logo };
+      });
+      get().saveConfig();
+    },
+    setSellerToolFavicon: async (image: File) => {
+      const favicon = await resizeSellerFavicon(image);
+      set((state) => {
+        state.toolInfo = {
+          name: i18next.t('commercial.defaultToolName'),
+          logo: new Uint8Array(),
+          ...state.toolInfo,
+          favicon,
+        };
       });
       get().saveConfig();
     },
@@ -2263,7 +2281,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
       const crc = new CRC32().calculate(buffer);
       // Don't write if nothing has changed
       if (crc === state.crc) {
-        return true;
+        return buffer.slice(0, mainLen);
       }
       set((state) => {
         state.writing = true;
@@ -2290,7 +2308,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
           set((state) => {
             state.writing = false;
           });
-          return true;
+          return buffer.slice(0, mainLen);
         }
         let start = 0;
         const len = 63;
@@ -2318,7 +2336,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.waitingForReload = true;
         state.pendingSave = false;
       });
-      return true;
+      return buffer.slice(0, mainLen);
     },
     buildConfigBuffer: (shareable = false, committing = true) => {
       const { config, aux } = get().buildConfig();
@@ -2326,7 +2344,8 @@ export const useConfigStore = create<ConfigState & Actions>()(
         // Every write reloads the device, so typing a name would reload it on each keystroke. The
         // device keeps the saved name until the next save
         config.deviceName = savedDeviceName(get().savedConfig);
-        // Same for the seller tool name and logo
+        config.manufacturerName = savedManufacturerName(get().savedConfig);
+        // Same for the seller branding
         const seller = savedSellerConfig(get().savedConfig);
         config.guiConfig = (config.guiConfig ?? []).filter((x) => !x.seller);
         if (seller) {

@@ -298,6 +298,10 @@
       "label": "Device name",
       "description": "What the whole controller is called over USB, shared by every profile. Over Bluetooth the profile's name is used, and this is only used when no profile is using Bluetooth. Leave it empty to use Santroller."
     },
+    "manufacturer_name": {
+      "label": "Manufacturer name",
+      "description": "The USB manufacturer name, shared by every profile. Leave it empty to use sanjay900. KeyboardMania mode uses its required manufacturer name instead."
+    },
     "profile_name": {
       "label": "Profile name"
     },
@@ -2552,6 +2556,9 @@
     "buildUf2Pico2": "Build UF2 from Current Config (Pico 2 / RP2350)",
     "toolName": "Tool name",
     "toolLogo": "Tool Logo",
+    "toolLogoError": "Unable to process this logo. Please choose a valid PNG or JPEG image.",
+    "toolFavicon": "Tool Favicon",
+    "toolFaviconError": "Unable to process this favicon. Please choose a valid PNG or JPEG image.",
     "defaultToolName": "Seller Tool"
   },
   "debug": {

@@ -1,7 +1,9 @@
 import '@mantine/core/styles.css';
 
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { MantineProvider } from '@mantine/core';
+import { applySellerFavicon } from '@/components/SettingsContext/sellerFavicon';
+import { useConfigStore } from '@/components/SettingsContext/SettingsContext';
 import { Router } from './Router';
 import { theme } from './theme';
 
@@ -12,6 +14,9 @@ const WebviewBackground = lazy(() => import('./desktop/WebviewBackground'));
 const isDesktop = 'isTauri' in window;
 
 export default function App() {
+  const favicon = useConfigStore((state) => state.toolInfo?.favicon);
+  useEffect(() => applySellerFavicon(favicon), [favicon]);
+
   return (
     <MantineProvider theme={theme} defaultColorScheme="auto" deduplicateInlineStyles>
       <Router />

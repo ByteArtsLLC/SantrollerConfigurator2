@@ -19,10 +19,17 @@ function readSavedFields(saved: Uint8Array, onField: (field: number, reader: Rea
 
 // Config.deviceName from a saved config
 export function savedDeviceName(saved: Uint8Array): string | undefined {
+  return savedStringField(saved, 8);
+}
+
+export function savedManufacturerName(saved: Uint8Array): string | undefined {
+  return savedStringField(saved, 9);
+}
+
+function savedStringField(saved: Uint8Array, fieldNumber: number): string | undefined {
   let name: string | undefined;
   readSavedFields(saved, (field, reader) => {
-    // Config.deviceName = 8, a length delimited string
-    if (field !== 8) {
+    if (field !== fieldNumber) {
       return false;
     }
     name = reader.string();
@@ -31,7 +38,7 @@ export function savedDeviceName(saved: Uint8Array): string | undefined {
   return name;
 }
 
-// The seller tool name and logo from a saved config
+// The seller branding from a saved config
 export function savedSellerConfig(saved: Uint8Array): proto.ISellerConfig | undefined {
   let seller: proto.ISellerConfig | undefined;
   readSavedFields(saved, (field, reader) => {
