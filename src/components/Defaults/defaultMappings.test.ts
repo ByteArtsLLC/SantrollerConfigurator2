@@ -122,6 +122,27 @@ describe('drum defaults', () => {
   }
 });
 
+describe('USB host tilt defaults', () => {
+  it('centres tilt, as every host guitar rests in the middle when horizontal', () => {
+    for (const subType of [
+      proto.SubType.GuitarHeroGuitar,
+      proto.SubType.RockBandGuitar,
+      proto.SubType.LiveGuitar,
+      proto.SubType.ProGuitarMustang,
+    ]) {
+      const tilt = getDefaultMappings('usbHost', subType).filter(
+        (m) =>
+          m.mapping?.ghAxis === proto.GuitarHeroGuitarAxisType.GuitarHeroGuitar_Tilt ||
+          m.mapping?.rbAxis === proto.RockBandGuitarAxisType.RockBandGuitar_Tilt ||
+          m.mapping?.ghlAxis === proto.GuitarHeroLiveGuitarAxisType.GuitarHeroLiveGuitar_Tilt ||
+          m.mapping?.proAxis === proto.ProGuitarAxisType.ProGuitar_Tilt
+      );
+      expect(tilt).toHaveLength(1);
+      expect(tilt[0].center).toBe(32768);
+    }
+  });
+});
+
 describe('USB host defaults for a different emulated type', () => {
   it('decodes the host as itself but outputs the emulated type', () => {
     const mappings = getDefaultMappings(

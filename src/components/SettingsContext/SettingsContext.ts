@@ -43,6 +43,7 @@ import { KeepaliveTimer, startKeepaliveTimer, stopKeepaliveTimer } from './keepa
 import { truncateProfileName } from './profileName';
 import { savedDeviceName, savedSellerConfig } from './savedConfigFields';
 import { remapMappingsForSubType } from './subTypeMappings';
+import { centerTilt } from './tiltCenter';
 
 // sourceId is unique per interface (including virtual wireless controller slots), older
 // firmware doesn't send it so fall back to port / interface
@@ -701,6 +702,7 @@ export interface Actions {
 
 function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState {
   const splitTargets = splitExtraTargets(config);
+  const centeredTilt = centerTilt(config);
   config.profiles?.forEach((profile) => {
     profile.assignments?.forEach((list) => {
       list.assignments?.forEach((assignment) => {
@@ -789,7 +791,7 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
     savedConfig: proto.Config.encode(config).finish(),
     updatePercentage: 0,
     // so the repaired config can be saved
-    configModified: splitTargets,
+    configModified: splitTargets || centeredTilt,
     waitingForReload: false,
     reloadLost: false,
     updating: false,
@@ -3070,6 +3072,11 @@ export const useConfigStore = create<ConfigState & Actions>()(
             true
           );
           await device.sendFeatureReport(proto.ReportId.ReportIdLoaded, new Uint8Array([0]));
+          // A config repaired on load only reaches the device once it's sent, so send it to the
+          // live config, flash keeps the old one until it's saved
+          if (fresh.configModified) {
+            await get().saveConfig(true);
+          }
         } catch (e) {
           const inUse = e instanceof ConfigInUseError;
           console.error('Failed to load config on connect', e);

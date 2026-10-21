@@ -439,7 +439,7 @@ export function getGpioDefaults(subType: proto.SubType): proto.IMapping[] {
     case proto.SubType.GuitarHeroGuitar:
       return [
         gpioAxis({ ghAxis: proto.GuitarHeroGuitarAxisType.GuitarHeroGuitar_Whammy }, 0),
-        gpioAxis({ ghAxis: proto.GuitarHeroGuitarAxisType.GuitarHeroGuitar_Tilt }, 0),
+        gpioAxis({ ghAxis: proto.GuitarHeroGuitarAxisType.GuitarHeroGuitar_Tilt }, 32768),
         gpioButton({ ghButton: proto.GuitarHeroGuitarButtonType.GuitarHeroGuitar_Green }),
         gpioButton({ ghButton: proto.GuitarHeroGuitarButtonType.GuitarHeroGuitar_Red }),
         gpioButton({ ghButton: proto.GuitarHeroGuitarButtonType.GuitarHeroGuitar_Yellow }),
@@ -461,7 +461,7 @@ export function getGpioDefaults(subType: proto.SubType): proto.IMapping[] {
     case proto.SubType.RockBandGuitar:
       return [
         gpioAxis({ rbAxis: proto.RockBandGuitarAxisType.RockBandGuitar_Whammy }, 0),
-        gpioAxis({ rbAxis: proto.RockBandGuitarAxisType.RockBandGuitar_Tilt }, 0),
+        gpioAxis({ rbAxis: proto.RockBandGuitarAxisType.RockBandGuitar_Tilt }, 32768),
         gpioAxis({ rbAxis: proto.RockBandGuitarAxisType.RockBandGuitar_Pickup }, 0),
         gpioButton({ rbButton: proto.RockBandGuitarButtonType.RockBandGuitar_Green }),
         gpioButton({ rbButton: proto.RockBandGuitarButtonType.RockBandGuitar_Red }),
@@ -531,7 +531,7 @@ export function getGpioDefaults(subType: proto.SubType): proto.IMapping[] {
     case proto.SubType.LiveGuitar:
       return [
         gpioAxis({ ghlAxis: proto.GuitarHeroLiveGuitarAxisType.GuitarHeroLiveGuitar_Whammy }, 0),
-        gpioAxis({ ghlAxis: proto.GuitarHeroLiveGuitarAxisType.GuitarHeroLiveGuitar_Tilt }, 0),
+        gpioAxis({ ghlAxis: proto.GuitarHeroLiveGuitarAxisType.GuitarHeroLiveGuitar_Tilt }, 32768),
         gpioButton({ ghlButton: proto.GuitarHeroLiveGuitarButtonType.GuitarHeroLiveGuitar_White1 }),
         gpioButton({ ghlButton: proto.GuitarHeroLiveGuitarButtonType.GuitarHeroLiveGuitar_White2 }),
         gpioButton({ ghlButton: proto.GuitarHeroLiveGuitarButtonType.GuitarHeroLiveGuitar_White3 }),
@@ -631,7 +631,7 @@ export function getGpioDefaults(subType: proto.SubType): proto.IMapping[] {
         gpioAxis({ proAxis: proto.ProGuitarAxisType.ProGuitar_GFretVelocity }, 0),
         gpioAxis({ proAxis: proto.ProGuitarAxisType.ProGuitar_BFretVelocity }, 0),
         gpioAxis({ proAxis: proto.ProGuitarAxisType.ProGuitar_HighEFretVelocity }, 0),
-        gpioAxis({ proAxis: proto.ProGuitarAxisType.ProGuitar_Tilt }, 0),
+        gpioAxis({ proAxis: proto.ProGuitarAxisType.ProGuitar_Tilt }, 32768),
         gpioButton({ proButton: proto.ProGuitarButtonType.ProGuitar_Green }),
         gpioButton({ proButton: proto.ProGuitarButtonType.ProGuitar_Red }),
         gpioButton({ proButton: proto.ProGuitarButtonType.ProGuitar_Yellow }),
