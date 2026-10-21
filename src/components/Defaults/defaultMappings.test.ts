@@ -91,6 +91,23 @@ const calibrated = (m: proto.IMapping) => m.pressed != null || (m.max ?? 0) > (m
 
 describe('drum defaults', () => {
   const wiiDrums = { wiiExtType: proto.WiiExtType.WiiGuitarHeroDrums };
+  it.each(['midiSerial', 'bhDrum', 'worldTourDrum'])(
+    'holds both Rock Band kick pedals for %s MIDI hits',
+    (deviceType) => {
+      const kicks = getDefaultMappings(deviceType, proto.SubType.RockBandDrums, 1).filter(
+        (m) => m.mapping?.rbDrumButton != null
+      );
+      expect(kicks.map((m) => [m.input?.midi?.midiNote?.note, m.mapping?.rbDrumButton])).toEqual([
+        [36, proto.RockBandDrumsButtonType.RockBandDrums_Kick1Pedal],
+        [35, proto.RockBandDrumsButtonType.RockBandDrums_Kick1Pedal],
+        [44, proto.RockBandDrumsButtonType.RockBandDrums_Kick2Pedal],
+      ]);
+      for (const kick of kicks) {
+        expect(kick.debounce).toBe(30);
+        expect(kick.input?.midi?.deviceid).toBe(1);
+      }
+    }
+  );
   for (const subType of [proto.SubType.RockBandDrums, proto.SubType.GuitarHeroDrums]) {
     const name = proto.SubType[subType];
     it(`calibrates every Wii drum axis for ${name}`, () => {

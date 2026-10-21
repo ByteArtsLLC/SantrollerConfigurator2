@@ -308,6 +308,7 @@ function midiNoteButton(
         },
       },
     },
+    debounce: 30,
   };
 }
 
