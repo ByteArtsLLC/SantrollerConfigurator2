@@ -69,6 +69,14 @@
     "bluetooth_sync_pin": "Pairing Button Pin (optional)",
     "bluetooth_scan": "Pair New Device",
     "bluetooth_scanning": "Scanning (10s)...",
+    "bluetooth_forget_hosts": {
+      "button": "Forget Paired Hosts",
+      "description": "Forgets the PCs, phones and consoles this controller has paired with over Bluetooth, so they have to pair again. Use this if a host removed the controller but still can't reconnect.",
+      "title": "Forget paired hosts?",
+      "confirm_desc": "This controller forgets every host it has paired with over Bluetooth and disconnects any that are connected now. Remove the controller from those hosts' Bluetooth settings too, then pair again. Controllers paired to this one are kept. This happens straight away, it can't be discarded.",
+      "confirm": "Forget Hosts",
+      "cancel": "Cancel"
+    },
     "connected_devices": "Connected Devices",
     "peripheral_suffix": "(Peripheral {{address}})",
     "bluetooth_mode_ble": "BLE",
@@ -2501,7 +2509,7 @@
     "factoryReset": {
       "button": "Factory Reset",
       "title": "Factory reset this controller?",
-      "desc": "This deletes every profile and device, putting the controller back to how it came out of the box. Bluetooth pairings are kept. Nothing is saved until you save your changes, so you can still discard it.",
+      "desc": "This deletes every profile and device, putting the controller back to how it came out of the box. Bluetooth pairings are kept, use Forget Paired Hosts on the Bluetooth device to clear the hosts it paired with. Nothing is saved until you save your changes, so you can still discard it.",
       "confirm": "Factory Reset",
       "cancel": "Cancel"
     }

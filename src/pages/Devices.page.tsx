@@ -2627,6 +2627,9 @@ function BluetoothDevice({ id }: { id: string }) {
   const deleteDevice = useConfigStore((state) => state.deleteDevice);
   const bluetoothStates = useConfigStore((state) => state.bluetoothStates);
   const removeBluetoothPairing = useConfigStore((state) => state.removeBluetoothPairing);
+  const forgetBluetoothHosts = useConfigStore((state) => state.forgetBluetoothHosts);
+  const [forgetHostsOpened, { open: openForgetHosts, close: closeForgetHosts }] =
+    useDisclosure(false);
   const scanningBluetooth = useConfigStore((state) => state.scanningBluetooth);
   const scanBluetooth = useConfigStore((state) => state.scanBluetooth);
   const updateDevice = useConfigStore((state) => state.updateDevice);
@@ -2680,6 +2683,42 @@ function BluetoothDevice({ id }: { id: string }) {
           )
         }
       />
+      <Group justify="space-between" mb="md" wrap="nowrap">
+        <Text size="sm" c="dimmed">
+          {t('devices.bluetooth_forget_hosts.description')}
+        </Text>
+        <Button
+          size="xs"
+          variant="light"
+          color="red"
+          style={{ flexShrink: 0 }}
+          onClick={openForgetHosts}
+        >
+          {t('devices.bluetooth_forget_hosts.button')}
+        </Button>
+      </Group>
+      <Modal
+        opened={forgetHostsOpened}
+        onClose={closeForgetHosts}
+        title={t('devices.bluetooth_forget_hosts.title')}
+        centered
+      >
+        <Text size="sm">{t('devices.bluetooth_forget_hosts.confirm_desc')}</Text>
+        <Group justify="flex-end" mt="md">
+          <Button
+            color="red"
+            onClick={() => {
+              forgetBluetoothHosts();
+              closeForgetHosts();
+            }}
+          >
+            {t('devices.bluetooth_forget_hosts.confirm')}
+          </Button>
+          <Button variant="default" onClick={closeForgetHosts}>
+            {t('devices.bluetooth_forget_hosts.cancel')}
+          </Button>
+        </Group>
+      </Modal>
       {hasConnectedDevices && (
         <>
           <Divider my="md" />

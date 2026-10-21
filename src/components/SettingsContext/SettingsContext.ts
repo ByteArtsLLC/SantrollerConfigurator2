@@ -604,6 +604,7 @@ export interface Actions {
   scanBluetooth: () => Promise<void>;
   refreshBluetoothPairings: () => Promise<void>;
   removeBluetoothPairing: (id: number) => Promise<void>;
+  forgetBluetoothHosts: () => Promise<void>;
   checkLogin: () => void;
   setSyncMode: (mode: boolean) => void;
   updateLabel: (config: proto.IGuiConfig, id: number) => void;
@@ -2525,6 +2526,30 @@ export const useConfigStore = create<ConfigState & Actions>()(
       await delay(250);
       await get().refreshBluetoothPairings();
     },
+    forgetBluetoothHosts: async () => {
+      const state = get();
+      if (!state.hidDevice || !state.connected) {
+        return;
+      }
+      // The device forgets them and saves that itself, keeping the controllers it paired with
+      try {
+        const cmdBuffer = proto.Command.encode(
+          proto.Command.create({
+            forgetBluetoothHosts: proto.ForgetBluetoothHostsCommand.create(),
+          })
+        )
+          .ldelim()
+          .finish();
+        const outBuffer = new ArrayBuffer(63);
+        new Uint8Array(outBuffer).set(cmdBuffer);
+        await state.hidDevice.sendFeatureReport(proto.ReportId.ReportIdCommand, outBuffer);
+      } catch (e) {
+        console.error('Failed to send forget hosts command', e);
+        return;
+      }
+      await delay(250);
+      await get().refreshBluetoothPairings();
+    },
     scanBluetooth: async () => {
       const state = get();
       if (!state.hidDevice || state.scanningBluetooth) {
@@ -3150,10 +3175,13 @@ async function fetchConfigData(device: HIDDevice, saved: boolean) {
   }
   const which = saved ? 'saved' : 'current';
   const data = new Uint8Array(info.dataSize);
+  // Anything past the chunk size is padding, which some bluetooth hosts pass on. Older firmware
+  // doesn't say how big its chunks are
+  const chunkSize = info.configChunkSize || Infinity;
   let start = 0;
   while (start < info.dataSize) {
     const slice = await receiveFeatureReport(device, proto.ReportId.ReportIdConfig);
-    const toCopy = Math.min(slice.byteLength - 1, info.dataSize - start);
+    const toCopy = Math.min(slice.byteLength - 1, chunkSize, info.dataSize - start);
     if (toCopy <= 0) {
       throw new ConfigReadError(`${which} config stopped after ${start} of ${info.dataSize} bytes`);
     }
