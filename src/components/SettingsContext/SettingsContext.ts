@@ -9,7 +9,11 @@ import type {} from '@redux-devtools/extension';
 import { Reader } from 'protobufjs/minimal';
 import { decodeBlock, encodeBlock, UF2BlockData } from 'uf2';
 import { getAssignmentHostType, getDefaultMappings } from '@/components/Defaults/defaultMappings';
-import { getPresetMappings, MAPPING_PRESETS } from '@/components/Defaults/mappingPresets';
+import {
+  getPresetKeyLabels,
+  getPresetMappings,
+  MAPPING_PRESETS,
+} from '@/components/Defaults/mappingPresets';
 import {
   createDeviceConfig,
   getDevicePins,
@@ -31,7 +35,11 @@ import {
   withSlotMidiChannel,
 } from '@/components/Inputs/inputRegistry';
 import { remapEditedSlotIds } from '@/components/Inputs/slotRemap';
-import { createLabelConfig, getNextLabelId } from '@/components/Labels/labelRegistry';
+import {
+  createLabelConfig,
+  getNextLabelId,
+  labelInProfile,
+} from '@/components/Labels/labelRegistry';
 import { importLegacyConfigs } from '@/components/Legacy/importLegacyConfig';
 import { legacyErrorReason, legacyWarning, LegacyWarning } from '@/components/Legacy/warnings';
 import { CRC32 } from '@/CRC32.js';
@@ -616,6 +624,8 @@ export interface Actions {
   addMultiplexerLabel: () => void;
   addMatrixLabel: () => void;
   addSwitchNetworkLabel: () => void;
+  addKeyboardKeyLabel: () => void;
+  addPresetKeyLabels: (labels: { key: number; names: string[] }[], profileUid: number) => void;
   deleteAllLabels: () => void;
   updateDevice: (device: proto.IDevice, id: string) => void;
   updateProfile: (profile: proto.IProfile, id: number) => void;
@@ -777,7 +787,9 @@ function InitState(config: proto.Config, aux: proto.AuxConfigBlock): ConfigState
           x.config === 'label' ||
           x.config === 'ledLabel' ||
           x.config === 'matrixLabel' ||
-          x.config === 'multiplexerLabel'
+          x.config === 'multiplexerLabel' ||
+          x.config === 'switchNetworkLabel' ||
+          x.config === 'keyboardKeyLabel'
       )
       .map((x) => [x.deviceid, x])
   );
@@ -851,6 +863,34 @@ export const initialConfig = InitState(
     tlvEntries: [],
   })
 );
+
+// Name the keys a preset sends after what they play, in the profile the preset was loaded into,
+// leaving keys that already have a label there alone
+function addPresetKeyLabels(
+  guiDevices: { [id: number]: proto.IGuiConfig },
+  labels: { key: number; names: string[] }[],
+  profileUid: number
+) {
+  for (const { key, names } of labels) {
+    if (
+      Object.values(guiDevices).some(
+        (x) => x.keyboardKeyLabel?.key === key && labelInProfile(x, profileUid)
+      )
+    ) {
+      continue;
+    }
+    const id = getNextLabelId(guiDevices);
+    guiDevices[id] = {
+      deviceid: id,
+      profiles: [profileUid],
+      keyboardKeyLabel: {
+        label: names.map((name) => i18next.t(name)).join(' / '),
+        key,
+        showToCustomer: true,
+      },
+    };
+  }
+}
 
 function createDefault(type: string, id: string, parentId?: string) {
   if (!isDeviceKind(type)) {
@@ -1117,7 +1157,8 @@ export const useConfigStore = create<ConfigState & Actions>()(
     },
     updateLabel: (label: proto.IGuiConfig, id: number) => {
       set((state) => {
-        state.guiDevices[id] = label;
+        // Merged, so editors that only send their own label's fields keep the profiles it's in
+        state.guiDevices[id] = { ...state.guiDevices[id], ...label };
       });
       get().saveConfig();
     },
@@ -1176,6 +1217,19 @@ export const useConfigStore = create<ConfigState & Actions>()(
       set((state) => {
         const id = getNextLabelId(state.guiDevices);
         state.guiDevices[id] = createLabelConfig('switchNetworkLabel', id);
+      });
+      get().saveConfig();
+    },
+    addKeyboardKeyLabel: () => {
+      set((state) => {
+        const id = getNextLabelId(state.guiDevices);
+        state.guiDevices[id] = createLabelConfig('keyboardKeyLabel', id);
+      });
+      get().saveConfig();
+    },
+    addPresetKeyLabels: (labels, profileUid) => {
+      set((state) => {
+        addPresetKeyLabels(state.guiDevices, labels, profileUid);
       });
       get().saveConfig();
     },
@@ -1390,6 +1444,20 @@ export const useConfigStore = create<ConfigState & Actions>()(
         if (state.currentProfile === id) {
           state.currentProfile = Math.max(id - 1, 0);
         }
+        // uids get reused, so the profile's labels can't be left for whatever gets its uid next.
+        // Labels only in this profile go with it.
+        const uid = state.config.profiles[id].opts.uid;
+        for (const [labelId, label] of Object.entries(state.guiDevices)) {
+          if (!label.profiles?.includes(uid)) {
+            continue;
+          }
+          const profiles = label.profiles.filter((x) => x !== uid);
+          if (profiles.length) {
+            state.guiDevices[Number(labelId)] = { ...label, profiles };
+          } else {
+            delete state.guiDevices[Number(labelId)];
+          }
+        }
         state.config = {
           ...state.config,
           profiles: state.config.profiles?.filter((_, i) => i !== id),
@@ -1588,6 +1656,13 @@ export const useConfigStore = create<ConfigState & Actions>()(
         }
 
         const preset = MAPPING_PRESETS.find((p) => p.id === presetId);
+        if (preset) {
+          addPresetKeyLabels(
+            state.guiDevices,
+            getPresetKeyLabels(preset, type, targetDeviceId, deviceStatusObj),
+            profile.opts.uid
+          );
+        }
         let defaults = preset
           ? getPresetMappings(preset, type, targetDeviceId, deviceStatusObj)
           : getDefaultMappings(
@@ -1963,6 +2038,15 @@ export const useConfigStore = create<ConfigState & Actions>()(
           }),
           uid: newUid,
         };
+        // The copy gets the labels that were only shown in the profile it's a copy of
+        for (const [labelId, label] of Object.entries(state.guiDevices)) {
+          if (label.profiles?.includes(sourceProfile.opts.uid)) {
+            state.guiDevices[Number(labelId)] = {
+              ...label,
+              profiles: [...label.profiles, newUid],
+            };
+          }
+        }
         state.config = {
           ...state.config,
           profiles: [...(state.config.profiles || []), cloned],

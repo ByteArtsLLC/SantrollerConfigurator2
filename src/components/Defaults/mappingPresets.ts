@@ -345,3 +345,59 @@ export function getPresetMappings(
   const source = getDefaultMappings(deviceType, preset.source, deviceId, deviceStatus);
   return [...source.flatMap(preset.convert), ...(preset.extra?.(deviceId) ?? [])];
 }
+
+// Translation key naming what an instrument mapping does, for labelling the keys a preset sends.
+// Guitars send strum and star power as gamepad buttons, so those are named here.
+function sourceOutputName(out: proto.IOutput): string | undefined {
+  const named: [number | null | undefined, Record<number, string>][] = [
+    [out.ghButton, proto.GuitarHeroGuitarButtonType],
+    [out.ghAxis, proto.GuitarHeroGuitarAxisType],
+    [out.rbButton, proto.RockBandGuitarButtonType],
+    [out.rbAxis, proto.RockBandGuitarAxisType],
+    [out.ghDrumAxis, proto.GuitarHeroDrumsAxisType],
+    [out.rbDrumButton, proto.RockBandDrumsButtonType],
+    [out.rbDrumAxis, proto.RockBandDrumsAxisType],
+  ];
+  for (const [value, names] of named) {
+    if (value != null && names[value]) {
+      return `outputs.${names[value]}`;
+    }
+  }
+  switch (out.gamepadButton) {
+    case proto.GamepadButtonType.Gamepad_DpadUp:
+      return 'keyboard.presetLabels.strumUp';
+    case proto.GamepadButtonType.Gamepad_DpadDown:
+      return 'keyboard.presetLabels.strumDown';
+    case proto.GamepadButtonType.Gamepad_Back:
+      return 'keyboard.presetLabels.starPower';
+  }
+  return undefined;
+}
+
+// The keys a preset sends, with translation keys for everything each one is sent for
+export function getPresetKeyLabels(
+  preset: MappingPreset,
+  deviceType: string,
+  deviceId = 0,
+  deviceStatus?: DeviceStatusLike
+): { key: number; names: string[] }[] {
+  const labels = new Map<number, string[]>();
+  for (const mapping of getDefaultMappings(deviceType, preset.source, deviceId, deviceStatus)) {
+    const name = mapping.mapping ? sourceOutputName(mapping.mapping) : undefined;
+    if (!name) {
+      continue;
+    }
+    for (const converted of preset.convert(mapping)) {
+      const key = converted.mapping?.keycode;
+      if (key == null) {
+        continue;
+      }
+      const names = labels.get(key) ?? [];
+      if (!names.includes(name)) {
+        names.push(name);
+      }
+      labels.set(key, names);
+    }
+  }
+  return [...labels].map(([key, names]) => ({ key, names }));
+}

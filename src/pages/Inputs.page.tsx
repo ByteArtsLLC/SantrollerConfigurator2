@@ -64,21 +64,26 @@ import {
   ThemeIcon,
   Title,
   useCombobox,
-  type ComboboxItem,
 } from '@mantine/core';
 import { useDisclosure, useTimeout } from '@mantine/hooks';
 import {
+  DeviceStatusLike,
   getAssignmentHostType,
   getDefaultMappings,
   getOutputSubType,
   USB_HOST_INPUT_SUBTYPES,
   USB_HOST_SUBTYPES,
 } from '@/components/Defaults/defaultMappings';
-import { presetsFor } from '@/components/Defaults/mappingPresets';
+import {
+  getPresetKeyLabels,
+  getPresetMappings,
+  presetsFor,
+} from '@/components/Defaults/mappingPresets';
 import { hasDefaultMappings, isInputDeviceKind } from '@/components/Devices/deviceRegistry';
 import { matrixHasPin } from '@/components/Devices/matrixPins';
 import { PinBox } from '@/components/Devices/Pins';
 import {
+  getKeyboardKeyLabel,
   getLabel,
   getMatrixLabel,
   getMultiplexerLabel,
@@ -88,6 +93,7 @@ import {
 } from '@/components/Devices/pinUtils';
 import { DeviceIdentitySettings } from '@/components/Inputs/DeviceNameSetting';
 import { DropdownBox, StandardEnum } from '@/components/Inputs/DropdownBox';
+import { HidKeyPicker } from '@/components/Inputs/HidKeyPicker';
 import { InactivitySettings } from '@/components/Inputs/InactivitySettings';
 import {
   DetectInputRequest,
@@ -122,6 +128,7 @@ import {
 import { LedColorInput } from '@/components/Inputs/LedColorInput';
 import { ledOverlaps } from '@/components/Inputs/ledOverlap';
 import { getInputLocalDeviceId, migrateSlotIds } from '@/components/Inputs/slotRemap';
+import { useProfileLabels } from '@/components/Labels/useProfileLabels';
 import { Layout } from '@/components/Layout/Layout';
 import { RequireDevice } from '@/components/RequireDevice/RequireDevice';
 import {
@@ -140,15 +147,7 @@ import {
   useConfigStore,
 } from '@/components/SettingsContext/SettingsContext';
 import { countMappingsDroppedBySubType } from '@/components/SettingsContext/subTypeMappings';
-import {
-  ASCII_TO_HID,
-  CODE_TO_HID,
-  HID_KEYS,
-  hidKeyMatches,
-  hidKeyName,
-  MEDIA_KEYS,
-  mediaKeyName,
-} from '@/devices/keyboard';
+import { CODE_TO_HID, hidKeyName, MEDIA_KEYS, mediaKeyName } from '@/devices/keyboard';
 import {
   GM_PERCUSSION,
   MIDI_PERCUSSION_CHANNEL,
@@ -1409,48 +1408,10 @@ function OutputBox({
             }}
           />
           {kind === 'key' && (
-            <Group grow align="flex-end">
-              <TextInput
-                label={t('keyboard.keycode')}
-                description={t('keyboard.keycodeCapture')}
-                value={hidKeyName(mapping?.keycode ?? 0) ?? ''}
-                onChange={() => {}}
-                onKeyDown={(event) => {
-                  const code = CODE_TO_HID[event.code] ?? ASCII_TO_HID[event.key]?.code;
-                  if (code != null) {
-                    event.preventDefault();
-                    dispatch({ keycode: code }, true, false);
-                  }
-                }}
-              />
-              {/* For keys the user's own keyboard doesn't have (numpad, F13 - F24, international) */}
-              <Select
-                label={t('keyboard.keycodePick')}
-                description={t('keyboard.keycodePickDesc')}
-                searchable
-                allowDeselect={false}
-                data={[
-                  ...(mapping?.keycode && !hidKeyName(mapping.keycode)
-                    ? [
-                        {
-                          value: `${mapping.keycode}`,
-                          label: t('keyboard.keyFallback', { code: mapping.keycode }),
-                        },
-                      ]
-                    : []),
-                  ...HID_KEYS.map(({ code, name }) => ({ value: `${code}`, label: name })),
-                ]}
-                filter={({ options, search }) =>
-                  (options as ComboboxItem[]).filter((option) =>
-                    hidKeyMatches(Number(option.value), search)
-                  )
-                }
-                value={mapping?.keycode ? `${mapping.keycode}` : null}
-                onChange={(value) =>
-                  value && dispatch({ keycode: parseInt(value, 10) }, true, false)
-                }
-              />
-            </Group>
+            <HidKeyPicker
+              value={mapping?.keycode}
+              onChange={(code) => dispatch({ keycode: code }, true, false)}
+            />
           )}
           {kind === 'media' && (
             <Select
@@ -2082,17 +2043,12 @@ export function SantrollerLabel({
   const deviceId = getInputLocalDeviceId(input) ?? -1;
   const { t } = useTranslation();
   const device = useConfigStore((state) => state.deviceStatus[deviceId]);
-  const guiDevices = useConfigStore((state) => state.guiDevices);
+  const guiDevices = useProfileLabels();
 
   if (device) {
     switch (device.type) {
       case 'ads1115': {
-        const labelsText = getMultiplexerLabel(
-          Object.values(guiDevices),
-          input.ads1115!.channel,
-          true,
-          false
-        );
+        const labelsText = getMultiplexerLabel(guiDevices, input.ads1115!.channel, true, false);
         if (labelsText) {
           return <Text>{labelsText}</Text>;
         }
@@ -2100,7 +2056,7 @@ export function SantrollerLabel({
       }
       case 'multiplexer': {
         const labelsText2 = getMultiplexerLabel(
-          Object.values(guiDevices),
+          guiDevices,
           input.multiplexer!.channel,
           true,
           false
@@ -2117,7 +2073,7 @@ export function SantrollerLabel({
           device?.device.switchNetwork?.buttons?.[input.switchNetwork?.button ?? -1];
         if (networkButton) {
           const label = getSwitchNetworkLabel(
-            Object.values(guiDevices),
+            guiDevices,
             networkButton.pin,
             networkButton.otherPin,
             true,
@@ -2135,7 +2091,7 @@ export function SantrollerLabel({
       }
       case 'matrix': {
         const labelsText3 = getMatrixLabel(
-          Object.values(guiDevices),
+          guiDevices,
           input.matrix!.pin,
           input.matrix!.outputPin,
           true,
@@ -2266,21 +2222,20 @@ export function SantrollerLabel({
     return <Text>{t(`inputs.${proto.JoybusAxisType[input.joybusAxis.axis]}`)}</Text>;
   }
   if (input.gpio) {
-    const labelsText = getLabel(t, Object.values(guiDevices), [], input.gpio.pin, true, false);
+    const labelsText = getLabel(t, guiDevices, [], input.gpio.pin, true, false);
     if (labelsText || !fallback) {
       return <Text>{labelsText}</Text>;
     }
   }
   if (input.peripheral) {
-    const labelsText = getLabel(
-      t,
-      Object.values(guiDevices),
-      [],
-      input.peripheral.pin,
-      true,
-      false
-    );
+    const labelsText = getLabel(t, guiDevices, [], input.peripheral.pin, true, false);
     if (labelsText || !fallback) {
+      return <Text>{labelsText}</Text>;
+    }
+  }
+  if (input.key) {
+    const labelsText = getKeyboardKeyLabel(guiDevices, input.key.key, true, false);
+    if (labelsText) {
       return <Text>{labelsText}</Text>;
     }
   }
@@ -2534,7 +2489,7 @@ function SantrollerInput({
   const simpleMode = useConfigStore((state) => state.simpleMode);
   const currentProfile = useConfigStore((state) => state.currentProfile);
   const profile = useConfigStore((state) => state.config.profiles?.[currentProfile]);
-  const guiDevices = useConfigStore((state) => state.guiDevices);
+  const guiDevices = useProfileLabels();
   const deviceCombobox = useCombobox({
     onDropdownClose: () => deviceCombobox.resetSelectedOption(),
   });
@@ -3545,7 +3500,7 @@ function SantrollerInput({
           data={
             device?.device.switchNetwork?.buttons?.map((networkButton, index) => {
               const label = getSwitchNetworkLabel(
-                Object.values(guiDevices),
+                guiDevices,
                 networkButton.pin,
                 networkButton.otherPin,
                 false,
@@ -4000,6 +3955,7 @@ function SantrollerMapping({
   });
 
   const simpleMode = useConfigStore((state) => state.simpleMode);
+  const guiDevices = useProfileLabels();
   const profile = useConfigStore((state) => state.config.profiles?.[profileIdx]);
   const updateProfile = useConfigStore((state) => state.updateProfile);
   const combinedStrum =
@@ -4049,7 +4005,13 @@ function SantrollerMapping({
     midiOutputLabel(mapping.mapping, t) ||
     proto.ActionType[mapping.mapping.action ?? -1];
   const fixedLabel = FixLabel(mode, type, label || '', legendMode);
-  const outputText = fixedLabel ? t(`outputs.${fixedLabel}`, label ?? '') : t('inputs.unmapped');
+  const keyLabel =
+    mapping.mapping.keycode != null
+      ? getKeyboardKeyLabel(guiDevices, mapping.mapping.keycode, simpleMode)
+      : '';
+  const outputText = fixedLabel
+    ? [t(`outputs.${fixedLabel}`, label ?? ''), keyLabel].filter(Boolean).join(' ')
+    : t('inputs.unmapped');
   const img = `Icons/Input/${FixIcon(mode, type, label || '', legendMode)}.png`;
   const button =
     mapping.mapping.keycode != null ||
@@ -5339,7 +5301,7 @@ function SantrollerLed({
   } else if (led.device.mpr121) {
     deviceId = led.device.mpr121.deviceId;
   }
-  const guiDevices = useConfigStore((state) => state.guiDevices);
+  const guiDevices = useProfileLabels();
   const simpleMode = useConfigStore((state) => state.simpleMode);
   const device = useConfigStore((state) => state.deviceStatus[deviceId]);
   // Selectors rerun on every input report, so only select the mappings (which only change on
@@ -5393,11 +5355,9 @@ function SantrollerLed({
     return `Icons/Generic.png`;
   }, [led, mode, type, legendMode, mapping]);
   let labels: string[] = [];
-  const allLabels = Object.entries(guiDevices)
-    .filter((x) => x[1].ledLabel?.deviceid === deviceId)
-    .flatMap((x) =>
-      x[1].ledLabel?.activeLed?.map((y) => ({ led: y, label: x[1].ledLabel!.label! }))
-    )
+  const allLabels = guiDevices
+    .filter((x) => x.ledLabel?.deviceid === deviceId)
+    .flatMap((x) => x.ledLabel?.activeLed?.map((y) => ({ led: y, label: x.ledLabel!.label! })))
     .reduce(
       (prev, next) => ({ ...prev, [next!.led]: [...(prev[next!.led] ?? []), next!.label] }),
       {} as Record<number, string[]>
@@ -5433,14 +5393,13 @@ function SantrollerLed({
       </Group>
     );
     if (led.device.rgb) {
-      labels = Object.entries(guiDevices)
+      labels = guiDevices
         .filter(
           (x) =>
-            x[1].ledLabel?.deviceid === deviceId &&
-            new Set(x[1].ledLabel?.activeLed).intersection(new Set(led.device.rgb?.activeLed))
-              .size > 0
+            x.ledLabel?.deviceid === deviceId &&
+            new Set(x.ledLabel?.activeLed).intersection(new Set(led.device.rgb?.activeLed)).size > 0
         )
-        .map((x) => x[1].ledLabel!.label!);
+        .map((x) => x.ledLabel!.label!);
     }
   }
   // These modes write the colour the host sends straight to the LEDs, so the configured colours are unused
@@ -8804,6 +8763,9 @@ function BlankProfileWizard({
   const [deviceToEmulate, setDeviceToEmulate] = useState<proto.SubType>(
     profile.opts?.deviceToEmulate ?? proto.SubType.Gamepad
   );
+  const [defaultPreset, setDefaultPreset] = useState('');
+  const presets = presetsFor(deviceToEmulate);
+  const preset = presets.find((p) => p.id === defaultPreset);
 
   // Step 1: Target Connection
   const [currentEmulMode, setCurrentEmulMode] = useState<EmulationMode>(
@@ -9062,10 +9024,24 @@ function BlankProfileWizard({
       triggerInput
     );
 
-    // Generate mappings
+    // Generate mappings, converted by the chosen preset if there is one, which also labels the
+    // keys it sends
+    const keyLabels: { key: number; names: string[] }[] = [];
+    const defaultsFor = (
+      type: string,
+      deviceId?: number,
+      status?: DeviceStatusLike,
+      hostType?: proto.SubType
+    ) => {
+      if (!preset) {
+        return getDefaultMappings(type, deviceToEmulate, deviceId, status, hostType);
+      }
+      keyLabels.push(...getPresetKeyLabels(preset, type, deviceId, status));
+      return getPresetMappings(preset, type, deviceId, status);
+    };
     const newMappings: proto.IMapping[] = [];
     if (hostAssignments.length === 0) {
-      newMappings.push(...getDefaultMappings('gpio', deviceToEmulate));
+      newMappings.push(...defaultsFor('gpio'));
     } else {
       const hostSlotIds = getProfileWideSlotIds([hostAssignments])[0];
       hostAssignments.forEach((item, idx) => {
@@ -9078,9 +9054,8 @@ function BlankProfileWizard({
               [finalAssignments],
               2,
               wiiSlotId,
-              getDefaultMappings(
+              defaultsFor(
                 'wii',
-                deviceToEmulate,
                 wiiSlotId,
                 wiiDev ? { ...wiiDev, wiiExtType: item.wiiExt } : { wiiExtType: item.wiiExt }
               )
@@ -9089,9 +9064,8 @@ function BlankProfileWizard({
         } else if (item.ps2Cnt != null) {
           const psxDev = Object.values(deviceStatus).find((d) => d.type === 'psx');
           newMappings.push(
-            ...getDefaultMappings(
+            ...defaultsFor(
               'psx',
-              deviceToEmulate,
               slotId !== -1 ? slotId : psxDev ? parseInt(psxDev.id, 10) : 0,
               psxDev ? { ...psxDev, ps2CntType: item.ps2Cnt } : { ps2CntType: item.ps2Cnt }
             )
@@ -9103,9 +9077,8 @@ function BlankProfileWizard({
               (d.type === 'midiSerial' || d.type === 'bhDrum' || d.type === 'worldTourDrum')
           );
           newMappings.push(
-            ...getDefaultMappings(
+            ...defaultsFor(
               midiDev ? midiDev.type : 'midiSerial',
-              deviceToEmulate,
               slotId !== -1 ? slotId : midiDev ? parseInt(midiDev.id, 10) : 0,
               midiDev
             )
@@ -9114,9 +9087,8 @@ function BlankProfileWizard({
           const usbDev = Object.values(deviceStatus).find((d) => d.type === 'usbHost');
           const hostType = getAssignmentHostType(item, deviceToEmulate);
           newMappings.push(
-            ...getDefaultMappings(
+            ...defaultsFor(
               'usbHost',
-              deviceToEmulate,
               slotId !== -1 ? slotId : usbDev ? parseInt(usbDev.id, 10) : 0,
               usbDev,
               hostType
@@ -9126,9 +9098,8 @@ function BlankProfileWizard({
           const btDev = Object.values(deviceStatus).find((d) => d.type === 'bt');
           const hostType = getAssignmentHostType(item, deviceToEmulate);
           newMappings.push(
-            ...getDefaultMappings(
+            ...defaultsFor(
               'bt',
-              deviceToEmulate,
               slotId !== -1 ? slotId : btDev ? parseInt(btDev.id, 10) : 0,
               btDev,
               hostType
@@ -9137,10 +9108,13 @@ function BlankProfileWizard({
         }
       });
       if (newMappings.length === 0) {
-        newMappings.push(...getDefaultMappings('gpio', deviceToEmulate));
+        newMappings.push(...defaultsFor('gpio'));
       }
     }
 
+    if (keyLabels.length) {
+      useConfigStore.getState().addPresetKeyLabels(keyLabels, profile.opts.uid);
+    }
     const currentProfile = useConfigStore.getState().config.profiles![profileIdx] || profile;
     updateProfile(
       {
@@ -9196,9 +9170,27 @@ function BlankProfileWizard({
           label="subType"
           dispatch={(val) => {
             setDeviceToEmulate(val);
+            setDefaultPreset('');
             syncToProfile({ deviceToEmulate: val });
           }}
         />
+
+        {presets.length > 0 && (
+          <Select
+            label={t('defaults_dialog.preset')}
+            description={t('defaults_dialog.preset_desc')}
+            data={[
+              { value: '', label: t('defaults_dialog.preset_none') },
+              ...presets.map((p) => ({
+                value: p.id,
+                label: t(`defaults_dialog.presets.${p.id}`),
+              })),
+            ]}
+            value={defaultPreset}
+            onChange={(value) => setDefaultPreset(value ?? '')}
+            allowDeselect={false}
+          />
+        )}
 
         <Divider />
 

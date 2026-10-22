@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { proto } from '@/components/SettingsContext/config';
 import { CODE_TO_HID } from '@/devices/keyboard';
 import { MIDI_PERCUSSION_CHANNEL } from '@/devices/midi';
-import { getPresetMappings, GM_DRUMS, MAPPING_PRESETS } from './mappingPresets';
+import { getPresetKeyLabels, getPresetMappings, GM_DRUMS, MAPPING_PRESETS } from './mappingPresets';
 
 const preset = (id: string) => MAPPING_PRESETS.find((p) => p.id === id)!;
 const wiiGuitar = { wiiExtType: proto.WiiExtType.WiiGuitarHeroGuitar };
@@ -31,6 +31,38 @@ describe('Fortnite Festival presets', () => {
     ]);
     const whammy = mappings.find((m) => m.mapping?.keycode === CODE_TO_HID.Slash);
     expect(whammy?.trigger).toBeDefined();
+  });
+});
+
+describe('Preset key labels', () => {
+  const namesFor = (labels: { key: number; names: string[] }[], code: keyof typeof CODE_TO_HID) =>
+    labels.find((l) => l.key === CODE_TO_HID[code])?.names;
+
+  it('names each Festival guitar key after what it plays', () => {
+    const labels = getPresetKeyLabels(preset('festival_guitar'), 'wii', 1, wiiGuitar);
+    expect(namesFor(labels, 'KeyD')).toEqual(['outputs.GuitarHeroGuitar_Green']);
+    expect(namesFor(labels, 'ArrowUp')).toEqual(['keyboard.presetLabels.strumUp']);
+    expect(new Set(labels.map((l) => l.key)).size).toBe(labels.length);
+  });
+
+  it('lists everything sharing a key, once each', () => {
+    const labels = getPresetKeyLabels(preset('festival_drums'), 'gpio');
+    // without pro, cymbals play as their matching pad
+    expect(namesFor(labels, 'KeyG')).toEqual([
+      'outputs.RockBandDrums_YellowPad',
+      'outputs.RockBandDrums_YellowCymbal',
+    ]);
+    expect(namesFor(labels, 'KeyK')).toEqual([
+      'outputs.RockBandDrums_Kick1Pedal',
+      'outputs.RockBandDrums_Kick2Pedal',
+    ]);
+    for (const { names } of labels) {
+      expect(new Set(names).size).toBe(names.length);
+    }
+  });
+
+  it('labels nothing for presets that send no keys', () => {
+    expect(getPresetKeyLabels(preset('midi_drums_rb'), 'gpio')).toEqual([]);
   });
 });
 

@@ -4,6 +4,7 @@ import { Combobox, Group, Input, InputBase, Text, useCombobox } from '@mantine/c
 import '@/i18n/config';
 
 import { useTranslation } from 'react-i18next';
+import { useProfileLabels } from '@/components/Labels/useProfileLabels';
 import { useConfigStore } from '../SettingsContext/SettingsContext';
 import { getLabel } from './pinUtils';
 
@@ -31,14 +32,14 @@ export function PinBox({
   const contextDeviceId = useContext(DeviceContext);
   const effectiveDeviceId = deviceId ?? contextDeviceId;
 
-  const guiDevices = useConfigStore((state) => state.guiDevices);
+  const guiDevices = useProfileLabels();
   const devices = useConfigStore((state) => state.deviceStatus);
 
   const currentDevice = effectiveDeviceId ? devices[effectiveDeviceId] : undefined;
   const parentId = currentDevice?.parentId;
 
   const relevantDevices = Object.values(devices).filter((d) => d.parentId === parentId);
-  const labelsText = getLabel(t, Object.values(guiDevices), relevantDevices, pin, false);
+  const labelsText = getLabel(t, guiDevices, relevantDevices, pin, false);
   const combobox = useCombobox({
     onDropdownOpen: () => combobox.updateSelectedOptionIndex('selected', { scrollIntoView: true }),
   });
@@ -117,7 +118,7 @@ export function PinBox({
                   <Text fz="xs" span opacity="0.7">
                     {getLabel(
                       t,
-                      Object.values(guiDevices),
+                      guiDevices,
                       pin === item[1].pin ? [] : relevantDevices,
                       item[1].pin,
                       false

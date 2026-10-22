@@ -77,6 +77,21 @@ export function getSwitchNetworkLabel(
   return labels.length > 0 && bracketed ? `(${labels.join(', ')})` : labels.join(', ');
 }
 
+export function getKeyboardKeyLabel(
+  guiDevices: proto.IGuiConfig[],
+  key: number,
+  customer: boolean,
+  bracketed: boolean = true
+) {
+  const labels = Object.entries(guiDevices)
+    .filter(
+      (x) =>
+        x[1].keyboardKeyLabel?.key === key && (!customer || x[1].keyboardKeyLabel?.showToCustomer)
+    )
+    .map((x) => x[1].keyboardKeyLabel?.label);
+  return labels.length > 0 && bracketed ? `(${labels.join(', ')})` : labels.join(', ');
+}
+
 export function isLed(deviceStatus: DeviceStatus) {
   return isLedDeviceKind(deviceStatus.type);
 }

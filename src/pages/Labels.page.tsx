@@ -31,8 +31,32 @@ import { useTranslation } from 'react-i18next';
 import { matrixHasPin } from '@/components/Devices/matrixPins';
 import { PinBox } from '@/components/Devices/Pins';
 import { isLed } from '@/components/Devices/pinUtils';
+import { HidKeyPicker } from '@/components/Inputs/HidKeyPicker';
 import { getLabelKind, LabelKind } from '@/components/Labels/labelRegistry';
 import { AllPinsNamed } from '@/devices/pico/pins';
+
+// Which profiles a label shows in, all of them when none are picked
+function LabelProfiles({ id, label }: { id: string; label: proto.IGuiConfig }) {
+  const { t } = useTranslation();
+  const updateLabel = useConfigStore((state) => state.updateLabel);
+  const profiles = useConfigStore((state) => state.config.profiles);
+  return (
+    <MultiSelect
+      mt="xs"
+      label={t('labels.profiles')}
+      placeholder={label.profiles?.length ? undefined : t('labels.allProfiles')}
+      data={(profiles ?? []).map((profile) => ({
+        value: `${profile.opts.uid}`,
+        label: profile.opts.name || t('profileDefaults.name'),
+      }))}
+      value={(label.profiles ?? []).map((uid) => `${uid}`)}
+      onChange={(uids) =>
+        updateLabel({ ...label, profiles: uids.map((uid) => parseInt(uid, 10)) }, parseInt(id, 10))
+      }
+      clearable
+    />
+  );
+}
 
 function Label({
   id,
@@ -90,6 +114,7 @@ function Label({
           }
           label={t('labels.title')}
         />
+        <LabelProfiles id={id} label={label} />
         <PinBox
           label="pin_label"
           pin={label.label!.pin!}
@@ -259,6 +284,7 @@ function LedLabel({
           }
           label={t('labels.title')}
         />
+        <LabelProfiles id={id} label={label} />
         {(device?.device.ws2812 || device?.device.apa102) && (
           <MultiSelect
             label={t('leds.label')}
@@ -422,6 +448,7 @@ function MatrixLabel({
           }
           label={t('labels.title')}
         />
+        <LabelProfiles id={id} label={label} />
         <PinBox
           label="matrix.input_pin"
           pin={label.matrixLabel!.inputPin!}
@@ -534,6 +561,7 @@ function SwitchNetworkLabel({
           }
           label={t('labels.title')}
         />
+        <LabelProfiles id={id} label={label} />
         <PinBox
           label="switchNetwork.pin"
           pin={label.switchNetworkLabel!.pin!}
@@ -567,6 +595,99 @@ function SwitchNetworkLabel({
                     ...label,
                     switchNetworkLabel: {
                       ...label.switchNetworkLabel!,
+                      showToCustomer: e.currentTarget.checked,
+                    },
+                  },
+                  parseInt(id, 10)
+                )
+              }
+              label={t('labels.showToCustomer')}
+            />
+          </>
+        )}
+      </Card>
+    </>
+  );
+}
+
+function KeyboardKeyLabel({
+  id,
+  label,
+  deleteLabel,
+}: {
+  id: string;
+  label: proto.IGuiConfig;
+  deleteLabel: () => void;
+}) {
+  const [opened, { open, close }] = useDisclosure(false);
+  const { t } = useTranslation();
+  const updateLabel = useConfigStore((state) => state.updateLabel);
+  const copyLabel = useConfigStore((state) => state.copyLabel);
+  const seller = useConfigStore((state) => state.seller);
+  return (
+    <>
+      <Modal opened={opened} onClose={close} title={t('labels.remove.title')} centered>
+        {t('labels.remove.desc')}
+        <Space h="md" />
+        <Flex justify="flex-end">
+          <Group align="flex-end">
+            <Button
+              onClick={() => {
+                deleteLabel();
+                close();
+              }}
+              color="red"
+            >
+              {t('labels.remove.confirm')}
+            </Button>
+            <Button onClick={close}>{t('labels.remove.cancel')}</Button>
+          </Group>
+        </Flex>
+      </Modal>
+      <Card key={id} shadow="sm" padding="lg" radius="md" withBorder>
+        <Flex justify="flex-end">
+          <ActionIcon color="red">
+            <IconTrash style={{ width: '70%', height: '70%' }} onClick={open} />
+          </ActionIcon>
+          <ActionIcon>
+            <IconCopy style={{ width: '70%', height: '70%' }} onClick={() => copyLabel(label)} />
+          </ActionIcon>
+        </Flex>
+        <TextInput
+          value={label.keyboardKeyLabel?.label}
+          onChange={(e) =>
+            updateLabel(
+              {
+                ...label,
+                keyboardKeyLabel: { ...label.keyboardKeyLabel!, label: e.currentTarget.value },
+              },
+              parseInt(id, 10)
+            )
+          }
+          label={t('labels.title')}
+        />
+        <LabelProfiles id={id} label={label} />
+        <Space h="md" />
+        <HidKeyPicker
+          value={label.keyboardKeyLabel!.key}
+          onChange={(key) =>
+            updateLabel(
+              { ...label, keyboardKeyLabel: { ...label.keyboardKeyLabel!, key } },
+              parseInt(id, 10)
+            )
+          }
+        />
+        {seller && (
+          <>
+            <Space h="md" />
+            <Switch
+              checked={label.keyboardKeyLabel!.showToCustomer ?? false}
+              onChange={(e) =>
+                updateLabel(
+                  {
+                    ...label,
+                    keyboardKeyLabel: {
+                      ...label.keyboardKeyLabel!,
                       showToCustomer: e.currentTarget.checked,
                     },
                   },
@@ -721,6 +842,7 @@ function MultiplexerLabel({
           }
           label={t('labels.title')}
         />
+        <LabelProfiles id={id} label={label} />
         {(pinModeCombobox.dropdownOpened && (
           <Combobox
             store={pinModeCombobox}
@@ -818,6 +940,7 @@ const labelEditors: Record<LabelKind, React.FunctionComponent<LabelEditorProps>>
   matrixLabel: MatrixLabel,
   multiplexerLabel: MultiplexerLabel,
   switchNetworkLabel: SwitchNetworkLabel,
+  keyboardKeyLabel: KeyboardKeyLabel,
 };
 
 function RegisteredLabelEditor(props: LabelEditorProps) {
@@ -837,6 +960,7 @@ export function LabelsPage() {
   const addMultiplexerLabel = useConfigStore((state) => state.addMultiplexerLabel);
   const addMatrixLabel = useConfigStore((state) => state.addMatrixLabel);
   const addSwitchNetworkLabel = useConfigStore((state) => state.addSwitchNetworkLabel);
+  const addKeyboardKeyLabel = useConfigStore((state) => state.addKeyboardKeyLabel);
   const deleteLabel = useConfigStore((state) => state.deleteLabel);
   const { t } = useTranslation();
   const labels = useConfigStore((state) => state.guiDevices);
@@ -879,6 +1003,9 @@ export function LabelsPage() {
                 </Menu.Item>
                 <Menu.Item leftSection={<IconPlus size={14} />} onClick={addSwitchNetworkLabel}>
                   {t('labels.addSwitchNetwork')}
+                </Menu.Item>
+                <Menu.Item leftSection={<IconPlus size={14} />} onClick={addKeyboardKeyLabel}>
+                  {t('labels.addKeyboardKey')}
                 </Menu.Item>
                 <Menu.Item leftSection={<IconPlus size={14} />} onClick={addMultiplexerLabel}>
                   {t('labels.addMultiplexer')}

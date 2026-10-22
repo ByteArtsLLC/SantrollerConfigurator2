@@ -2,7 +2,12 @@ import i18next from 'i18next';
 import { proto } from '@/components/SettingsContext/config';
 
 export type LabelKind =
-  'label' | 'ledLabel' | 'matrixLabel' | 'multiplexerLabel' | 'switchNetworkLabel';
+  | 'label'
+  | 'ledLabel'
+  | 'matrixLabel'
+  | 'multiplexerLabel'
+  | 'switchNetworkLabel'
+  | 'keyboardKeyLabel';
 
 type LabelDefinition = {
   create: () => Record<string, unknown>;
@@ -32,6 +37,9 @@ const labelRegistry: Record<LabelKind, LabelDefinition> = {
       otherPin: -1,
     }),
   },
+  keyboardKeyLabel: {
+    create: () => ({ label: i18next.t('labels.title', 'Label'), key: 0 }),
+  },
 };
 
 export const labelKinds = Object.keys(labelRegistry) as LabelKind[];
@@ -47,4 +55,9 @@ export function getLabelKind(config: proto.IGuiConfig): LabelKind | undefined {
 export function getNextLabelId(configs: Record<number, proto.IGuiConfig>): number {
   const ids = Object.values(configs).map((config) => config.deviceid);
   return ids.length ? Math.max(...ids) + 1 : 0;
+}
+
+// Labels that list no profiles are shown in all of them
+export function labelInProfile(config: proto.IGuiConfig, uid: number | undefined): boolean {
+  return !config.profiles?.length || uid == null || config.profiles.includes(uid);
 }
