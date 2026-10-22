@@ -188,6 +188,17 @@ function slotKeys(profile: proto.IProfile) {
   });
 }
 
+// Whether `next` has the same lists as `prev`, in a different order
+function isReorder(prev: proto.IProfileAssignment[], next: proto.IProfileAssignment[]): boolean {
+  if (prev.length !== next.length || prev.every((list, i) => list === next[i])) {
+    return false;
+  }
+  const encode = (list: proto.IProfileAssignment) =>
+    proto.ProfileAssignment.encode(list).finish().join(',');
+  const sorted = (lists: proto.IProfileAssignment[]) => lists.map(encode).sort().join('|');
+  return sorted(prev) === sorted(next);
+}
+
 // deviceSlotIdVersion 2 numbers slots across the whole profile, so changing the assignments can
 // change the ids of other slots. This moves the inputs of `next` to the ids their slots have now.
 // Slots are followed by position when the lists keep their shape (eg a slot's type changed), and
@@ -198,6 +209,11 @@ export function remapEditedSlotIds(prev: proto.IProfile, next: proto.IProfile): 
   }
   const prevLists = prev.assignments ?? [];
   const nextLists = next.assignments ?? [];
+  // Ids don't depend on the order of the lists, so moving them around changes nothing. Pairing
+  // slots by position, as below, would wrongly move inputs between the lists' devices instead.
+  if (isReorder(prevLists, nextLists)) {
+    return next;
+  }
   const prevIds = getProfileSlotIds(prev);
   const nextIds = getProfileSlotIds(next);
   const sameShape =

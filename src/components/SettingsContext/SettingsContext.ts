@@ -37,6 +37,7 @@ import {
 import { remapEditedSlotIds } from '@/components/Inputs/slotRemap';
 import {
   createLabelConfig,
+  getLabelKind,
   getNextLabelId,
   labelInProfile,
 } from '@/components/Labels/labelRegistry';
@@ -618,6 +619,9 @@ export interface Actions {
   setSyncMode: (mode: boolean) => void;
   updateLabel: (config: proto.IGuiConfig, id: number) => void;
   deleteLabel: (id: number) => void;
+  deleteLabels: (ids: number[]) => void;
+  setLabelProfiles: (ids: number[], profiles: number[]) => void;
+  setLabelShowToCustomer: (ids: number[], show: boolean) => void;
   copyLabel: (config: proto.IGuiConfig) => void;
   addLabel: () => void;
   addLedLabel: () => void;
@@ -626,7 +630,6 @@ export interface Actions {
   addSwitchNetworkLabel: () => void;
   addKeyboardKeyLabel: () => void;
   addPresetKeyLabels: (labels: { key: number; names: string[] }[], profileUid: number) => void;
-  deleteAllLabels: () => void;
   updateDevice: (device: proto.IDevice, id: string) => void;
   updateProfile: (profile: proto.IProfile, id: number) => void;
   updateProfiles: (profiles: proto.IProfile[]) => void;
@@ -647,7 +650,6 @@ export interface Actions {
   disconnect: () => void;
   reconnect: (device: HIDDevice) => void;
   bootloader: () => void;
-  deleteAllDevices: () => void;
   addDevice: (type: string, parentId?: string, fill?: (device: proto.IDevice) => void) => string;
   onReport: (evt: HIDInputReportEvent) => void;
   setActiveProfile: (id: string | null, instance?: number) => void;
@@ -1171,6 +1173,38 @@ export const useConfigStore = create<ConfigState & Actions>()(
       get().saveConfig();
     },
 
+    deleteLabels: (ids: number[]) => {
+      set((state) => {
+        for (const id of ids) {
+          delete state.guiDevices[id];
+        }
+      });
+      get().saveConfig();
+    },
+    setLabelProfiles: (ids: number[], profiles: number[]) => {
+      set((state) => {
+        for (const id of ids) {
+          if (state.guiDevices[id]) {
+            state.guiDevices[id] = { ...state.guiDevices[id], profiles };
+          }
+        }
+      });
+      get().saveConfig();
+    },
+
+    setLabelShowToCustomer: (ids: number[], show: boolean) => {
+      set((state) => {
+        for (const id of ids) {
+          const label = state.guiDevices[id];
+          const kind = label && getLabelKind(label);
+          if (kind) {
+            state.guiDevices[id] = { ...label, [kind]: { ...label[kind], showToCustomer: show } };
+          }
+        }
+      });
+      get().saveConfig();
+    },
+
     copyLabel: (label: proto.IGuiConfig) => {
       set((state) => {
         let id = 0;
@@ -1230,12 +1264,6 @@ export const useConfigStore = create<ConfigState & Actions>()(
     addPresetKeyLabels: (labels, profileUid) => {
       set((state) => {
         addPresetKeyLabels(state.guiDevices, labels, profileUid);
-      });
-      get().saveConfig();
-    },
-    deleteAllLabels: () => {
-      set((state) => {
-        state.guiDevices = {};
       });
       get().saveConfig();
     },
@@ -2072,12 +2100,6 @@ export const useConfigStore = create<ConfigState & Actions>()(
         state.ledStatus = state.config.profiles!.map((p) =>
           Object.fromEntries((p.leds ?? []).map((x, i) => [i, new LedStatus(i, x)]))
         );
-      });
-      get().saveConfig();
-    },
-    deleteAllDevices: () => {
-      set((state) => {
-        state.deviceStatus = {};
       });
       get().saveConfig();
     },
@@ -3152,14 +3174,21 @@ export const useConfigStore = create<ConfigState & Actions>()(
         }
         try {
           const { data, info } = await fetchConfigDataWithRetry(device, false);
-          let dataSaved: Uint8Array | undefined = undefined;
+          // Only the main config counts: the device keeps its aux block (pairings, toggle states)
+          // itself and writes it to flash a moment after it changes, so the two can differ for a
+          // while (eg just after rebooting from a firmware update) with nothing for the user to save
+          const dataMain = data.slice(0, info.mainSize);
+          let dataSaved: Uint8Array;
           try {
-            const { data: fetchedDataSaved } = await fetchConfigDataWithRetry(device, true);
-            dataSaved = fetchedDataSaved;
+            const { data: fetchedDataSaved, info: infoSaved } = await fetchConfigDataWithRetry(
+              device,
+              true
+            );
+            dataSaved = fetchedDataSaved.slice(0, infoSaved.mainSize);
           } catch (e) {
             console.error('Failed to get saved config data', e);
             // If fetching the saved config data fails, fall back to using the current config data.
-            dataSaved = data;
+            dataSaved = dataMain;
           }
           const config = proto.Config.decode(data, info.mainSize);
           const aux = proto.AuxConfigBlock.decode(data.slice(info.mainSize), info.auxSize);
@@ -3195,7 +3224,7 @@ export const useConfigStore = create<ConfigState & Actions>()(
               activeProfiles,
               deferredMode,
               savedConfig: dataSaved,
-              configModified: fresh.configModified || !equals(dataSaved, data),
+              configModified: fresh.configModified || !equals(dataSaved, dataMain),
             }),
             true
           );

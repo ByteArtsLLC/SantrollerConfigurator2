@@ -983,7 +983,7 @@
       },
       "pins": {
         "title": "Board pins don't need assigning",
-        "body": "Buttons, sensors and peripherals wired directly to the board are available to every profile unless a profile claims them with <strong>Claim this device's own inputs</strong>. Only external controllers and adapters need to be added to a rule."
+        "body": "Buttons, sensors and peripherals wired directly to the board are available to every profile unless a profile claims them with <strong>Claim directly wired inputs</strong>. Only external controllers and adapters need to be added to a rule."
       }
     },
     "anatomy": {
@@ -1039,8 +1039,8 @@
           "body": "When a rule matches, its profile claims the controllers it used, and a claimed controller can't be read by any other profile. If more identical controllers are still unclaimed, the same profile is used again for each of them, so two USB guitars through a hub give you two players from one profile."
         },
         "localInputs": {
-          "title": "This device's own inputs can be claimed too",
-          "body": "Turn on <strong>Claim this device's own inputs</strong> in a rule and it claims the buttons and sensors wired to this board, so it only matches if no profile above it has already claimed them. Use it when several profiles output the same inputs over different connections but only one should be active at a time. USB rules only match while a PC or console is connected, so a USB profile placed above a Bluetooth one takes over when plugged in and hands back to Bluetooth when running from a battery or charger."
+          "title": "Directly wired inputs can be claimed too",
+          "body": "Turn on <strong>Claim directly wired inputs</strong> in a rule and it claims the buttons and sensors wired to this board, so it only matches if no profile above it has already claimed them. Use it when several profiles output the same inputs over different connections but only one should be active at a time. USB rules only match while a PC or console is connected, so a USB profile placed above a Bluetooth one takes over when plugged in and hands back to Bluetooth when running from a battery or charger."
         }
       }
     },
@@ -1088,15 +1088,15 @@
       },
       "wiredWireless": {
         "title": "Different settings over USB and Bluetooth",
-        "body": "Make two profiles: one with a <strong>USB</strong> rule and one with a <strong>Bluetooth</strong> rule, and turn on <strong>Claim this device's own inputs</strong> in both. Put the USB profile first. While plugged into a PC or console the USB profile claims the inputs and Bluetooth stays off, and on a battery or charger the Bluetooth profile takes over. Without the toggle, both are active while plugged in and you'd get two controllers."
+        "body": "Make two profiles: one with a <strong>USB</strong> rule and one with a <strong>Bluetooth</strong> rule, and turn on <strong>Claim directly wired inputs</strong> in both. Put the USB profile first. While plugged into a PC or console the USB profile claims the inputs and Bluetooth stays off, and on a battery or charger the Bluetooth profile takes over. Without the toggle, both are active while plugged in and you'd get two controllers."
       },
       "festivalWired": {
         "title": "Holding a button at startup to change profiles (direct wired)",
-        "body": "For a guitar with everything wired to the board's pins, make a keyboard profile such as a Fortnite Festival layout and a normal guitar profile, and turn on <strong>Claim this device's own inputs</strong> in both. Put the keyboard profile first and give it <strong>Hold Button at Startup</strong>. Holding the button while plugging in makes the keyboard profile claim the inputs, so the guitar profile can't match and the PC only sees a keyboard. Plug in without holding it and the guitar profile claims them instead. The choice lasts until the guitar is unplugged."
+        "body": "For a guitar with everything wired to the board's pins, make a keyboard profile such as a Fortnite Festival layout and a normal guitar profile, and turn on <strong>Claim directly wired inputs</strong> in both. Put the keyboard profile first and give it <strong>Hold Button at Startup</strong>. Holding the button while plugging in makes the keyboard profile claim the inputs, so the guitar profile can't match and the PC only sees a keyboard. Plug in without holding it and the guitar profile claims them instead. The choice lasts until the guitar is unplugged."
       },
       "festivalAdapter": {
         "title": "Holding a button at startup to change profiles (adapter)",
-        "body": "When the guitar comes through an adapter, such as a Wii guitar on a Wii adapter, add it as a connected controller to both profiles instead, for example <strong>Wii Extension: Guitar</strong>. Put the keyboard profile first with <strong>Hold Button at Startup</strong>, using a button on the guitar. Once the keyboard profile has claimed the adapter's controller, the guitar profile can't match. <strong>Claim this device's own inputs</strong> isn't needed here, since the inputs come from the adapter rather than the board's pins."
+        "body": "When the guitar comes through an adapter, such as a Wii guitar on a Wii adapter, add it as a connected controller to both profiles instead, for example <strong>Wii Extension: Guitar</strong>. Put the keyboard profile first with <strong>Hold Button at Startup</strong>, using a button on the guitar. Once the keyboard profile has claimed the adapter's controller, the guitar profile can't match. <strong>Claim directly wired inputs</strong> isn't needed here, since the inputs come from the adapter rather than the board's pins."
       },
       "twoPlayers": {
         "title": "Two USB guitars through one board",
@@ -1114,7 +1114,7 @@
         "taken": "If a profile never activates over Bluetooth or a console port, a profile higher up the list probably claimed that port first.",
         "duplicate": "If the PC sees more controllers than you expect, more than one profile matched over USB. Add a trigger or a connected-controller condition so only the one you want matches.",
         "slotMissing": "If a controller doesn't appear when mapping an input, add it under Connected Controller / Adapter in that profile's rules first.",
-        "localInputs": "If a profile with Claim this device's own inputs turned on never activates, a profile higher up the list with the same toggle probably claimed the inputs first. Reorder them so the one you'd rather use comes first."
+        "localInputs": "If a profile with Claim directly wired inputs turned on never activates, a profile higher up the list with the same toggle probably claimed the inputs first. Reorder them so the one you'd rather use comes first."
       }
     }
   },
@@ -1722,8 +1722,10 @@
     "desc": "Are you sure you wish to load defaults?",
     "confirm": "Load defaults",
     "cancel": "Cancel",
-    "for": "Load defaults for: {{device}} ({{status}})",
-    "for_slot": "Load defaults for: {{slot}}",
+    "load": "Load defaults",
+    "type": "{{type}} defaults",
+    "for_device": "For a device",
+    "device": "{{device}} ({{status}})",
     "preset": "Preset",
     "preset_desc": "Load the defaults for another instrument, laid out for this device",
     "preset_none": "Standard defaults",
@@ -1735,27 +1737,7 @@
       "midi_drums_rb": "General MIDI drum kit - from Rock Band drums",
       "midi_drums_gh": "General MIDI drum kit - from Guitar Hero drums",
       "ps2_guitar_on_ps3": "Guitar Hero guitar for PS2 games on PS3"
-    },
-    "load_type": "Load {{type}} defaults"
-  },
-  "clear_all_button": "Clear All",
-  "clear_all_dialog": {
-    "title": "Clear all inputs",
-    "desc": "Are you sure you wish to clear all inputs?",
-    "confirm": "Clear all",
-    "cancel": "Cancel"
-  },
-  "clear_all_assign_dialog": {
-    "title": "Clear all assignments",
-    "desc": "Are you sure you wish to clear all assignments?",
-    "confirm": "Clear all",
-    "cancel": "Cancel"
-  },
-  "clear_all_leds_dialog": {
-    "title": "Clear all LEDs",
-    "desc": "Are you sure you wish to clear all LEDs?",
-    "confirm": "Clear all",
-    "cancel": "Cancel"
+    }
   },
   "delete_device_dialog": {
     "title": "Deleting device",
@@ -1792,8 +1774,8 @@
     "specificConsoleDesc": "Enable to apply this profile when plugged into a specific device, for example setting this to PS3 would only apply this profile when plugged into a PS3.",
     "forcedType": "Force device type",
     "forcedTypeDesc": "Enable to ignore console detection and always use a specific mode for this profile.",
-    "localInputs": "Claim this device's own inputs",
-    "localInputsDesc": "Claims the buttons and sensors wired to this board. Only one profile can claim them at a time, and the highest one in the sidebar wins.",
+    "localInputs": "Claim directly wired inputs",
+    "localInputsDesc": "Claims the buttons and sensors wired straight to this board's pins. Controllers in this profile's rules, like a PS1/2 controller or Wii extension, are claimed already, so this is only needed for inputs that aren't on one. Only one profile can claim them at a time, and the highest one in the sidebar wins.",
     "missingEmulation": "Missing Emulation",
     "missingDevice": "This profile is missing an emulation assignment. Without one, Santroller doesn't know when it should use this profile, so it won't be used.",
     "missing": "This profile is missing an assignment! Without one, it won't ever be assigned.",
@@ -1954,7 +1936,6 @@
   "add_device_dialog": {
     "title": "Add device",
     "confirm": "Add device",
-    "remove_all": "Remove all devices",
     "categories": {
       "controllers": "Console Controllers & Adapters",
       "instruments": "Instrument Peripherals",
@@ -1984,7 +1965,7 @@
     "snesEmulation": "SNES / NES Controller Emulation",
     "bluetoothType": "Bluetooth Host By Type",
     "bluetoothDevice": "Bluetooth Host Specific",
-    "localInputs": "Claims This Device's Own Inputs"
+    "localInputs": "Claims Directly Wired Inputs"
   },
   "assignmentTypeDesc": {
     "wiiExt": "Match when a Wii Extension is plugged into this device",
@@ -2534,6 +2515,42 @@
       "cancel": "Cancel"
     }
   },
+  "selection": {
+    "select": "Select",
+    "selectAll": "Select all",
+    "selected": "{{count}} selected",
+    "moveToStart": "Move to start",
+    "moveToEnd": "Move to end",
+    "moving_one": "Moving {{count}} item",
+    "moving_other": "Moving {{count}} items",
+    "andMore": "and {{count}} more",
+    "delete": "Delete selected",
+    "deleteConfirm": "Delete",
+    "cancel": "Cancel",
+    "deleteTitle": "Deleting selected items",
+    "deleteDesc_one": "Are you sure you wish to delete {{count}} item?",
+    "deleteDesc_other": "Are you sure you wish to delete {{count}} items?",
+    "inputs": {
+      "deleteTitle": "Deleting inputs",
+      "deleteDesc_one": "Are you sure you wish to delete {{count}} input?",
+      "deleteDesc_other": "Are you sure you wish to delete {{count}} inputs?"
+    },
+    "leds": {
+      "deleteTitle": "Deleting LEDs",
+      "deleteDesc_one": "Are you sure you wish to delete {{count}} LED?",
+      "deleteDesc_other": "Are you sure you wish to delete {{count}} LEDs?"
+    },
+    "rules": {
+      "deleteTitle": "Deleting rules",
+      "deleteDesc_one": "Are you sure you wish to delete {{count}} rule?",
+      "deleteDesc_other": "Are you sure you wish to delete {{count}} rules?"
+    },
+    "devices": {
+      "deleteTitle": "Deleting devices",
+      "deleteDesc_one": "Are you sure you wish to delete {{count}} device? Note that this will also remove any mappings that rely on it!",
+      "deleteDesc_other": "Are you sure you wish to delete {{count}} devices? Note that this will also remove any mappings that rely on them!"
+    }
+  },
   "labels": {
     "title": "Label",
     "add": "Add Label",
@@ -2544,7 +2561,18 @@
     "addKeyboardKey": "Add Keyboard Key Label",
     "profiles": "Profiles",
     "allProfiles": "All profiles",
-    "removeAll": "Remove all labels",
+    "bulk": {
+      "setProfiles": "Set profiles",
+      "profilesTitle_one": "Set profiles for {{count}} label",
+      "profilesTitle_other": "Set profiles for {{count}} labels",
+      "profilesDesc": "Replaces the profiles of every selected label. Leave empty to show them in all profiles.",
+      "apply": "Apply",
+      "showToCustomer": "Show in customer tooling",
+      "hideFromCustomer": "Hide from customer tooling",
+      "deleteTitle": "Deleting labels",
+      "deleteDesc_one": "Are you sure you wish to delete {{count}} label?",
+      "deleteDesc_other": "Are you sure you wish to delete {{count}} labels?"
+    },
     "showToCustomer": "Show label in customer tooling",
     "remove": {
       "title": "Deleting label",

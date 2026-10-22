@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { IconBluetooth, IconCpu, IconPlus, IconTrash } from '@tabler/icons-react';
 import {
   Accordion,
@@ -57,6 +57,14 @@ import {
 } from '@/components/Devices/deviceRegistry';
 import { matrixPins, withMatrixPins } from '@/components/Devices/matrixPins';
 import { DeviceContext, PinBox } from '@/components/Devices/Pins';
+import {
+  IdSelectionContext,
+  selectableCardStyle,
+  selectedCardStyle,
+  SelectionBar,
+  SelectToggle,
+  toggleOnBackgroundClick,
+} from '@/components/Selection/Selection';
 import {
   AllPinsNamed,
   AnalogPinsNamed,
@@ -228,6 +236,12 @@ function DeviceCard({
 }) {
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
+  // Only the devices page lets cards be selected
+  const deviceId = useContext(DeviceContext);
+  const selection = useContext(IdSelectionContext);
+  const selectable = !!deviceId && !!selection;
+  const selected = selectable && selection.isSelected(deviceId);
+  const onSelect = (on: boolean) => deviceId && selection?.select(deviceId, on);
   // Not every device has artwork yet, so those get a placeholder instead of a broken image
   const [failedImage, setFailedImage] = useState<string>();
   const badge = useMemo(
@@ -267,8 +281,20 @@ function DeviceCard({
           </Group>
         </Flex>
       </Modal>
-      <Card shadow="sm" padding="lg" radius="md" withBorder>
-        <Flex justify="flex-end">
+      <Card
+        shadow="sm"
+        padding="lg"
+        radius="md"
+        withBorder
+        style={
+          selectable
+            ? { ...selectableCardStyle, ...(selected ? selectedCardStyle : undefined) }
+            : undefined
+        }
+        onClick={selectable ? (e) => toggleOnBackgroundClick(e, selected, onSelect) : undefined}
+      >
+        <Flex justify="flex-end" gap={4}>
+          {selectable && <SelectToggle selected={selected} onSelect={onSelect} />}
           <ActionIcon color="red">
             <IconTrash style={{ width: '70%', height: '70%' }} onClick={open} />
           </ActionIcon>
@@ -2945,12 +2971,21 @@ export function DevicesPage() {
         ) as Record<string, DeviceKind>
     )
   );
-  const deleteAllDevices = useConfigStore((state) => state.deleteAllDevices);
+  const deleteDevice = useConfigStore((state) => state.deleteDevice);
   const addDevice = useConfigStore((state) => state.addDevice);
+  const [selection, setSelection] = useState<string[]>([]);
   const mounted = useMounted();
   if (!mounted) {
     return <Loader />;
   }
+  // Devices deleted elsewhere drop out of the selection
+  const deviceIds = Object.keys(config);
+  const selected = selection.filter((id) => config[id]);
+  const selectionContext = {
+    isSelected: (id: string) => selected.includes(id),
+    select: (id: string, on: boolean) =>
+      setSelection(on ? [...selected, id] : selected.filter((other) => other !== id)),
+  };
 
   const handleOpenAdd = () => {
     if (!availableDeviceKinds.includes(deviceType)) {
@@ -3025,16 +3060,29 @@ export function DevicesPage() {
               </Group>
             </Flex>
           </Modal>
-          <SimpleGrid cols={{ base: 1, sm: 3 }}>
-            {Object.entries(config).map(([id, type]) => {
-              const DeviceEditor = deviceEditors[type];
-              return (
-                <DeviceContext.Provider value={id} key={id}>
-                  <DeviceEditor id={id} />
-                </DeviceContext.Provider>
-              );
-            })}
-          </SimpleGrid>
+          <SelectionBar
+            total={deviceIds.length}
+            selected={selected.length}
+            onSelectAll={(all) => setSelection(all ? deviceIds : [])}
+            onDelete={() => {
+              selected.forEach(deleteDevice);
+              setSelection([]);
+            }}
+            deleteTitle={t('selection.devices.deleteTitle')}
+            deleteDesc={t('selection.devices.deleteDesc', { count: selected.length })}
+          />
+          <IdSelectionContext.Provider value={selectionContext}>
+            <SimpleGrid cols={{ base: 1, sm: 3 }}>
+              {Object.entries(config).map(([id, type]) => {
+                const DeviceEditor = deviceEditors[type];
+                return (
+                  <DeviceContext.Provider value={id} key={id}>
+                    <DeviceEditor id={id} />
+                  </DeviceContext.Provider>
+                );
+              })}
+            </SimpleGrid>
+          </IdSelectionContext.Provider>
           <Affix position={{ bottom: 40, right: 40 }}>
             <Menu trigger="click-hover" shadow="md" width={150}>
               <Menu.Target>
@@ -3046,9 +3094,6 @@ export function DevicesPage() {
               <Menu.Dropdown>
                 <Menu.Item leftSection={<IconPlus size={14} />} onClick={handleOpenAdd}>
                   {t('add_device_dialog.title')}
-                </Menu.Item>
-                <Menu.Item leftSection={<IconTrash size={14} />} onClick={deleteAllDevices}>
-                  {t('add_device_dialog.remove_all')}
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>

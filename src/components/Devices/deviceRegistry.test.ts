@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import i18next from 'i18next';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { proto } from '@/components/SettingsContext/config';
 import {
   canAddDeviceKind,
   createDeviceConfig,
@@ -6,6 +8,7 @@ import {
   deviceKinds,
   getDeviceCategory,
   getDevicePins,
+  getDeviceStatusLabel,
   getGroupedDevices,
   isSingletonDeviceKind,
 } from './deviceRegistry';
@@ -120,5 +123,56 @@ describe('device pins', () => {
     const usbHost = createDeviceConfig('usbHost', 0);
     usbHost.usbHost!.firstPin = 10;
     expect(getDevicePins(usbHost)).toEqual([10, 11]);
+  });
+});
+
+describe('device status labels', () => {
+  // No translations loaded, so the English fallbacks are used
+  beforeAll(() => i18next.init({ lng: 'en', resources: {} }));
+  const status = (device: Omit<proto.IDevice, 'deviceid'>, connected = true) => ({
+    id: '1',
+    connected,
+    device: { deviceid: 0, ...device },
+    wiiExtType: proto.WiiExtType.WiiNoExtension,
+    ps2CntType: proto.PS2ControllerType.PS2ControllerTypeUnknown,
+    snesCntType: proto.SNESControllerType.SNESControllerNone,
+    joybusCntType: proto.JoybusControllerType.JoybusControllerNone,
+    usbDevices: {},
+  });
+
+  it('leaves out the pins of a device that has none', () => {
+    expect(getDeviceStatusLabel(status({ bt: {} }))).toBe('Connected');
+  });
+
+  it('lists the pins after whether it is connected', () => {
+    expect(
+      getDeviceStatusLabel(
+        status({
+          usbHost: {
+            firstPin: 2,
+            enable5v: false,
+            dmFirst: false,
+            mappingMode: proto.MappingMode.PerInput,
+          },
+        })
+      )
+    ).toBe('Disconnected, GP2, GP3');
+  });
+
+  it('shows only the pins of devices without a connection state', () => {
+    expect(
+      getDeviceStatusLabel(
+        status({
+          multiplexer: {
+            s0Pin: 1,
+            s1Pin: 2,
+            s2Pin: 3,
+            s3Pin: -1,
+            inputPin: 4,
+            sixteenChannel: false,
+          },
+        })
+      )
+    ).toBe('GP1, GP2, GP3, GP4');
   });
 });

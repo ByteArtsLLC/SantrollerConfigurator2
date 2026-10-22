@@ -153,6 +153,15 @@ describe('editing slots', () => {
     expect(deviceIds(next)).toEqual([0, 1]);
   });
 
+  it('keeps inputs on their devices when lists are reordered', () => {
+    const prev = profile([[gamepad], [guitar]]);
+    const next = remapEditedSlotIds(prev, {
+      ...prev,
+      assignments: [prev.assignments![1], prev.assignments![0]],
+    });
+    expect(deviceIds(next)).toEqual(deviceIds(prev));
+  });
+
   it('leaves older profiles alone', () => {
     const next = profile([[guitar, keyboard]], 1);
     expect(remapEditedSlotIds(profile([[gamepad, keyboard]], 1), next)).toBe(next);

@@ -1,4 +1,5 @@
-import { IconCopy, IconPlus, IconTrash } from '@tabler/icons-react';
+import { useState } from 'react';
+import { IconCopy, IconEye, IconEyeOff, IconPlus, IconTrash } from '@tabler/icons-react';
 import {
   ActionIcon,
   Affix,
@@ -33,7 +34,17 @@ import { PinBox } from '@/components/Devices/Pins';
 import { isLed } from '@/components/Devices/pinUtils';
 import { HidKeyPicker } from '@/components/Inputs/HidKeyPicker';
 import { getLabelKind, LabelKind } from '@/components/Labels/labelRegistry';
+import {
+  selectableCardStyle,
+  selectedCardStyle,
+  SelectionBar,
+  SelectToggle,
+  toggleOnBackgroundClick,
+} from '@/components/Selection/Selection';
 import { AllPinsNamed } from '@/devices/pico/pins';
+
+const cardStyle = (selected: boolean) =>
+  selected ? { ...selectableCardStyle, ...selectedCardStyle } : selectableCardStyle;
 
 // Which profiles a label shows in, all of them when none are picked
 function LabelProfiles({ id, label }: { id: string; label: proto.IGuiConfig }) {
@@ -58,15 +69,7 @@ function LabelProfiles({ id, label }: { id: string; label: proto.IGuiConfig }) {
   );
 }
 
-function Label({
-  id,
-  label,
-  deleteLabel,
-}: {
-  id: string;
-  label: proto.IGuiConfig;
-  deleteLabel: () => void;
-}) {
+function Label({ id, label, deleteLabel, selected, onSelect }: LabelEditorProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
   const updateLabel = useConfigStore((state) => state.updateLabel);
@@ -92,8 +95,17 @@ function Label({
           </Group>
         </Flex>
       </Modal>
-      <Card key={id} shadow="sm" padding="lg" radius="md" withBorder>
-        <Flex justify="flex-end">
+      <Card
+        key={id}
+        shadow="sm"
+        padding="lg"
+        radius="md"
+        withBorder
+        style={cardStyle(selected)}
+        onClick={(e) => toggleOnBackgroundClick(e, selected, onSelect)}
+      >
+        <Flex justify="flex-end" align="center">
+          <SelectToggle selected={selected} onSelect={onSelect} />
           <ActionIcon color="red">
             <IconTrash style={{ width: '70%', height: '70%' }} onClick={open} />
           </ActionIcon>
@@ -149,15 +161,7 @@ function Label({
   );
 }
 
-function LedLabel({
-  id,
-  label,
-  deleteLabel,
-}: {
-  id: string;
-  label: proto.IGuiConfig;
-  deleteLabel: () => void;
-}) {
+function LedLabel({ id, label, deleteLabel, selected, onSelect }: LabelEditorProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
   const updateLabel = useConfigStore((state) => state.updateLabel);
@@ -201,8 +205,17 @@ function LedLabel({
           </Group>
         </Flex>
       </Modal>
-      <Card key={id} shadow="sm" padding="lg" radius="md" withBorder>
-        <Flex justify="flex-end">
+      <Card
+        key={id}
+        shadow="sm"
+        padding="lg"
+        radius="md"
+        withBorder
+        style={cardStyle(selected)}
+        onClick={(e) => toggleOnBackgroundClick(e, selected, onSelect)}
+      >
+        <Flex justify="flex-end" align="center">
+          <SelectToggle selected={selected} onSelect={onSelect} />
           <ActionIcon color="red">
             <IconTrash style={{ width: '70%', height: '70%' }} onClick={open} />
           </ActionIcon>
@@ -312,15 +325,7 @@ function LedLabel({
   );
 }
 
-function MatrixLabel({
-  id,
-  label,
-  deleteLabel,
-}: {
-  id: string;
-  label: proto.IGuiConfig;
-  deleteLabel: () => void;
-}) {
+function MatrixLabel({ id, label, deleteLabel, selected, onSelect }: LabelEditorProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
   const updateLabel = useConfigStore((state) => state.updateLabel);
@@ -365,8 +370,17 @@ function MatrixLabel({
           </Group>
         </Flex>
       </Modal>
-      <Card key={id} shadow="sm" padding="lg" radius="md" withBorder>
-        <Flex justify="flex-end">
+      <Card
+        key={id}
+        shadow="sm"
+        padding="lg"
+        radius="md"
+        withBorder
+        style={cardStyle(selected)}
+        onClick={(e) => toggleOnBackgroundClick(e, selected, onSelect)}
+      >
+        <Flex justify="flex-end" align="center">
+          <SelectToggle selected={selected} onSelect={onSelect} />
           <ActionIcon color="red">
             <IconTrash style={{ width: '70%', height: '70%' }} onClick={open} />
           </ActionIcon>
@@ -505,15 +519,7 @@ function MatrixLabel({
   );
 }
 
-function SwitchNetworkLabel({
-  id,
-  label,
-  deleteLabel,
-}: {
-  id: string;
-  label: proto.IGuiConfig;
-  deleteLabel: () => void;
-}) {
+function SwitchNetworkLabel({ id, label, deleteLabel, selected, onSelect }: LabelEditorProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
   const updateLabel = useConfigStore((state) => state.updateLabel);
@@ -539,8 +545,17 @@ function SwitchNetworkLabel({
           </Group>
         </Flex>
       </Modal>
-      <Card key={id} shadow="sm" padding="lg" radius="md" withBorder>
-        <Flex justify="flex-end">
+      <Card
+        key={id}
+        shadow="sm"
+        padding="lg"
+        radius="md"
+        withBorder
+        style={cardStyle(selected)}
+        onClick={(e) => toggleOnBackgroundClick(e, selected, onSelect)}
+      >
+        <Flex justify="flex-end" align="center">
+          <SelectToggle selected={selected} onSelect={onSelect} />
           <ActionIcon color="red">
             <IconTrash style={{ width: '70%', height: '70%' }} onClick={open} />
           </ActionIcon>
@@ -610,15 +625,7 @@ function SwitchNetworkLabel({
   );
 }
 
-function KeyboardKeyLabel({
-  id,
-  label,
-  deleteLabel,
-}: {
-  id: string;
-  label: proto.IGuiConfig;
-  deleteLabel: () => void;
-}) {
+function KeyboardKeyLabel({ id, label, deleteLabel, selected, onSelect }: LabelEditorProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
   const updateLabel = useConfigStore((state) => state.updateLabel);
@@ -644,8 +651,17 @@ function KeyboardKeyLabel({
           </Group>
         </Flex>
       </Modal>
-      <Card key={id} shadow="sm" padding="lg" radius="md" withBorder>
-        <Flex justify="flex-end">
+      <Card
+        key={id}
+        shadow="sm"
+        padding="lg"
+        radius="md"
+        withBorder
+        style={cardStyle(selected)}
+        onClick={(e) => toggleOnBackgroundClick(e, selected, onSelect)}
+      >
+        <Flex justify="flex-end" align="center">
+          <SelectToggle selected={selected} onSelect={onSelect} />
           <ActionIcon color="red">
             <IconTrash style={{ width: '70%', height: '70%' }} onClick={open} />
           </ActionIcon>
@@ -703,15 +719,7 @@ function KeyboardKeyLabel({
   );
 }
 
-function MultiplexerLabel({
-  id,
-  label,
-  deleteLabel,
-}: {
-  id: string;
-  label: proto.IGuiConfig;
-  deleteLabel: () => void;
-}) {
+function MultiplexerLabel({ id, label, deleteLabel, selected, onSelect }: LabelEditorProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const { t } = useTranslation();
   const updateLabel = useConfigStore((state) => state.updateLabel);
@@ -759,8 +767,17 @@ function MultiplexerLabel({
           </Group>
         </Flex>
       </Modal>
-      <Card key={id} shadow="sm" padding="lg" radius="md" withBorder>
-        <Flex justify="flex-end">
+      <Card
+        key={id}
+        shadow="sm"
+        padding="lg"
+        radius="md"
+        withBorder
+        style={cardStyle(selected)}
+        onClick={(e) => toggleOnBackgroundClick(e, selected, onSelect)}
+      >
+        <Flex justify="flex-end" align="center">
+          <SelectToggle selected={selected} onSelect={onSelect} />
           <ActionIcon color="red">
             <IconTrash style={{ width: '70%', height: '70%' }} onClick={open} />
           </ActionIcon>
@@ -932,6 +949,8 @@ type LabelEditorProps = {
   id: string;
   label: proto.IGuiConfig;
   deleteLabel: () => void;
+  selected: boolean;
+  onSelect: (selected: boolean) => void;
 };
 
 const labelEditors: Record<LabelKind, React.FunctionComponent<LabelEditorProps>> = {
@@ -953,8 +972,115 @@ function RegisteredLabelEditor(props: LabelEditorProps) {
   return <LabelEditor {...props} />;
 }
 
+// Selects labels and acts on all of them at once
+function BulkLabelActions({
+  ids,
+  selected,
+  setSelected,
+}: {
+  ids: string[];
+  selected: string[];
+  setSelected: (ids: string[]) => void;
+}) {
+  const { t } = useTranslation();
+  const deleteLabels = useConfigStore((state) => state.deleteLabels);
+  const setLabelProfiles = useConfigStore((state) => state.setLabelProfiles);
+  const setLabelShowToCustomer = useConfigStore((state) => state.setLabelShowToCustomer);
+  const seller = useConfigStore((state) => state.seller);
+  const profiles = useConfigStore((state) => state.config.profiles);
+  const [profilesOpened, profilesModal] = useDisclosure(false);
+  const [newProfiles, setNewProfiles] = useState<string[]>([]);
+  if (!ids.length) {
+    return null;
+  }
+  const selectedIds = selected.map((id) => parseInt(id, 10));
+  return (
+    <>
+      <Modal
+        opened={profilesOpened}
+        onClose={profilesModal.close}
+        title={t('labels.bulk.profilesTitle', { count: selected.length })}
+        centered
+      >
+        <MultiSelect
+          label={t('labels.profiles')}
+          description={t('labels.bulk.profilesDesc')}
+          placeholder={newProfiles.length ? undefined : t('labels.allProfiles')}
+          data={(profiles ?? []).map((profile) => ({
+            value: `${profile.opts.uid}`,
+            label: profile.opts.name || t('profileDefaults.name'),
+          }))}
+          value={newProfiles}
+          onChange={setNewProfiles}
+          clearable
+        />
+        <Space h="md" />
+        <Flex justify="flex-end">
+          <Group align="flex-end">
+            <Button
+              onClick={() => {
+                setLabelProfiles(
+                  selectedIds,
+                  newProfiles.map((uid) => parseInt(uid, 10))
+                );
+                profilesModal.close();
+              }}
+            >
+              {t('labels.bulk.apply')}
+            </Button>
+            <Button variant="default" onClick={profilesModal.close}>
+              {t('labels.remove.cancel')}
+            </Button>
+          </Group>
+        </Flex>
+      </Modal>
+      <SelectionBar
+        total={ids.length}
+        selected={selected.length}
+        onSelectAll={(all) => setSelected(all ? ids : [])}
+        onDelete={() => {
+          deleteLabels(selectedIds);
+          setSelected([]);
+        }}
+        deleteTitle={t('labels.bulk.deleteTitle')}
+        deleteDesc={t('labels.bulk.deleteDesc', { count: selected.length })}
+      >
+        <Button
+          size="xs"
+          variant="light"
+          onClick={() => {
+            setNewProfiles([]);
+            profilesModal.open();
+          }}
+        >
+          {t('labels.bulk.setProfiles')}
+        </Button>
+        {seller && (
+          <>
+            <Button
+              size="xs"
+              variant="light"
+              leftSection={<IconEye size={14} />}
+              onClick={() => setLabelShowToCustomer(selectedIds, true)}
+            >
+              {t('labels.bulk.showToCustomer')}
+            </Button>
+            <Button
+              size="xs"
+              variant="light"
+              leftSection={<IconEyeOff size={14} />}
+              onClick={() => setLabelShowToCustomer(selectedIds, false)}
+            >
+              {t('labels.bulk.hideFromCustomer')}
+            </Button>
+          </>
+        )}
+      </SelectionBar>
+    </>
+  );
+}
+
 export function LabelsPage() {
-  const deleteAllLabels = useConfigStore((state) => state.deleteAllLabels);
   const addLabel = useConfigStore((state) => state.addLabel);
   const addLedLabel = useConfigStore((state) => state.addLedLabel);
   const addMultiplexerLabel = useConfigStore((state) => state.addMultiplexerLabel);
@@ -964,15 +1090,23 @@ export function LabelsPage() {
   const deleteLabel = useConfigStore((state) => state.deleteLabel);
   const { t } = useTranslation();
   const labels = useConfigStore((state) => state.guiDevices);
+  const [selection, setSelection] = useState<string[]>([]);
   const mounted = useMounted();
   if (!mounted) {
     return <Loader />;
   }
+  // Labels deleted elsewhere drop out of the selection
+  const selected = selection.filter((id) => labels[parseInt(id, 10)]);
 
   return (
     <>
       <Layout>
         <RequireDevice>
+          <BulkLabelActions
+            ids={Object.keys(labels)}
+            selected={selected}
+            setSelected={setSelection}
+          />
           <SimpleGrid cols={3}>
             {Object.entries(labels).map(([id, label]) => (
               <RegisteredLabelEditor
@@ -980,6 +1114,12 @@ export function LabelsPage() {
                 id={id}
                 label={label}
                 deleteLabel={() => deleteLabel(parseInt(id, 10))}
+                selected={selected.includes(id)}
+                onSelect={(checked) =>
+                  setSelection(
+                    checked ? [...selected, id] : selected.filter((other) => other !== id)
+                  )
+                }
               />
             ))}
           </SimpleGrid>
@@ -1009,9 +1149,6 @@ export function LabelsPage() {
                 </Menu.Item>
                 <Menu.Item leftSection={<IconPlus size={14} />} onClick={addMultiplexerLabel}>
                   {t('labels.addMultiplexer')}
-                </Menu.Item>
-                <Menu.Item leftSection={<IconTrash size={14} />} onClick={deleteAllLabels}>
-                  {t('labels.removeAll')}
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>

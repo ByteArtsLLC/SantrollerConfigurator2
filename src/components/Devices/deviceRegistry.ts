@@ -38,7 +38,9 @@ type DeviceDefinitions = {
     category: DeviceCategory;
     create: () => NonNullable<proto.IDevice[Kind]>;
     pins?: (device: NonNullable<proto.IDevice[Kind]>) => number[];
-    formatStatus?: (status: DeviceStatusSnapshot, pins: string) => string;
+    // Whether it's connected, for devices that can't just use `connected`. Empty to show only its
+    // pins
+    formatStatus?: (status: DeviceStatusSnapshot) => string;
     detail?: (device: NonNullable<proto.IDevice[Kind]>) => string;
   };
 };
@@ -80,8 +82,10 @@ const deviceRegistry: DeviceDefinitions = {
       turntablePollIntervalMs: 5,
     }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
-    formatStatus: (status, pins) =>
-      `${status.wiiExtType !== proto.WiiExtType.WiiNoExtension ? i18next.t('connected', 'Connected') : i18next.t('disconnected', 'Disconnected')}, ${pins}`,
+    formatStatus: (status) =>
+      status.wiiExtType !== proto.WiiExtType.WiiNoExtension
+        ? i18next.t('connected', 'Connected')
+        : i18next.t('disconnected', 'Disconnected'),
   },
   crazyGuitarNeck: {
     category: 'instruments',
@@ -122,8 +126,10 @@ const deviceRegistry: DeviceDefinitions = {
       mappingMode: proto.MappingMode.PerInput,
     }),
     pins: ({ firstPin }) => (firstPin >= 0 ? [firstPin, firstPin + 1] : []),
-    formatStatus: (status, pins) =>
-      `${Object.values(status.usbDevices).length ? i18next.t('connected', 'Connected') : i18next.t('disconnected', 'Disconnected')}, ${pins}`,
+    formatStatus: (status) =>
+      Object.values(status.usbDevices).length
+        ? i18next.t('connected', 'Connected')
+        : i18next.t('disconnected', 'Disconnected'),
   },
   multiplexer: {
     category: 'expansion',
@@ -142,7 +148,7 @@ const deviceRegistry: DeviceDefinitions = {
       ...(device.sixteenChannel ? [device.s3Pin] : []),
       device.inputPin,
     ],
-    formatStatus: (_, pins) => pins,
+    formatStatus: () => '',
   },
   worldTourDrum: {
     category: 'instruments',
@@ -158,8 +164,10 @@ const deviceRegistry: DeviceDefinitions = {
       mappingMode: proto.MappingMode.PerInput,
     }),
     pins: ({ spi, ackPin, attPin }) => [spi.mosi, spi.miso, spi.sck, ackPin, attPin],
-    formatStatus: (status, pins) =>
-      `${status.ps2CntType !== proto.PS2ControllerType.PS2ControllerTypeUnknown ? i18next.t('connected', 'Connected') : i18next.t('disconnected', 'Disconnected')}, ${pins}`,
+    formatStatus: (status) =>
+      status.ps2CntType !== proto.PS2ControllerType.PS2ControllerTypeUnknown
+        ? i18next.t('connected', 'Connected')
+        : i18next.t('disconnected', 'Disconnected'),
   },
   snes: {
     category: 'controllers',
@@ -170,15 +178,23 @@ const deviceRegistry: DeviceDefinitions = {
       mappingMode: proto.MappingMode.PerInput,
     }),
     pins: ({ clockPin, latchPin, dataPin }) => [clockPin, latchPin, dataPin],
-    formatStatus: (status, pins) =>
-      `${status.snesCntType !== proto.SNESControllerType.SNESControllerNone ? i18next.t('connected_with_type', { type: i18next.t(`snes.devices.${proto.SNESControllerType[status.snesCntType]}`) }) : i18next.t('disconnected', 'Disconnected')}, ${pins}`,
+    formatStatus: (status) =>
+      status.snesCntType !== proto.SNESControllerType.SNESControllerNone
+        ? i18next.t('connected_with_type', {
+            type: i18next.t(`snes.devices.${proto.SNESControllerType[status.snesCntType]}`),
+          })
+        : i18next.t('disconnected', 'Disconnected'),
   },
   joybus: {
     category: 'controllers',
     create: () => ({ dataPin: -1, mappingMode: proto.MappingMode.PerInput }),
     pins: ({ dataPin }) => [dataPin],
-    formatStatus: (status, pins) =>
-      `${status.joybusCntType !== proto.JoybusControllerType.JoybusControllerNone ? i18next.t('connected_with_type', { type: i18next.t(`joybus.devices.${proto.JoybusControllerType[status.joybusCntType]}`) }) : i18next.t('disconnected', 'Disconnected')}, ${pins}`,
+    formatStatus: (status) =>
+      status.joybusCntType !== proto.JoybusControllerType.JoybusControllerNone
+        ? i18next.t('connected_with_type', {
+            type: i18next.t(`joybus.devices.${proto.JoybusControllerType[status.joybusCntType]}`),
+          })
+        : i18next.t('disconnected', 'Disconnected'),
   },
   wiiEmulation: {
     category: 'emulation',
@@ -247,19 +263,19 @@ const deviceRegistry: DeviceDefinitions = {
     category: 'lighting',
     create: () => ({ pin: -1, count: 0, type: proto.WS2812Type.Ws2812Rgb }),
     pins: ({ pin }) => [pin],
-    formatStatus: (_, pins) => pins,
+    formatStatus: () => '',
   },
   apa102: {
     category: 'lighting',
     create: () => ({ spi: spi(12000000), count: 0, type: proto.APA102Type.Apa102Rgb }),
     pins: ({ spi }) => [spi.mosi, spi.sck],
-    formatStatus: (_, pins) => pins,
+    formatStatus: () => '',
   },
   stp16cpc: {
     category: 'lighting',
     create: () => ({ spi: spi(500000), oe: -1, le: -1, count: 0 }),
     pins: ({ spi, le, oe }) => [spi.mosi, spi.miso, spi.sck, le, oe],
-    formatStatus: (_, pins) => pins,
+    formatStatus: () => '',
   },
   bt: {
     category: 'controllers',
@@ -280,13 +296,13 @@ const deviceRegistry: DeviceDefinitions = {
     category: 'expansion',
     create: () => ({ inPins: 0, outPins: 0 }),
     pins: (matrix) => matrixAllPins(matrix),
-    formatStatus: (_, pins) => pins,
+    formatStatus: () => '',
   },
   switchNetwork: {
     category: 'expansion',
     create: () => ({ pins: 0, buttons: [] }),
     pins: ({ pins }) => Array.from(Array(32).keys()).filter((pin) => pins & (1 << pin)),
-    formatStatus: (_, pins) => pins,
+    formatStatus: () => '',
   },
   crkdDrum: {
     category: 'instruments',
@@ -315,14 +331,14 @@ const deviceRegistry: DeviceDefinitions = {
       syncPin: -1,
     }),
     pins: ({ dataPin, clockPin, syncPin }) => [dataPin, clockPin, syncPin ?? -1],
-    formatStatus: (_, pins) => pins,
+    formatStatus: () => '',
   },
   adcBattery: {
     category: 'power',
     // GP29 reads VSYS through the Pico's divide by 3, and 3.3V to 4.2V covers a single LiPo cell
     create: () => ({ pin: 29, dividerX1000: 3000, emptyMv: 3300, fullMv: 4200 }),
     pins: ({ pin }) => [pin],
-    formatStatus: (_, pins) => pins,
+    formatStatus: () => '',
   },
   powerManagement: {
     category: 'power',
@@ -340,7 +356,7 @@ const deviceRegistry: DeviceDefinitions = {
     }),
     pins: ({ heartbeatPin, inactivityPin }) =>
       [heartbeatPin ?? -1, inactivityPin ?? -1].filter((pin) => pin >= 0),
-    formatStatus: (_, pins) => pins,
+    formatStatus: () => '',
   },
 };
 
@@ -454,16 +470,14 @@ export function getDevicePins(device: proto.IDevice): number[] {
 
 export function getDeviceStatusLabel(status: DeviceStatusSnapshot): string {
   const kind = deviceKinds.find((candidate) => status.device[candidate] != null);
-  const pins = getDevicePins(status.device)
-    .map((pin) => `GP${pin}`)
-    .join(', ');
-  if (!kind) {
-    return `${status.connected ? i18next.t('connected', 'Connected') : i18next.t('disconnected', 'Disconnected')}, ${pins}`;
-  }
-
-  const label = deviceRegistry[kind].formatStatus
-    ? deviceRegistry[kind].formatStatus(status, pins)
-    : `${status.connected ? i18next.t('connected', 'Connected') : i18next.t('disconnected', 'Disconnected')}, ${pins}`;
-  const detail = resolveDeviceDetail(kind, status.device);
-  return detail ? `${label}, ${detail}` : label;
+  const pins = getDevicePins(status.device).map((pin) => `GP${pin}`);
+  const formatStatus = kind && deviceRegistry[kind].formatStatus;
+  const connection = formatStatus
+    ? formatStatus(status)
+    : status.connected
+      ? i18next.t('connected', 'Connected')
+      : i18next.t('disconnected', 'Disconnected');
+  const detail = kind && resolveDeviceDetail(kind, status.device);
+  // Devices without pins (eg Bluetooth, on the Pico's own radio) leave them out
+  return [connection, ...pins, detail].filter(Boolean).join(', ');
 }

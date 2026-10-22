@@ -1,14 +1,17 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   closestCenter,
+  CollisionDetection,
   DndContext,
   DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { arrayMove, rectSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable';
+import { rectSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
   IconBluetooth,
@@ -131,6 +134,23 @@ import { getInputLocalDeviceId, migrateSlotIds } from '@/components/Inputs/slotR
 import { useProfileLabels } from '@/components/Labels/useProfileLabels';
 import { Layout } from '@/components/Layout/Layout';
 import { RequireDevice } from '@/components/RequireDevice/RequireDevice';
+import {
+  applyOrder,
+  dragOrder,
+  groupSortingStrategy,
+  groupToEndOrder,
+  groupToStartOrder,
+  reorderIndexes,
+  withoutGroupOrder,
+} from '@/components/Selection/groupOrder';
+import {
+  anchorPreviewToPointer,
+  GroupDragPreview,
+  selectedCardStyle,
+  SelectionBar,
+  SelectToggle,
+  useIndexSelection,
+} from '@/components/Selection/Selection';
 import {
   retargetRule,
   TARGET_ASSIGNMENT_TYPES,
@@ -3937,6 +3957,9 @@ function SantrollerMapping({
   copyInput,
   expanded,
   onToggleExpanded,
+  selected = false,
+  onSelect,
+  placeholder = false,
 }: {
   mapping: proto.IMapping;
   type: proto.SubType;
@@ -3949,6 +3972,11 @@ function SantrollerMapping({
   copyInput: () => void;
   expanded: boolean;
   onToggleExpanded: () => void;
+  // Left out where cards can't be selected
+  selected?: boolean;
+  onSelect?: (selected: boolean) => void;
+  // Faded, where a dragged group will land
+  placeholder?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isSorting } = useSortable({
     id: mappingIdx,
@@ -3963,6 +3991,7 @@ function SantrollerMapping({
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
     transition: isSorting ? transition : '',
+    opacity: placeholder ? 0.4 : undefined,
     // Not stretched to the row, so collapsed cards stay short next to an open one
     alignSelf: 'flex-start',
     // lets the card shrink to fit narrow (phone) screens
@@ -4109,7 +4138,9 @@ function SantrollerMapping({
         withBorder
         w="420px"
         maw="100%"
-        style={OFFSCREEN_MAPPING_CARD}
+        style={
+          selected ? { ...OFFSCREEN_MAPPING_CARD, ...selectedCardStyle } : OFFSCREEN_MAPPING_CARD
+        }
       >
         <Group justify="space-between" align="center" mb="xs" wrap="nowrap">
           <Group gap="xs">
@@ -4146,6 +4177,9 @@ function SantrollerMapping({
           <Group gap={4} wrap="nowrap">
             {!simpleMode && (
               <>
+                {onSelect && (
+                  <SelectToggle variant="subtle" selected={selected} onSelect={onSelect} />
+                )}
                 <ActionIcon variant="subtle" onClick={copyInput} title={t('common.copy')}>
                   <IconCopy size={18} />
                 </ActionIcon>
@@ -5260,6 +5294,9 @@ function SantrollerLed({
   copyInput,
   expanded,
   onToggleExpanded,
+  selected = false,
+  onSelect,
+  placeholder = false,
 }: {
   led: proto.ILed;
   profileIdx: number;
@@ -5272,6 +5309,11 @@ function SantrollerLed({
   copyInput: () => void;
   expanded: boolean;
   onToggleExpanded: () => void;
+  // Left out where cards can't be selected
+  selected?: boolean;
+  onSelect?: (selected: boolean) => void;
+  // Faded, where a dragged group will land
+  placeholder?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isSorting } = useSortable({
     id: ledIdx,
@@ -5286,6 +5328,7 @@ function SantrollerLed({
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
     transition: isSorting ? transition : '',
+    opacity: placeholder ? 0.4 : undefined,
     // Not stretched to the row, so collapsed cards stay short next to an open one
     alignSelf: 'flex-start',
     // lets the card shrink to fit narrow (phone) screens
@@ -5528,7 +5571,9 @@ function SantrollerLed({
         withBorder
         w="420px"
         maw="100%"
-        style={OFFSCREEN_MAPPING_CARD}
+        style={
+          selected ? { ...OFFSCREEN_MAPPING_CARD, ...selectedCardStyle } : OFFSCREEN_MAPPING_CARD
+        }
       >
         <Group justify="space-between" align="center" mb="xs" wrap="nowrap">
           <Group gap="xs">
@@ -5565,6 +5610,9 @@ function SantrollerLed({
           <Group gap={4} wrap="nowrap">
             {!simpleMode && (
               <>
+                {onSelect && (
+                  <SelectToggle variant="subtle" selected={selected} onSelect={onSelect} />
+                )}
                 <ActionIcon variant="subtle" onClick={copyInput} title={t('common.copy')}>
                   <IconCopy size={18} />
                 </ActionIcon>
@@ -7811,6 +7859,9 @@ function SantrollerAssignmentList({
   copyAssignment,
   expanded,
   onToggleExpanded,
+  selected = false,
+  onSelect,
+  placeholder = false,
 }: {
   mapping: proto.IProfileAssignment;
   profileIdx: number;
@@ -7823,10 +7874,24 @@ function SantrollerAssignmentList({
   copyAssignment: () => void;
   expanded: boolean;
   onToggleExpanded: () => void;
+  // Left out where cards can't be selected
+  selected?: boolean;
+  onSelect?: (selected: boolean) => void;
+  // Faded, where a dragged group will land
+  placeholder?: boolean;
 }) {
   const [opened, { open, close }] = useDisclosure(false);
   const [triggerOpened, { open: openTrigger, close: closeTrigger }] = useDisclosure(false);
   const { t } = useTranslation();
+  const { attributes, listeners, setNodeRef, transform, transition, isSorting } = useSortable({
+    id: listIdx,
+  });
+  const sortStyle: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    transition: isSorting ? transition : '',
+    opacity: placeholder ? 0.4 : undefined,
+    maxWidth: '100%',
+  };
 
   const assignments = useMemo(() => mapping.assignments ?? [], [mapping.assignments]);
 
@@ -8112,468 +8177,489 @@ function SantrollerAssignmentList({
           </Group>
         </Flex>
       </Modal>
-      <Card
-        shadow="sm"
-        padding="lg"
-        radius="md"
-        withBorder
-        w="420px"
-        maw="100%"
-        style={OFFSCREEN_RULE_CARD}
-      >
-        <Group justify="space-between" align="center" mb="xs" wrap="nowrap">
-          <Group gap="xs" style={{ cursor: 'pointer' }} onClick={onToggleExpanded}>
-            <Title order={4}>{t('assignments.rule_title', { num: listIdx + 1 })}</Title>
-            <Badge color={isActive ? 'blue' : 'gray'}>
-              {isActive ? t('state.active') : t('state.inactive')}
-            </Badge>
-          </Group>
-          <Group gap={4}>
-            <Menu shadow="md" width={220}>
-              <Menu.Target>
-                <ActionIcon variant="subtle" color="blue" title={t('assignments.presets_title')}>
-                  <IconSparkles size={18} />
-                </ActionIcon>
-              </Menu.Target>
-              <Menu.Dropdown>
-                <Menu.Label>{t('assignments.presets_title')}</Menu.Label>
-                <Menu.Item
-                  leftSection={<IconUsb size={14} />}
-                  onClick={() => applyPreset('usb_auto')}
-                >
-                  {t('assignments.preset_usb_auto')}
-                </Menu.Item>
-                <Menu.Item
-                  leftSection={<IconDeviceGamepad size={14} />}
-                  onClick={() => applyPreset('usb_xbox')}
-                >
-                  {t('assignments.preset_usb_xbox')}
-                </Menu.Item>
-                <Menu.Item
-                  leftSection={<IconDeviceGamepad size={14} />}
-                  onClick={() => applyPreset('usb_ps3')}
-                >
-                  {t('assignments.preset_usb_ps3')}
-                </Menu.Item>
-                <Menu.Item
-                  leftSection={<IconDeviceGamepad size={14} />}
-                  onClick={() => applyPreset('usb_ps4')}
-                >
-                  {t('assignments.preset_usb_ps4')}
-                </Menu.Item>
-                {hasBluetooth && (
-                  <Menu.Item
-                    leftSection={<IconBluetooth size={14} />}
-                    onClick={() => applyPreset('bluetooth')}
-                  >
-                    {t('assignments.preset_bluetooth')}
-                  </Menu.Item>
-                )}
-                {hasWii && (
-                  <Menu.Item
-                    leftSection={<IconSparkles size={14} />}
-                    onClick={() => applyPreset('wii_adapter')}
-                  >
-                    {t('assignments.preset_wii_adapter')}
-                  </Menu.Item>
-                )}
-                {hasPsx && (
-                  <Menu.Item
-                    leftSection={<IconSparkles size={14} />}
-                    onClick={() => applyPreset('ps2_adapter')}
-                  >
-                    {t('assignments.preset_ps2_adapter')}
-                  </Menu.Item>
-                )}
-                <Menu.Item
-                  leftSection={<IconSparkles size={14} />}
-                  onClick={() => applyPreset('boot_switch')}
-                >
-                  {t('assignments.preset_boot_switch')}
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-            <ActionIcon variant="subtle" onClick={copyAssignment} title={t('common.copy')}>
-              <IconCopy size={18} />
-            </ActionIcon>
-            <ActionIcon variant="subtle" color="red" onClick={open} title={t('common.delete')}>
-              <IconTrash size={18} />
-            </ActionIcon>
-            {hasEmulation && (
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                onClick={onToggleExpanded}
-                title={showEditor ? t('assignments.collapse') : t('assignments.expand')}
-              >
-                <IconChevronDown
-                  size={18}
-                  style={{
-                    transform: showEditor ? 'rotate(180deg)' : undefined,
-                    transition: 'transform 150ms ease',
-                  }}
-                />
-              </ActionIcon>
-            )}
-          </Group>
-        </Group>
-
+      <div ref={setNodeRef} style={sortStyle} {...attributes}>
         <Card
-          padding="xs"
-          radius="sm"
+          shadow="sm"
+          padding="lg"
+          radius="md"
           withBorder
-          mb={showEditor ? 'sm' : 0}
-          bg="var(--mantine-color-default-hover)"
-          style={showEditor ? undefined : { cursor: 'pointer' }}
-          onClick={showEditor ? undefined : onToggleExpanded}
+          w="420px"
+          maw="100%"
+          style={selected ? { ...OFFSCREEN_RULE_CARD, ...selectedCardStyle } : OFFSCREEN_RULE_CARD}
         >
-          <Group gap={6} wrap="wrap">
-            <Text size="xs" fw={500} c="dimmed">
-              {t('assignments.rule_summary_prefix')}:
-            </Text>
-            {summaryParts.map((part, idx) => (
-              <Badge
-                key={idx}
-                variant="light"
-                color={hasEmulation ? 'teal' : 'red'}
-                size="sm"
-                maw="100%"
-              >
-                {part}
+          <Group justify="space-between" align="center" mb="xs" wrap="nowrap">
+            <Group gap="xs">
+              {onSelect && (
+                <div
+                  {...listeners}
+                  style={{ cursor: 'grab', display: 'flex', alignItems: 'center' }}
+                >
+                  <IconGripVertical size={18} stroke={1.5} />
+                </div>
+              )}
+              <Title order={4} style={{ cursor: 'pointer' }} onClick={onToggleExpanded}>
+                {t('assignments.rule_title', { num: listIdx + 1 })}
+              </Title>
+              <Badge color={isActive ? 'blue' : 'gray'}>
+                {isActive ? t('state.active') : t('state.inactive')}
               </Badge>
-            ))}
+            </Group>
+            <Group gap={4}>
+              <Menu shadow="md" width={220}>
+                <Menu.Target>
+                  <ActionIcon variant="subtle" color="blue" title={t('assignments.presets_title')}>
+                    <IconSparkles size={18} />
+                  </ActionIcon>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Label>{t('assignments.presets_title')}</Menu.Label>
+                  <Menu.Item
+                    leftSection={<IconUsb size={14} />}
+                    onClick={() => applyPreset('usb_auto')}
+                  >
+                    {t('assignments.preset_usb_auto')}
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<IconDeviceGamepad size={14} />}
+                    onClick={() => applyPreset('usb_xbox')}
+                  >
+                    {t('assignments.preset_usb_xbox')}
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<IconDeviceGamepad size={14} />}
+                    onClick={() => applyPreset('usb_ps3')}
+                  >
+                    {t('assignments.preset_usb_ps3')}
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<IconDeviceGamepad size={14} />}
+                    onClick={() => applyPreset('usb_ps4')}
+                  >
+                    {t('assignments.preset_usb_ps4')}
+                  </Menu.Item>
+                  {hasBluetooth && (
+                    <Menu.Item
+                      leftSection={<IconBluetooth size={14} />}
+                      onClick={() => applyPreset('bluetooth')}
+                    >
+                      {t('assignments.preset_bluetooth')}
+                    </Menu.Item>
+                  )}
+                  {hasWii && (
+                    <Menu.Item
+                      leftSection={<IconSparkles size={14} />}
+                      onClick={() => applyPreset('wii_adapter')}
+                    >
+                      {t('assignments.preset_wii_adapter')}
+                    </Menu.Item>
+                  )}
+                  {hasPsx && (
+                    <Menu.Item
+                      leftSection={<IconSparkles size={14} />}
+                      onClick={() => applyPreset('ps2_adapter')}
+                    >
+                      {t('assignments.preset_ps2_adapter')}
+                    </Menu.Item>
+                  )}
+                  <Menu.Item
+                    leftSection={<IconSparkles size={14} />}
+                    onClick={() => applyPreset('boot_switch')}
+                  >
+                    {t('assignments.preset_boot_switch')}
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+              {onSelect && (
+                <SelectToggle variant="subtle" selected={selected} onSelect={onSelect} />
+              )}
+              <ActionIcon variant="subtle" onClick={copyAssignment} title={t('common.copy')}>
+                <IconCopy size={18} />
+              </ActionIcon>
+              <ActionIcon variant="subtle" color="red" onClick={open} title={t('common.delete')}>
+                <IconTrash size={18} />
+              </ActionIcon>
+              {hasEmulation && (
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  onClick={onToggleExpanded}
+                  title={showEditor ? t('assignments.collapse') : t('assignments.expand')}
+                >
+                  <IconChevronDown
+                    size={18}
+                    style={{
+                      transform: showEditor ? 'rotate(180deg)' : undefined,
+                      transition: 'transform 150ms ease',
+                    }}
+                  />
+                </ActionIcon>
+              )}
+            </Group>
           </Group>
-        </Card>
 
-        {!showEditor && (
-          <Button
-            size="xs"
-            variant="light"
-            fullWidth
-            mt="xs"
-            leftSection={<IconPencil size={14} />}
-            rightSection={<IconChevronDown size={14} />}
-            onClick={onToggleExpanded}
+          <Card
+            padding="xs"
+            radius="sm"
+            withBorder
+            mb={showEditor ? 'sm' : 0}
+            bg="var(--mantine-color-default-hover)"
+            style={showEditor ? undefined : { cursor: 'pointer' }}
+            onClick={showEditor ? undefined : onToggleExpanded}
           >
-            {t('assignments.expand')}
-          </Button>
-        )}
+            <Group gap={6} wrap="wrap">
+              <Text size="xs" fw={500} c="dimmed">
+                {t('assignments.rule_summary_prefix')}:
+              </Text>
+              {summaryParts.map((part, idx) => (
+                <Badge
+                  key={idx}
+                  variant="light"
+                  color={hasEmulation ? 'teal' : 'red'}
+                  size="sm"
+                  maw="100%"
+                >
+                  {part}
+                </Badge>
+              ))}
+            </Group>
+          </Card>
 
-        {showEditor && !hasEmulation && (
-          <Alert
-            variant="light"
-            color="red"
-            title={t('assignments.missingEmulation')}
-            icon={<IconExclamationCircle size={16} />}
-            mb="xs"
-          >
-            <Text size="xs">{t('assignments.missingDevice')}</Text>
+          {!showEditor && (
             <Button
               size="xs"
-              variant="outline"
-              color="red"
+              variant="light"
+              fullWidth
               mt="xs"
-              onClick={() =>
-                updateEmulation({
-                  consoleType: {
-                    consoleType: null,
-                    forcedType: null,
-                    xinputOnWindows: true,
-                    ps4OrPs5Mode: false,
-                  },
-                })
-              }
+              leftSection={<IconPencil size={14} />}
+              rightSection={<IconChevronDown size={14} />}
+              onClick={onToggleExpanded}
             >
-              {t('assignments.set_default_usb')}
+              {t('assignments.expand')}
             </Button>
-          </Alert>
-        )}
+          )}
 
-        {showEditor && (
-          <Stack gap="sm">
-            <Stack gap={4}>
-              <Input.Wrapper size="xs" label={t('assignments.step1_title')}>
-                <SegmentedControl
-                  fullWidth
-                  size="xs"
-                  value={currentEmulMode}
-                  onChange={(val) => {
-                    switch (val) {
-                      case 'consoleType':
-                        updateEmulation({
-                          consoleType: {
-                            consoleType: null,
-                            forcedType: null,
-                            xinputOnWindows: emulationItem?.consoleType?.xinputOnWindows ?? true,
-                            ps4OrPs5Mode: emulationItem?.consoleType?.ps4OrPs5Mode ?? false,
-                          },
-                        });
-                        break;
-                      case 'bluetooth':
-                        updateEmulation({ bluetooth: proto.BluetoothMode.BTStandard });
-                        break;
-                      case 'ps2Emulation':
-                        updateEmulation({ ps2Emulation: {} });
-                        break;
-                      case 'wiiEmulation':
-                        updateEmulation({ wiiEmulation: {} });
-                        break;
-                      case 'joybusEmulation':
-                        updateEmulation({ joybusEmulation: {} });
-                        break;
-                      case 'snesEmulation':
-                        updateEmulation({ snesEmulation: {} });
-                        break;
-                    }
-                  }}
-                  data={targetOptions}
-                />
-              </Input.Wrapper>
-              {currentEmulMode === 'consoleType' && (
-                <Stack gap={4} mt="xs">
-                  <Select
+          {showEditor && !hasEmulation && (
+            <Alert
+              variant="light"
+              color="red"
+              title={t('assignments.missingEmulation')}
+              icon={<IconExclamationCircle size={16} />}
+              mb="xs"
+            >
+              <Text size="xs">{t('assignments.missingDevice')}</Text>
+              <Button
+                size="xs"
+                variant="outline"
+                color="red"
+                mt="xs"
+                onClick={() =>
+                  updateEmulation({
+                    consoleType: {
+                      consoleType: null,
+                      forcedType: null,
+                      xinputOnWindows: true,
+                      ps4OrPs5Mode: false,
+                    },
+                  })
+                }
+              >
+                {t('assignments.set_default_usb')}
+              </Button>
+            </Alert>
+          )}
+
+          {showEditor && (
+            <Stack gap="sm">
+              <Stack gap={4}>
+                <Input.Wrapper size="xs" label={t('assignments.step1_title')}>
+                  <SegmentedControl
+                    fullWidth
                     size="xs"
-                    label={t('assignments.usb_mode.label')}
-                    value={currentUsbOption}
+                    value={currentEmulMode}
                     onChange={(val) => {
-                      const prevConsole = emulationItem?.consoleType;
                       switch (val) {
-                        case 'auto':
+                        case 'consoleType':
                           updateEmulation({
                             consoleType: {
                               consoleType: null,
                               forcedType: null,
-                              xinputOnWindows: prevConsole?.xinputOnWindows ?? true,
-                              ps4OrPs5Mode: prevConsole?.ps4OrPs5Mode ?? false,
+                              xinputOnWindows: emulationItem?.consoleType?.xinputOnWindows ?? true,
+                              ps4OrPs5Mode: emulationItem?.consoleType?.ps4OrPs5Mode ?? false,
                             },
                           });
                           break;
-                        case 'forced':
-                          updateEmulation({
-                            consoleType: {
-                              consoleType: null,
-                              forcedType: proto.ConsoleMode.ModeXbox360,
-                              xinputOnWindows: prevConsole?.xinputOnWindows ?? true,
-                              ps4OrPs5Mode: prevConsole?.ps4OrPs5Mode ?? false,
-                            },
-                          });
+                        case 'bluetooth':
+                          updateEmulation({ bluetooth: proto.BluetoothMode.BTStandard });
                           break;
-                        case 'specific':
-                          updateEmulation({
-                            consoleType: {
-                              consoleType: proto.ConsoleType.ConsolePC,
-                              forcedType: null,
-                              xinputOnWindows: prevConsole?.xinputOnWindows ?? true,
-                              ps4OrPs5Mode: prevConsole?.ps4OrPs5Mode ?? false,
-                            },
-                          });
+                        case 'ps2Emulation':
+                          updateEmulation({ ps2Emulation: {} });
+                          break;
+                        case 'wiiEmulation':
+                          updateEmulation({ wiiEmulation: {} });
+                          break;
+                        case 'joybusEmulation':
+                          updateEmulation({ joybusEmulation: {} });
+                          break;
+                        case 'snesEmulation':
+                          updateEmulation({ snesEmulation: {} });
                           break;
                       }
                     }}
-                    data={[
-                      { value: 'auto', label: t('assignments.usb_mode.auto') },
-                      { value: 'forced', label: t('assignments.usb_mode.forced') },
-                      { value: 'specific', label: t('assignments.usb_mode.specific') },
-                    ]}
+                    data={targetOptions}
                   />
-                  {currentUsbOption === 'forced' && (
-                    <DropdownBox
-                      title="activation.forcedType"
-                      e={proto.ConsoleMode}
-                      val={emulationItem?.consoleType?.forcedType ?? proto.ConsoleMode.ModeXbox360}
-                      label="consoleMode"
-                      dispatch={(forcedType) =>
-                        updateEmulation({
-                          consoleType: {
-                            ...emulationItem?.consoleType,
-                            consoleType: null,
-                            forcedType,
-                          },
-                        })
-                      }
+                </Input.Wrapper>
+                {currentEmulMode === 'consoleType' && (
+                  <Stack gap={4} mt="xs">
+                    <Select
+                      size="xs"
+                      label={t('assignments.usb_mode.label')}
+                      value={currentUsbOption}
+                      onChange={(val) => {
+                        const prevConsole = emulationItem?.consoleType;
+                        switch (val) {
+                          case 'auto':
+                            updateEmulation({
+                              consoleType: {
+                                consoleType: null,
+                                forcedType: null,
+                                xinputOnWindows: prevConsole?.xinputOnWindows ?? true,
+                                ps4OrPs5Mode: prevConsole?.ps4OrPs5Mode ?? false,
+                              },
+                            });
+                            break;
+                          case 'forced':
+                            updateEmulation({
+                              consoleType: {
+                                consoleType: null,
+                                forcedType: proto.ConsoleMode.ModeXbox360,
+                                xinputOnWindows: prevConsole?.xinputOnWindows ?? true,
+                                ps4OrPs5Mode: prevConsole?.ps4OrPs5Mode ?? false,
+                              },
+                            });
+                            break;
+                          case 'specific':
+                            updateEmulation({
+                              consoleType: {
+                                consoleType: proto.ConsoleType.ConsolePC,
+                                forcedType: null,
+                                xinputOnWindows: prevConsole?.xinputOnWindows ?? true,
+                                ps4OrPs5Mode: prevConsole?.ps4OrPs5Mode ?? false,
+                              },
+                            });
+                            break;
+                        }
+                      }}
+                      data={[
+                        { value: 'auto', label: t('assignments.usb_mode.auto') },
+                        { value: 'forced', label: t('assignments.usb_mode.forced') },
+                        { value: 'specific', label: t('assignments.usb_mode.specific') },
+                      ]}
                     />
-                  )}
-                  {currentUsbOption === 'specific' && (
-                    <DropdownBox
-                      title="activation.consoleType"
-                      e={proto.ConsoleType}
-                      val={emulationItem?.consoleType?.consoleType ?? proto.ConsoleType.ConsolePC}
-                      label="consoleType"
-                      dispatch={(consoleType) =>
-                        updateEmulation({
-                          consoleType: {
-                            ...emulationItem?.consoleType,
-                            consoleType,
-                            forcedType: null,
-                          },
-                        })
-                      }
-                    />
-                  )}
-                  {currentUsbOption === 'auto' && (
-                    <>
-                      {!hidOnlySubtypes.includes(type) && (
-                        <Input.Wrapper
-                          size="xs"
-                          label={t('main.xinput_on_windows.label')}
-                          description={t('main.xinput_on_windows.description')}
-                        >
-                          <SegmentedControl
-                            fullWidth
+                    {currentUsbOption === 'forced' && (
+                      <DropdownBox
+                        title="activation.forcedType"
+                        e={proto.ConsoleMode}
+                        val={
+                          emulationItem?.consoleType?.forcedType ?? proto.ConsoleMode.ModeXbox360
+                        }
+                        label="consoleMode"
+                        dispatch={(forcedType) =>
+                          updateEmulation({
+                            consoleType: {
+                              ...emulationItem?.consoleType,
+                              consoleType: null,
+                              forcedType,
+                            },
+                          })
+                        }
+                      />
+                    )}
+                    {currentUsbOption === 'specific' && (
+                      <DropdownBox
+                        title="activation.consoleType"
+                        e={proto.ConsoleType}
+                        val={emulationItem?.consoleType?.consoleType ?? proto.ConsoleType.ConsolePC}
+                        label="consoleType"
+                        dispatch={(consoleType) =>
+                          updateEmulation({
+                            consoleType: {
+                              ...emulationItem?.consoleType,
+                              consoleType,
+                              forcedType: null,
+                            },
+                          })
+                        }
+                      />
+                    )}
+                    {currentUsbOption === 'auto' && (
+                      <>
+                        {!hidOnlySubtypes.includes(type) && (
+                          <Input.Wrapper
                             size="xs"
-                            data={[
-                              { label: t('main.xinput_on_windows.XInput'), value: 'true' },
-                              { label: t('main.xinput_on_windows.HID'), value: 'false' },
-                            ]}
-                            value={
-                              (emulationItem?.consoleType?.xinputOnWindows ?? true)
-                                ? 'true'
-                                : 'false'
-                            }
-                            onChange={(val) =>
-                              updateEmulation({
-                                consoleType: {
-                                  ...emulationItem?.consoleType,
-                                  consoleType: null,
-                                  forcedType: null,
-                                  xinputOnWindows: val === 'true',
-                                },
-                              })
-                            }
-                          />
-                        </Input.Wrapper>
-                      )}
-                      {ps4Subtypes.includes(type) && (
-                        <Input.Wrapper
-                          size="xs"
-                          label={t('main.ps4EmulationMode.label')}
-                          description={t('main.ps4EmulationMode.description')}
-                        >
-                          <SegmentedControl
-                            fullWidth
+                            label={t('main.xinput_on_windows.label')}
+                            description={t('main.xinput_on_windows.description')}
+                          >
+                            <SegmentedControl
+                              fullWidth
+                              size="xs"
+                              data={[
+                                { label: t('main.xinput_on_windows.XInput'), value: 'true' },
+                                { label: t('main.xinput_on_windows.HID'), value: 'false' },
+                              ]}
+                              value={
+                                (emulationItem?.consoleType?.xinputOnWindows ?? true)
+                                  ? 'true'
+                                  : 'false'
+                              }
+                              onChange={(val) =>
+                                updateEmulation({
+                                  consoleType: {
+                                    ...emulationItem?.consoleType,
+                                    consoleType: null,
+                                    forcedType: null,
+                                    xinputOnWindows: val === 'true',
+                                  },
+                                })
+                              }
+                            />
+                          </Input.Wrapper>
+                        )}
+                        {ps4Subtypes.includes(type) && (
+                          <Input.Wrapper
                             size="xs"
-                            data={[
-                              { label: t('main.ps4EmulationMode.PS3'), value: 'false' },
-                              { label: t('main.ps4EmulationMode.PS4'), value: 'true' },
-                            ]}
-                            value={
-                              (emulationItem?.consoleType?.ps4OrPs5Mode ?? false) ? 'true' : 'false'
-                            }
-                            onChange={(val) =>
-                              updateEmulation({
-                                consoleType: {
-                                  ...emulationItem?.consoleType,
-                                  consoleType: null,
-                                  forcedType: null,
-                                  ps4OrPs5Mode: val === 'true',
-                                },
-                              })
-                            }
-                          />
-                        </Input.Wrapper>
-                      )}
-                    </>
-                  )}
-                </Stack>
-              )}
-              {currentEmulMode === 'bluetooth' && (
-                <DropdownBox
-                  title="activation.bluetooth"
-                  e={proto.BluetoothMode}
-                  val={emulationItem?.bluetooth ?? proto.BluetoothMode.BTStandard}
-                  label="bluetooth"
-                  dispatch={(bluetooth) => updateEmulation({ bluetooth })}
-                />
-              )}
-            </Stack>
+                            label={t('main.ps4EmulationMode.label')}
+                            description={t('main.ps4EmulationMode.description')}
+                          >
+                            <SegmentedControl
+                              fullWidth
+                              size="xs"
+                              data={[
+                                { label: t('main.ps4EmulationMode.PS3'), value: 'false' },
+                                { label: t('main.ps4EmulationMode.PS4'), value: 'true' },
+                              ]}
+                              value={
+                                (emulationItem?.consoleType?.ps4OrPs5Mode ?? false)
+                                  ? 'true'
+                                  : 'false'
+                              }
+                              onChange={(val) =>
+                                updateEmulation({
+                                  consoleType: {
+                                    ...emulationItem?.consoleType,
+                                    consoleType: null,
+                                    forcedType: null,
+                                    ps4OrPs5Mode: val === 'true',
+                                  },
+                                })
+                              }
+                            />
+                          </Input.Wrapper>
+                        )}
+                      </>
+                    )}
+                  </Stack>
+                )}
+                {currentEmulMode === 'bluetooth' && (
+                  <DropdownBox
+                    title="activation.bluetooth"
+                    e={proto.BluetoothMode}
+                    val={emulationItem?.bluetooth ?? proto.BluetoothMode.BTStandard}
+                    label="bluetooth"
+                    dispatch={(bluetooth) => updateEmulation({ bluetooth })}
+                  />
+                )}
+              </Stack>
 
-            <Divider my={2} />
+              <Divider my={2} />
 
-            <ControllerSourcesEditor
-              assignments={assignments}
-              slotIds={slotIds}
-              onAddSource={addHostSource}
-              onRemoveSource={removeHostSource}
-              onUpdateSource={updateHostSource}
-              hasUsbHost={hasUsbHost}
-              hasBluetooth={hasBluetooth}
-              hasMidi={hasMidi}
-              hasWii={hasWii}
-              hasPsx={hasPsx}
-              hasSnes={hasSnes}
-              hasJoybus={hasJoybus}
-            />
-
-            <Switch
-              size="xs"
-              label={t('assignments.localInputs')}
-              description={t('assignments.localInputsDesc')}
-              checked={localInputsIdx !== -1}
-              onChange={(evt) =>
-                dispatch({
-                  ...mapping,
-                  assignments: evt.currentTarget.checked
-                    ? [...assignments, { localInputs: {} }]
-                    : assignments.filter((_, idx) => idx !== localInputsIdx),
-                })
-              }
-            />
-
-            <Divider my={2} />
-
-            <Stack gap={4}>
-              <Text size="sm" fw={600}>
-                {t('assignments.step3_title')}
-              </Text>
-              <Select
-                size="xs"
-                value={currentTrigger}
-                onChange={(val) => {
-                  switch (val) {
-                    case 'always':
-                      updateTrigger(null);
-                      break;
-                    case 'input':
-                      updateTrigger({ input: { input: {} } });
-                      break;
-                    case 'inputAnyTime':
-                      updateTrigger({ inputAnyTime: { input: {} } });
-                      break;
-                  }
-                }}
-                data={[
-                  { value: 'always', label: t('assignments.trigger.always') },
-                  { value: 'input', label: t('assignments.trigger.boot') },
-                  { value: 'inputAnyTime', label: t('assignments.trigger.anytime') },
-                ]}
+              <ControllerSourcesEditor
+                assignments={assignments}
+                slotIds={slotIds}
+                onAddSource={addHostSource}
+                onRemoveSource={removeHostSource}
+                onUpdateSource={updateHostSource}
+                hasUsbHost={hasUsbHost}
+                hasBluetooth={hasBluetooth}
+                hasMidi={hasMidi}
+                hasWii={hasWii}
+                hasPsx={hasPsx}
+                hasSnes={hasSnes}
+                hasJoybus={hasJoybus}
               />
-              {currentTrigger !== 'always' && (
+
+              <Switch
+                size="xs"
+                label={t('assignments.localInputs')}
+                description={t('assignments.localInputsDesc')}
+                checked={localInputsIdx !== -1}
+                onChange={(evt) =>
+                  dispatch({
+                    ...mapping,
+                    assignments: evt.currentTarget.checked
+                      ? [...assignments, { localInputs: {} }]
+                      : assignments.filter((_, idx) => idx !== localInputsIdx),
+                  })
+                }
+              />
+
+              <Divider my={2} />
+
+              <Stack gap={4}>
+                <Text size="sm" fw={600}>
+                  {t('assignments.step3_title')}
+                </Text>
+                <Select
+                  size="xs"
+                  value={currentTrigger}
+                  onChange={(val) => {
+                    switch (val) {
+                      case 'always':
+                        updateTrigger(null);
+                        break;
+                      case 'input':
+                        updateTrigger({ input: { input: {} } });
+                        break;
+                      case 'inputAnyTime':
+                        updateTrigger({ inputAnyTime: { input: {} } });
+                        break;
+                    }
+                  }}
+                  data={[
+                    { value: 'always', label: t('assignments.trigger.always') },
+                    { value: 'input', label: t('assignments.trigger.boot') },
+                    { value: 'inputAnyTime', label: t('assignments.trigger.anytime') },
+                  ]}
+                />
+                {currentTrigger !== 'always' && (
+                  <Button
+                    size="xs"
+                    variant="light"
+                    color={triggerSet ? 'blue' : 'red'}
+                    leftSection={<IconPencil size={14} />}
+                    onClick={openTrigger}
+                  >
+                    {triggerSet ? t('assignments.trigger_edit') : t('assignments.trigger_pick')}
+                  </Button>
+                )}
+              </Stack>
+              {hasEmulation && (
                 <Button
                   size="xs"
-                  variant="light"
-                  color={triggerSet ? 'blue' : 'red'}
-                  leftSection={<IconPencil size={14} />}
-                  onClick={openTrigger}
+                  variant="subtle"
+                  color="gray"
+                  fullWidth
+                  rightSection={
+                    <IconChevronDown size={14} style={{ transform: 'rotate(180deg)' }} />
+                  }
+                  onClick={onToggleExpanded}
                 >
-                  {triggerSet ? t('assignments.trigger_edit') : t('assignments.trigger_pick')}
+                  {t('assignments.collapse')}
                 </Button>
               )}
             </Stack>
-            {hasEmulation && (
-              <Button
-                size="xs"
-                variant="subtle"
-                color="gray"
-                fullWidth
-                rightSection={<IconChevronDown size={14} style={{ transform: 'rotate(180deg)' }} />}
-                onClick={onToggleExpanded}
-              >
-                {t('assignments.collapse')}
-              </Button>
-            )}
-          </Stack>
-        )}
-      </Card>
+          )}
+        </Card>
+      </div>
       <Modal
         opened={triggerOpened && currentTrigger !== 'always'}
         onClose={closeTrigger}
@@ -9399,56 +9485,92 @@ function BlankProfileWizard({
 
 // Buttons to load the defaults for each device. Device labels show live status, so this is its own
 // component to keep status updates from re-rendering the whole profile.
-function DeviceDefaultsButtons({
+// The devices and profile slots defaults can be loaded for, under one heading in the load
+// defaults menu. Devices that need assigning first are shown, but can't be picked.
+function DeviceDefaultsItems({
   profile,
+  slots,
   onPick,
 }: {
   profile: proto.IProfile;
-  onPick: (device: DeviceStatus) => void;
+  slots: ProfileSlot[];
+  onPick: (target: DeviceStatus | ProfileSlot) => void;
 }) {
   const { t } = useTranslation();
   const deviceStatus = useConfigStore((state) => state.deviceStatus);
+  const slotsWithDefaults = slots.filter(
+    (slot) =>
+      hasDefaultMappings(slot.deviceKind === 'midi' ? 'midiSerial' : slot.deviceKind) ||
+      hasDefaultMappings(slot.deviceKind)
+  );
+  const unassigned = Object.values(deviceStatus).filter(
+    (item) =>
+      hasDefaults(item) &&
+      requiresAssignment(item.type, item.device) &&
+      !isDeviceAssigned(item.type, profile, item.device)
+  );
+  const devices = Object.values(deviceStatus).filter(
+    (item) =>
+      hasDefaults(item) &&
+      !isMidiOutDevice(item.device) &&
+      !requiresAssignment(item.type, item.device)
+  );
+  if (!slotsWithDefaults.length && !unassigned.length && !devices.length) {
+    return null;
+  }
+  const deviceLabel = (item: DeviceStatus) =>
+    t('defaults_dialog.device', {
+      device: t(`devices.${item.type}`),
+      status: DeviceStatus.label(item),
+    });
   return (
     <>
-      {Object.values(deviceStatus)
-        .filter((item) => hasDefaults(item) && requiresAssignment(item.type, item.device))
-        .filter((item) => !isDeviceAssigned(item.type, profile, item.device))
-        .map((item) => (
-          <Button
-            value={item.id}
-            key={`unassigned-${item.id}`}
-            disabled
-            title={t('assignments.device_not_assigned')}
-          >
-            {t('defaults_dialog.for', {
-              device: t(`devices.${item.type}`),
-              status: DeviceStatus.label(item),
-            })}
-          </Button>
-        ))}
-      {Object.values(deviceStatus)
-        .filter(
-          (item) =>
-            hasDefaults(item) &&
-            !isMidiOutDevice(item.device) &&
-            !requiresAssignment(item.type, item.device)
-        )
-        .map((item) => (
-          <Button value={item.id} key={`nonslot-${item.id}`} onClick={() => onPick(item)}>
-            {t('defaults_dialog.for', {
-              device: t(`devices.${item.type}`),
-              status: DeviceStatus.label(item),
-            })}
-          </Button>
-        ))}
+      <Menu.Label>{t('defaults_dialog.for_device')}</Menu.Label>
+      {slotsWithDefaults.map((slot) => (
+        <Menu.Item key={slot.key} onClick={() => onPick(slot)}>
+          {slot.label}
+        </Menu.Item>
+      ))}
+      {unassigned.map((item) => (
+        <Menu.Item
+          key={`unassigned-${item.id}`}
+          disabled
+          title={t('assignments.device_not_assigned')}
+        >
+          {deviceLabel(item)}
+        </Menu.Item>
+      ))}
+      {devices.map((item) => (
+        <Menu.Item key={`nonslot-${item.id}`} onClick={() => onPick(item)}>
+          {deviceLabel(item)}
+        </Menu.Item>
+      ))}
     </>
   );
 }
 
+// The droppable closest to the pointer, or to the dragged rect for keyboard drags
+const closestToPointer: CollisionDetection = (args) =>
+  closestCenter(
+    args.pointerCoordinates
+      ? {
+          ...args,
+          collisionRect: {
+            ...args.pointerCoordinates,
+            top: args.pointerCoordinates.y,
+            left: args.pointerCoordinates.x,
+            right: args.pointerCoordinates.x,
+            bottom: args.pointerCoordinates.y,
+            width: 0,
+            height: 0,
+          },
+        }
+      : args
+  );
+
 // Which cards in a list are open for editing. A single card added to the end (new or copied)
 // opens so it can be filled in. Adding several at once or switching profile closes them all, since
-// the indexes no longer line up, so deletes and drags go through `remove` and `move` to keep them
-// matched up
+// the indexes no longer line up, so deletes and drags go through `reorder` to keep them matched up
 function useExpandedCards(profileIdx: number, count: number) {
   const [state, setState] = useState<{ profileIdx: number; count: number; open: Set<number> }>({
     profileIdx,
@@ -9480,18 +9602,13 @@ function useExpandedCards(profileIdx: number, count: number) {
         ...prev,
         open: new Set(expanded ? [...Array(prev.count).keys()] : []),
       })),
-    // Call before removing the card from the profile, so the cards after it keep their state
-    remove: (idx: number) =>
+    // Call before reordering or deleting from the profile's list, so the cards keep their state
+    reorder: (order: number[]) =>
       setState((prev) => ({
         ...prev,
-        count: prev.count - 1,
-        open: new Set([...prev.open].filter((x) => x !== idx).map((x) => (x > idx ? x - 1 : x))),
+        count: order.length,
+        open: reorderIndexes(prev.open, order),
       })),
-    move: (from: number, to: number) =>
-      setState((prev) => {
-        const ids = arrayMove([...Array(prev.count).keys()], from, to);
-        return { ...prev, open: new Set([...prev.open].map((x) => ids.indexOf(x))) };
-      }),
   };
 }
 
@@ -9524,9 +9641,6 @@ function ExpandCollapseAll({ cards }: { cards: ReturnType<typeof useExpandedCard
 function Profile({ profileIdx }: { profileIdx: number }) {
   const errorIcon = <IconExclamationCircle />;
   const [opened, { open, close }] = useDisclosure(false);
-  const [opened2, { open: open2, close: close2 }] = useDisclosure(false);
-  const [opened3, { open: open3, close: close3 }] = useDisclosure(false);
-  const [opened4, { open: open4, close: close4 }] = useDisclosure(false);
   const [deleteProfileOpened, { open: openDeleteProfile, close: closeDeleteProfile }] =
     useDisclosure(false);
   // A device type change that would drop mappings the new type has no outputs for, held until confirmed
@@ -9557,6 +9671,14 @@ function Profile({ profileIdx }: { profileIdx: number }) {
   const ruleCards = useExpandedCards(profileIdx, profile?.assignments?.length ?? 0);
   const mappingCards = useExpandedCards(profileIdx, profile?.mappings?.length ?? 0);
   const ledCards = useExpandedCards(profileIdx, profile?.leds?.length ?? 0);
+  const ruleSelection = useIndexSelection(profileIdx, profile?.assignments?.length ?? 0);
+  const mappingSelection = useIndexSelection(profileIdx, profile?.mappings?.length ?? 0);
+  const ledSelection = useIndexSelection(profileIdx, profile?.leds?.length ?? 0);
+  const [groupDrag, setGroupDrag] = useState<{
+    key: 'assignments' | 'mappings' | 'leds';
+    active: number;
+    group: number[];
+  } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor)
@@ -9567,34 +9689,112 @@ function Profile({ profileIdx }: { profileIdx: number }) {
   useEffect(() => {
     localStorage.setItem('legendMode', LegendMode[legendMode]);
   }, [legendMode]);
-  const handleDragEnd = (event: DragEndEvent) => {
+  const lists = {
+    assignments: {
+      cards: ruleCards,
+      selection: ruleSelection,
+      i18n: 'rules',
+      title: 'assignments.rule_title',
+    },
+    mappings: {
+      cards: mappingCards,
+      selection: mappingSelection,
+      i18n: 'inputs',
+      title: 'inputs.mapping_title',
+    },
+    leds: { cards: ledCards, selection: ledSelection, i18n: 'leds', title: 'leds.item_title' },
+  } as const;
+  type ListKey = keyof typeof lists;
+  // Reorders (or deletes from) one of the profile's lists, keeping the open and selected cards on
+  // the items they were on
+  const reorderList = (key: ListKey, order: number[]) => {
+    lists[key].cards.reorder(order);
+    lists[key].selection.reorder(order);
+    updateProfile(
+      { ...profile, [key]: applyOrder<unknown>(profile[key] ?? [], order) },
+      profileIdx
+    );
+  };
+  const deleteFromList = (key: ListKey, idx: number) =>
+    reorderList(key, withoutGroupOrder(profile[key]?.length ?? 0, [idx]));
+  // Dragging a selected card brings the rest of the selection with it
+  const dragEndFor = (key: ListKey) => (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) {
       return;
     }
-    mappingCards.move(active.id as number, over.id as number);
-    updateProfile(
-      {
-        ...profile,
-        mappings: [...arrayMove(profile.mappings!, active.id as number, over.id as number)],
-      },
-      profileIdx
+    reorderList(
+      key,
+      dragOrder(
+        profile[key]?.length ?? 0,
+        lists[key].selection.selected,
+        active.id as number,
+        over.id as number
+      )
     );
   };
-  const handleDragEndLed = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) {
-      return;
-    }
-    ledCards.move(active.id as number, over.id as number);
-    updateProfile(
-      {
-        ...profile,
-        leds: [...arrayMove(profile.leds!, active.id as number, over.id as number)],
-      },
-      profileIdx
+  const selectionBar = (key: ListKey) => {
+    const { selection, i18n } = lists[key];
+    const count = profile[key]?.length ?? 0;
+    return (
+      !simpleMode && (
+        <SelectionBar
+          total={count}
+          selected={selection.selected.length}
+          onSelectAll={selection.selectAll}
+          onMoveToStart={() => reorderList(key, groupToStartOrder(count, selection.selected))}
+          onMoveToEnd={() => reorderList(key, groupToEndOrder(count, selection.selected))}
+          onDelete={() => reorderList(key, withoutGroupOrder(count, selection.selected))}
+          deleteTitle={t(`selection.${i18n}.deleteTitle`)}
+          deleteDesc={t(`selection.${i18n}.deleteDesc`, { count: selection.selected.length })}
+          sticky={false}
+        />
+      )
     );
   };
+  // Props that make a list's card selectable, outside the customer tool
+  const selectProps = (key: ListKey, idx: number) =>
+    simpleMode
+      ? {}
+      : {
+          selected: lists[key].selection.isSelected(idx),
+          onSelect: (on: boolean) => lists[key].selection.select(idx, on),
+          placeholder: inGroupDrag(key, idx),
+        };
+  // Dragging a selected card while others are selected moves them all. They stay where they are,
+  // faded, while a preview of the group follows the pointer.
+  const inGroupDrag = (key: ListKey, idx: number) =>
+    groupDrag?.key === key && groupDrag.group.includes(idx);
+  // Group drags preview the whole group moving, the way it'll be dropped
+  const sortingStrategy = (key: ListKey) =>
+    groupDrag?.key === key ? groupSortingStrategy(groupDrag.group) : rectSortingStrategy;
+  const dndProps = (key: ListKey) => ({
+    sensors,
+    // The group preview hangs off the pointer rather than standing in for the card, so its centre
+    // isn't where the group is being dropped. Aim with the pointer instead.
+    collisionDetection: groupDrag?.key === key ? closestToPointer : closestCenter,
+    onDragStart: ({ active }: DragStartEvent) => {
+      const group = lists[key].selection.selected;
+      if (group.length > 1 && group.includes(active.id as number)) {
+        setGroupDrag({ key, active: active.id as number, group });
+      }
+    },
+    onDragCancel: () => setGroupDrag(null),
+    onDragEnd: (event: DragEndEvent) => {
+      setGroupDrag(null);
+      dragEndFor(key)(event);
+    },
+  });
+  // Only mounted for group drags, as a mounted overlay replaces the card that follows the pointer
+  // when dragging a single card
+  const dragPreview = (key: ListKey) =>
+    groupDrag?.key === key && (
+      <DragOverlay modifiers={[anchorPreviewToPointer]}>
+        <GroupDragPreview
+          titles={groupDrag.group.map((idx) => t(lists[key].title, { num: idx + 1 }))}
+        />
+      </DragOverlay>
+    );
   return (
     <>
       <Modal opened={opened} onClose={close} title={t('defaults_dialog.title')} centered>
@@ -9631,78 +9831,6 @@ function Profile({ profileIdx }: { profileIdx: number }) {
               {t('defaults_dialog.confirm')}
             </Button>
             <Button onClick={close}>{t('defaults_dialog.cancel')}</Button>
-          </Group>
-        </Flex>
-      </Modal>
-      <Modal opened={opened2} onClose={close2} title={t('clear_all_dialog.title')} centered>
-        {t('clear_all_dialog.desc')}
-        <Space h="md" />
-        <Flex justify="flex-end">
-          <Group align="flex-end">
-            <Button
-              onClick={() => {
-                updateProfile(
-                  {
-                    ...profile,
-                    mappings: [],
-                  },
-                  profileIdx
-                );
-                close2();
-              }}
-              color="red"
-            >
-              {t('clear_all_dialog.confirm')}
-            </Button>
-            <Button onClick={close2}>{t('clear_all_dialog.cancel')}</Button>
-          </Group>
-        </Flex>
-      </Modal>
-      <Modal opened={opened3} onClose={close3} title={t('clear_all_assign_dialog.title')} centered>
-        {t('clear_all_assign_dialog.desc')}
-        <Space h="md" />
-        <Flex justify="flex-end">
-          <Group align="flex-end">
-            <Button
-              onClick={() => {
-                updateProfile(
-                  {
-                    ...profile,
-                    assignments: [],
-                  },
-                  profileIdx
-                );
-                close3();
-              }}
-              color="red"
-            >
-              {t('clear_all_assign_dialog.confirm')}
-            </Button>
-            <Button onClick={close3}>{t('clear_all_assign_dialog.cancel')}</Button>
-          </Group>
-        </Flex>
-      </Modal>
-      <Modal opened={opened4} onClose={close4} title={t('clear_all_leds_dialog.title')} centered>
-        {t('clear_all_leds_dialog.desc')}
-        <Space h="md" />
-        <Flex justify="flex-end">
-          <Group align="flex-end">
-            <Button
-              onClick={() => {
-                updateProfile(
-                  {
-                    ...profile,
-                    leds: [],
-                  },
-                  profileIdx
-                );
-                close4();
-              }}
-              color="red"
-            >
-              {t('clear_all_leds_dialog.confirm')}
-            </Button>
-            <Button onClick={close4}>{t('clear_all_leds_dialog.cancel')}</Button>
           </Group>
         </Flex>
       </Modal>
@@ -10299,9 +10427,6 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                           </Menu.Item>
                         </Menu.Dropdown>
                       </Menu>
-                      <Button variant="filled" onClick={open3}>
-                        {t('clear_all_button')}
-                      </Button>
                     </Group>
                     <Group gap="md" align="center">
                       <ExpandCollapseAll cards={ruleCards} />
@@ -10310,6 +10435,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                       </Anchor>
                     </Group>
                   </Group>
+                  {selectionBar('assignments')}
                 </Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -10347,14 +10473,10 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                     </>
                   )}
                   <Group align="flex-start" gap="md">
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
-                    >
+                    <DndContext {...dndProps('assignments')}>
                       <SortableContext
-                        items={profile.assignments!.map((_, mappingIdx) => mappingIdx)!}
-                        strategy={rectSortingStrategy}
+                        items={profile.assignments!.map((_, mappingIdx) => mappingIdx)}
+                        strategy={sortingStrategy('assignments')}
                       >
                         {profile.assignments?.map((mapping, mappingIdx) => (
                           <Group key={mappingIdx} align="center" gap="md" maw="100%">
@@ -10386,20 +10508,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                                   profileIdx
                                 )
                               }
-                              deleteAssignment={() => {
-                                ruleCards.remove(mappingIdx);
-                                updateProfile(
-                                  {
-                                    ...profile,
-                                    assignments: [
-                                      ...profile.assignments!.filter(
-                                        (_, cMappingIdx) => cMappingIdx !== mappingIdx
-                                      ),
-                                    ],
-                                  },
-                                  profileIdx
-                                );
-                              }}
+                              deleteAssignment={() => deleteFromList('assignments', mappingIdx)}
+                              {...selectProps('assignments', mappingIdx)}
                               copyAssignment={() =>
                                 updateProfile(
                                   {
@@ -10413,6 +10523,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                           </Group>
                         ))}
                       </SortableContext>
+                      {dragPreview('assignments')}
                     </DndContext>
                   </Group>
                 </Table.Td>
@@ -10461,54 +10572,39 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                       >
                         {t('inputs.add')}
                       </Button>
-                      <Button
-                        variant="filled"
-                        onClick={() => {
-                          setDefaultTarget(undefined);
-                          open();
-                        }}
-                      >
-                        {t('defaults_dialog.load_type', {
-                          type: t(`subType.${proto.SubType[profile.opts.deviceToEmulate]}`),
-                        })}
-                      </Button>
-                      {profileSlots.map((slot) => {
-                        const deviceKind =
-                          slot.deviceKind === 'midi' ? 'midiSerial' : slot.deviceKind;
-                        if (
-                          !hasDefaultMappings(deviceKind) &&
-                          !hasDefaultMappings(slot.deviceKind)
-                        ) {
-                          return null;
-                        }
-                        return (
-                          <Button
-                            value={slot.key}
-                            key={slot.key}
+                      <Menu shadow="md" width={320}>
+                        <Menu.Target>
+                          <Button variant="filled" rightSection={<IconChevronDown size={14} />}>
+                            {t('defaults_dialog.load')}
+                          </Button>
+                        </Menu.Target>
+                        <Menu.Dropdown>
+                          <Menu.Item
                             onClick={() => {
-                              setDefaultTarget(slot);
+                              setDefaultTarget(undefined);
                               open();
                             }}
                           >
-                            {t('defaults_dialog.for_slot', { slot: slot.label })}
-                          </Button>
-                        );
-                      })}
-                      <DeviceDefaultsButtons
-                        profile={profile}
-                        onPick={(item) => {
-                          setDefaultTarget(item);
-                          open();
-                        }}
-                      />
-                      <Button variant="filled" onClick={open2}>
-                        {t('clear_all_button')}
-                      </Button>
+                            {t('defaults_dialog.type', {
+                              type: t(`subType.${proto.SubType[profile.opts.deviceToEmulate]}`),
+                            })}
+                          </Menu.Item>
+                          <DeviceDefaultsItems
+                            profile={profile}
+                            slots={profileSlots}
+                            onPick={(item) => {
+                              setDefaultTarget(item);
+                              open();
+                            }}
+                          />
+                        </Menu.Dropdown>
+                      </Menu>
                     </>
                   )}
                 </Group>
                 <ExpandCollapseAll cards={mappingCards} />
               </Group>
+              {selectionBar('mappings')}
             </Table.Th>
           </Table.Tr>
         </Table.Thead>
@@ -10608,20 +10704,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                           );
                         }
                       }}
-                      deleteInput={() => {
-                        mappingCards.remove(mappingIdx);
-                        updateProfile(
-                          {
-                            ...profile,
-                            mappings: [
-                              ...profile.mappings!.filter(
-                                (_, cMappingIdx) => cMappingIdx !== mappingIdx
-                              ),
-                            ],
-                          },
-                          profileIdx
-                        );
-                      }}
+                      deleteInput={() => deleteFromList('mappings', mappingIdx)}
                       copyInput={() =>
                         updateProfile(
                           {
@@ -10634,14 +10717,10 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                     />
                   ))}
                 {!simpleMode && (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                  >
+                  <DndContext {...dndProps('mappings')}>
                     <SortableContext
-                      items={profile.mappings!.map((_, mappingIdx) => mappingIdx)!}
-                      strategy={rectSortingStrategy}
+                      items={profile.mappings!.map((_, mappingIdx) => mappingIdx)}
+                      strategy={sortingStrategy('mappings')}
                     >
                       {profile.mappings?.map((mapping, mappingIdx) => (
                         <SantrollerMapping
@@ -10734,20 +10813,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                               );
                             }
                           }}
-                          deleteInput={() => {
-                            mappingCards.remove(mappingIdx);
-                            updateProfile(
-                              {
-                                ...profile,
-                                mappings: [
-                                  ...profile.mappings!.filter(
-                                    (_, cMappingIdx) => cMappingIdx !== mappingIdx
-                                  ),
-                                ],
-                              },
-                              profileIdx
-                            );
-                          }}
+                          deleteInput={() => deleteFromList('mappings', mappingIdx)}
+                          {...selectProps('mappings', mappingIdx)}
                           copyInput={() =>
                             updateProfile(
                               {
@@ -10760,6 +10827,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                         />
                       ))}
                     </SortableContext>
+                    {dragPreview('mappings')}
                   </DndContext>
                 )}
               </Group>
@@ -10823,9 +10891,6 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                           >
                             {t('leds.add')}
                           </Button>
-                          <Button variant="filled" onClick={open4}>
-                            {t('clear_all_button')}
-                          </Button>
                           <Button
                             variant="filled"
                             disabled={!connected || !profile.leds?.length}
@@ -10838,6 +10903,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                     </Group>
                     <ExpandCollapseAll cards={ledCards} />
                   </Group>
+                  {selectionBar('leds')}
                 </Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -10846,14 +10912,10 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                 <Table.Td>
                   <Space h="md" />
                   <Group align="stretch">
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEndLed}
-                    >
+                    <DndContext {...dndProps('leds')}>
                       <SortableContext
-                        items={profile.leds!.map((_, ledIdx) => ledIdx)!}
-                        strategy={rectSortingStrategy}
+                        items={profile.leds!.map((_, ledIdx) => ledIdx)}
+                        strategy={sortingStrategy('leds')}
                       >
                         {profile.leds?.map((led, ledIdx) => (
                           <SantrollerLed
@@ -10879,18 +10941,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                                 profileIdx
                               )
                             }
-                            deleteLed={() => {
-                              ledCards.remove(ledIdx);
-                              updateProfile(
-                                {
-                                  ...profile,
-                                  leds: [
-                                    ...profile.leds!.filter((_, cLedIdx) => cLedIdx !== ledIdx),
-                                  ],
-                                },
-                                profileIdx
-                              );
-                            }}
+                            deleteLed={() => deleteFromList('leds', ledIdx)}
+                            {...selectProps('leds', ledIdx)}
                             copyInput={() =>
                               updateProfile(
                                 {
@@ -10903,6 +10955,7 @@ function Profile({ profileIdx }: { profileIdx: number }) {
                           />
                         ))}
                       </SortableContext>
+                      {dragPreview('leds')}
                     </DndContext>
                   </Group>
                 </Table.Td>

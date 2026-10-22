@@ -78,6 +78,36 @@ describe('labels scoped to profiles', () => {
     expect(label.keyboardKeyLabel?.label).toBe('Renamed');
   });
 
+  it('deletes and rescopes several labels at once', () => {
+    useConfigStore.setState({
+      guiDevices: { 0: keyLabel(0, 4, []), 1: keyLabel(1, 5, [1]), 2: keyLabel(2, 6, [2]) },
+    });
+    useConfigStore.getState().setLabelProfiles([0, 1], [2]);
+    expect(Object.values(useConfigStore.getState().guiDevices).map((l) => l.profiles)).toEqual([
+      [2],
+      [2],
+      [2],
+    ]);
+    useConfigStore.getState().deleteLabels([0, 2]);
+    expect(Object.keys(useConfigStore.getState().guiDevices)).toEqual(['1']);
+  });
+
+  it('shows or hides several labels in customer tooling, whatever kind they are', () => {
+    useConfigStore.setState({
+      guiDevices: {
+        0: keyLabel(0, 4, [1]),
+        1: { deviceid: 1, label: { label: 'Pin', pin: 2 } },
+        2: keyLabel(2, 6, []),
+      },
+    });
+    useConfigStore.getState().setLabelShowToCustomer([0, 1], true);
+    const labels = useConfigStore.getState().guiDevices;
+    expect(labels[0].keyboardKeyLabel?.showToCustomer).toBe(true);
+    expect(labels[0].profiles).toEqual([1]);
+    expect(labels[1].label?.showToCustomer).toBe(true);
+    expect(labels[2].keyboardKeyLabel?.showToCustomer).toBeUndefined();
+  });
+
   it('scopes preset labels to their profile, only skipping keys labelled there', () => {
     useConfigStore.setState({ guiDevices: { 0: keyLabel(0, 4, [2]) } });
     useConfigStore.getState().addPresetKeyLabels(

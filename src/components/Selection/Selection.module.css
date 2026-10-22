@@ -1,0 +1,56 @@
+/* The default unchecked box is a faint outline on a dark card, so give it a heavier border */
+.selectInput:not(:checked, [data-indeterminate]) {
+  border-width: 2px;
+  border-color: var(--mantine-color-dimmed);
+}
+
+/* Kept in view while scrolling through a long list, just under the app header */
+.sticky {
+  position: sticky;
+  top: var(--app-shell-header-offset, 0rem);
+  z-index: 3;
+  margin-bottom: var(--mantine-spacing-md);
+  padding-block: var(--mantine-spacing-xs);
+  background: var(--mantine-color-body);
+}
+
+/* In a table's header cell, which would otherwise make it bold */
+.inline {
+  margin-top: var(--mantine-spacing-sm);
+  font-weight: normal;
+}
+
+.selectInput,
+.selectLabel {
+  cursor: pointer;
+}
+
+/* Cards peeking out from under the preview, so a group reads as a stack */
+.dragStack {
+  position: relative;
+  width: 280px;
+  cursor: grabbing;
+}
+
+.dragStack[data-stacked]::before,
+.dragStack[data-stacked]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-body);
+}
+
+.dragStack[data-stacked]::before {
+  transform: translate(8px, 8px);
+}
+
+.dragStack[data-stacked]::after {
+  transform: translate(4px, 4px);
+}
+
+.dragStack > * {
+  position: relative;
+  z-index: 1;
+}
