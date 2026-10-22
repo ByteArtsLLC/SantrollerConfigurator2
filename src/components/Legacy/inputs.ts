@@ -193,7 +193,9 @@ function multiplexer(
 function matrix(ctx: LegacyImportContext, { serializedMatrixInput: m }: legacy.ISerializedInput) {
   const pin = m!.pin ?? -1;
   const outPin = m!.outPin ?? -1;
-  const deviceid = ctx.addDevice('matrix', 'main');
+  const deviceid = ctx.addDevice('matrix', 'main', (matrix) => {
+    matrix.activeLow = true;
+  });
   const device = ctx.devices.find((d) => d.deviceid === deviceid)!;
   if (pin >= 0) {
     device.matrix = addMatrixPins(device.matrix, 'in', [pin]);

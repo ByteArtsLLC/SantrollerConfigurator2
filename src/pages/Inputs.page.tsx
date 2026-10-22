@@ -120,7 +120,7 @@ import {
 } from '@/components/Inputs/inputRegistry';
 import { LedColorInput } from '@/components/Inputs/LedColorInput';
 import { ledOverlaps } from '@/components/Inputs/ledOverlap';
-import { migrateSlotIds } from '@/components/Inputs/slotRemap';
+import { getInputLocalDeviceId, migrateSlotIds } from '@/components/Inputs/slotRemap';
 import { Layout } from '@/components/Layout/Layout';
 import { RequireDevice } from '@/components/RequireDevice/RequireDevice';
 import {
@@ -2037,7 +2037,7 @@ function FixLabel(
   return FixIcon(mode, subtype, label, legendMode, false)?.replace('/', '.');
 }
 
-function SantrollerLabel({
+export function SantrollerLabel({
   input,
   label,
   fallback = true,
@@ -2046,7 +2046,7 @@ function SantrollerLabel({
   label: string;
   fallback?: boolean;
 }) {
-  const deviceId = getInputDeviceId(input) ?? -1;
+  const deviceId = getInputLocalDeviceId(input) ?? -1;
   const { t } = useTranslation();
   const device = useConfigStore((state) => state.deviceStatus[deviceId]);
   const guiDevices = useConfigStore((state) => state.guiDevices);
@@ -2537,11 +2537,12 @@ function SantrollerInput({
     () => getProfileSlotForInput(input, profileSlots),
     [profileSlots, input]
   );
+  const localDeviceId = getInputLocalDeviceId(input) ?? -1;
   const device = useConfigStore((state) =>
-    matchingSlot ? undefined : state.deviceStatus[deviceId]
+    matchingSlot ? undefined : state.deviceStatus[localDeviceId]
   );
   const parentDevice = useConfigStore((state) => {
-    const parentId = matchingSlot ? undefined : state.deviceStatus[deviceId]?.parentId;
+    const parentId = matchingSlot ? undefined : state.deviceStatus[localDeviceId]?.parentId;
     return parentId ? state.deviceStatus[parentId] : undefined;
   });
   const peripheralDevice = useConfigStore((state) =>

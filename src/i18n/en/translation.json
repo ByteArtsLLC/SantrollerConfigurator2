@@ -348,6 +348,7 @@
     }
   },
   "matrix": {
+    "active_low": "Active-low scanning (Santroller 1 wiring)",
     "output_pins": "Output pins",
     "input_pins": "Input pins",
     "input_pin": "Input pin",

@@ -7,7 +7,7 @@ import {
   getProfileWideSlotIds,
   moveWiiDrumNotesToMidiSlot,
 } from './inputRegistry';
-import { migrateSlotIds, remapEditedSlotIds } from './slotRemap';
+import { getInputLocalDeviceId, migrateSlotIds, remapEditedSlotIds } from './slotRemap';
 
 const ST = proto.SubType;
 const console_: proto.IProfileAssignmentInfo = { consoleType: {} };
@@ -15,6 +15,27 @@ const gamepad: proto.IProfileAssignmentInfo = { usbType: ST.Gamepad };
 const keyboard: proto.IProfileAssignmentInfo = { usbType: ST.KeyboardMouse };
 const guitar: proto.IProfileAssignmentInfo = { usbType: ST.GuitarHeroGuitar };
 const beatmania: proto.IProfileAssignmentInfo = { usbType: ST.BeatMania };
+
+describe('local input device ids', () => {
+  it('does not resolve profile slots as local devices with the same id', () => {
+    const inputs: proto.IInput[] = [
+      { usbButton: { deviceid: 1, button: { gamepadButton: proto.GamepadButtonType.Gamepad_A } } },
+      { wiiButton: { deviceid: 1, button: proto.WiiButtonType.WiiButtonClassicA } },
+      {
+        midi: {
+          deviceid: 1,
+          sourceType: proto.MidiInputSourceType.MidiInputSourceType_Auto,
+          midiNote: { note: 60, channel: 1 },
+        },
+      },
+    ];
+    inputs.forEach((input) => expect(getInputLocalDeviceId(input)).toBeUndefined());
+  });
+
+  it('keeps the physical matrix device id', () => {
+    expect(getInputLocalDeviceId({ matrix: { deviceid: 1, pin: 14, outputPin: 10 } })).toBe(1);
+  });
+});
 
 // The same cases as the firmware's ProfileSlotIds tests, as both have to agree
 describe('profile wide slot ids', () => {

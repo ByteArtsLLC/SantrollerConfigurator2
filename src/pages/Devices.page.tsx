@@ -2494,6 +2494,19 @@ function MatrixDevice({ id }: { id: string }) {
       image="covers/devices/matrix.svg"
       deleteDevice={() => deleteDevice(id)}
     >
+      <Switch
+        label={t('matrix.active_low')}
+        checked={matrix.activeLow ?? false}
+        onChange={(event) =>
+          updateDevice(
+            {
+              deviceid: parseInt(id, 10),
+              matrix: { ...matrix, activeLow: event.currentTarget.checked },
+            },
+            id
+          )
+        }
+      />
       <MultiSelect
         label={t('matrix.output_pins')}
         value={matrixPins(matrix, 'out').map((x) => x.toString())}

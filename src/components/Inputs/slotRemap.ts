@@ -1,12 +1,18 @@
 import { getOutputSubType } from '@/components/Defaults/defaultMappings';
 import { proto } from '@/components/SettingsContext/config';
 import {
+  getInputDeviceId,
   getProfileSlotIds,
   getProfileWideSlotIds,
   getSlotDeviceKind,
   getSlotSubtype,
   SLOT_UNTYPED,
 } from './inputRegistry';
+
+// Slot ids are profile-local, not ids in deviceStatus, even when the numbers coincide.
+export function getInputLocalDeviceId(input: proto.IInput): number | undefined {
+  return getInputSlotKind(input) || input.midi ? undefined : getInputDeviceId(input);
+}
 
 // The slot kind an input reads from, for inputs that read a device through a profile slot
 export function getInputSlotKind(input: proto.IInput): string | undefined {

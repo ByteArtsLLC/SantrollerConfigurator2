@@ -9,6 +9,64 @@ import { legacy } from './legacy';
 const fixture = (name: string) => readFileSync(join(__dirname, '__fixtures__', name));
 
 describe('importLegacyConfig', () => {
+  it('imports the OFMG matrix with legacy scan polarity and distinct fret pin pairs', () => {
+    const { config } = importLegacyConfig(fixture('ofmg-rb-v3_1.pico2config'));
+    const matrixDevices = config.devices.filter((device) => device.matrix);
+    expect(matrixDevices).toHaveLength(1);
+    const [device] = matrixDevices;
+    expect(device.matrix).toMatchObject({
+      activeLow: true,
+      inPins: [11, 12, 13, 14, 15].reduce((mask, pin) => mask | (1 << pin), 0),
+      outPins: [7, 8, 9, 10].reduce((mask, pin) => mask | (1 << pin), 0),
+    });
+    const profile = config.profiles.find(
+      (p) => p.opts.deviceToEmulate === proto.SubType.RockBandGuitar
+    )!;
+    const RB = proto.RockBandGuitarButtonType;
+    for (const [output, pin, outputPin] of [
+      [RB.RockBandGuitar_Green, 15, 10],
+      [RB.RockBandGuitar_Red, 14, 10],
+      [RB.RockBandGuitar_SoloGreen, 15, 9],
+      [RB.RockBandGuitar_SoloRed, 14, 9],
+    ]) {
+      const mappings = profile.mappings.filter(
+        (m) => m.mapping?.rbButton === output && m.input?.matrix
+      );
+      expect(mappings).toHaveLength(1);
+      expect(mappings[0].input?.matrix).toMatchObject({
+        deviceid: device.deviceid,
+        pin,
+        outputPin,
+      });
+      expect(mappings[0].inverted).not.toBe(true);
+    }
+    const roundTrip = proto.Config.decode(proto.Config.encode(config).finish());
+    expect(roundTrip.devices.find((d) => d.matrix)?.matrix?.activeLow).toBe(true);
+  });
+
+  it('preserves per-binding inversion for legacy matrix inputs', () => {
+    const data = legacy.SerializedConfiguration.encode({
+      bindings: [
+        {
+          serializedControllerButton: {
+            type: legacy.StandardButtonType.StandardButtonType_A,
+            input: { serializedMatrixInput: { pin: 0, outPin: 40, inverted: true } },
+          },
+        },
+      ],
+    }).finish();
+    const { config } = importLegacyConfig(data);
+    expect(config.devices.find((d) => d.matrix)?.matrix).toMatchObject({
+      activeLow: true,
+      inPins: 1,
+      outPinsHigh: 1 << 8,
+    });
+    expect(config.profiles[0].mappings[0]).toMatchObject({
+      inverted: true,
+      input: { matrix: { pin: 0, outputPin: 40 } },
+    });
+  });
+
   it('imports a Rock Band guitar with shared solo fret pins', () => {
     const { config, warnings } = importLegacyConfig(fixture('reampedsunburst.picoconfig'));
     // the Fortnite Festival keyboard mode is its own profile, tried first
