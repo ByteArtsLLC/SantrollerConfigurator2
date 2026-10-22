@@ -2656,7 +2656,7 @@ function SantrollerInput({
           {t('devices.gpio')}
         </Text>
         <Text fz="xs" span opacity="0.7">
-          ({t(input.gpio.analog ? 'devices.gpio_analog' : 'devices.gpio_digital')})
+          {t(input.gpio.analog ? 'devices.gpio_analog' : 'devices.gpio_digital')}
         </Text>
       </Group>
     );
