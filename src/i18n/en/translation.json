@@ -84,6 +84,9 @@
   },
   "keyboard": {
     "keycode": "Keyboard key",
+    "keycodeCapture": "Click and press a key",
+    "keycodePick": "Or choose a key",
+    "keycodePickDesc": "Pick from the full list",
     "output": "Output",
     "key": "Keyboard key",
     "media": "Media key",

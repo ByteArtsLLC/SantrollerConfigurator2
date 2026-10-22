@@ -64,6 +64,7 @@ import {
   ThemeIcon,
   Title,
   useCombobox,
+  type ComboboxItem,
 } from '@mantine/core';
 import { useDisclosure, useTimeout } from '@mantine/hooks';
 import {
@@ -142,6 +143,8 @@ import { countMappingsDroppedBySubType } from '@/components/SettingsContext/subT
 import {
   ASCII_TO_HID,
   CODE_TO_HID,
+  HID_KEYS,
+  hidKeyMatches,
   hidKeyName,
   MEDIA_KEYS,
   mediaKeyName,
@@ -1406,18 +1409,48 @@ function OutputBox({
             }}
           />
           {kind === 'key' && (
-            <TextInput
-              label={t('keyboard.keycode')}
-              value={hidKeyName(mapping?.keycode ?? 0) ?? ''}
-              onChange={() => {}}
-              onKeyDown={(event) => {
-                const code = CODE_TO_HID[event.code] ?? ASCII_TO_HID[event.key]?.code;
-                if (code != null) {
-                  event.preventDefault();
-                  dispatch({ keycode: code }, true, false);
+            <Group grow align="flex-end">
+              <TextInput
+                label={t('keyboard.keycode')}
+                description={t('keyboard.keycodeCapture')}
+                value={hidKeyName(mapping?.keycode ?? 0) ?? ''}
+                onChange={() => {}}
+                onKeyDown={(event) => {
+                  const code = CODE_TO_HID[event.code] ?? ASCII_TO_HID[event.key]?.code;
+                  if (code != null) {
+                    event.preventDefault();
+                    dispatch({ keycode: code }, true, false);
+                  }
+                }}
+              />
+              {/* For keys the user's own keyboard doesn't have (numpad, F13 - F24, international) */}
+              <Select
+                label={t('keyboard.keycodePick')}
+                description={t('keyboard.keycodePickDesc')}
+                searchable
+                allowDeselect={false}
+                data={[
+                  ...(mapping?.keycode && !hidKeyName(mapping.keycode)
+                    ? [
+                        {
+                          value: `${mapping.keycode}`,
+                          label: t('keyboard.keyFallback', { code: mapping.keycode }),
+                        },
+                      ]
+                    : []),
+                  ...HID_KEYS.map(({ code, name }) => ({ value: `${code}`, label: name })),
+                ]}
+                filter={({ options, search }) =>
+                  (options as ComboboxItem[]).filter((option) =>
+                    hidKeyMatches(Number(option.value), search)
+                  )
                 }
-              }}
-            />
+                value={mapping?.keycode ? `${mapping.keycode}` : null}
+                onChange={(value) =>
+                  value && dispatch({ keycode: parseInt(value, 10) }, true, false)
+                }
+              />
+            </Group>
           )}
           {kind === 'media' && (
             <Select
