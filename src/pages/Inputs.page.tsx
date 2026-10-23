@@ -1438,6 +1438,7 @@ function OutputBox({
           {kind === 'key' && (
             <HidKeyPicker
               value={mapping?.keycode}
+              input={title === 'input'}
               onChange={(code) => dispatch({ keycode: code }, true, false)}
             />
           )}

@@ -183,6 +183,19 @@ export function hidKeyName(code: number): string | undefined {
   return HID_TO_NAME[code];
 }
 
+// The keys an Xbox 360 chatpad's colour keys come through as (see the firmware's protocols/xbox360_chatpad.hpp)
+const CHATPAD_KEY_NAMES: Record<number, string> = {
+  0x68: 'Chatpad Green',
+  0x69: 'Chatpad Orange',
+  0x6a: 'Chatpad People',
+};
+
+// A key read from a keyboard, which might be a chatpad's colour key
+export function inputKeyName(code: number): string | undefined {
+  const name = hidKeyName(code);
+  return name && CHATPAD_KEY_NAMES[code] ? `${name} (${CHATPAD_KEY_NAMES[code]})` : name;
+}
+
 // Other names people search for a key by, keyed by KeyboardEvent.code
 const KEY_ALIASES: Record<string, string[]> = {
   Enter: ['return'],
@@ -245,8 +258,11 @@ const HID_SEARCH: Record<number, string> = Object.fromEntries(
 
 // Whether a key matches what was typed into the key picker: every word has to appear in its name
 // or one of its aliases, so "left ctrl" finds Left Control and "return" finds Enter
-export function hidKeyMatches(code: number, search: string): boolean {
-  const haystack = HID_SEARCH[code] ?? hidKeyName(code)?.toLowerCase() ?? '';
+export function hidKeyMatches(code: number, search: string, input = false): boolean {
+  const haystack = [
+    HID_SEARCH[code] ?? hidKeyName(code)?.toLowerCase() ?? '',
+    input ? (CHATPAD_KEY_NAMES[code]?.toLowerCase() ?? '') : '',
+  ].join(' ');
   return search
     .toLowerCase()
     .split(/\s+/)
