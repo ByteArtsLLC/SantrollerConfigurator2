@@ -7882,6 +7882,8 @@ function SantrollerAssignmentList({
 }) {
   const [opened, { open, close }] = useDisclosure(false);
   const [triggerOpened, { open: openTrigger, close: closeTrigger }] = useDisclosure(false);
+  const [authTriggerOpened, { open: openAuthTrigger, close: closeAuthTrigger }] =
+    useDisclosure(false);
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isSorting } = useSortable({
     id: listIdx,
@@ -8122,6 +8124,31 @@ function SantrollerAssignmentList({
       : emulationItem?.consoleType?.consoleType != null
         ? 'specific'
         : 'auto';
+
+  const xboxOneAuthIdx = assignments.findIndex((x) => x.xboxOneAuth != null);
+  const xboxOneAuth = xboxOneAuthIdx !== -1 ? assignments[xboxOneAuthIdx].xboxOneAuth : undefined;
+  // Holding auth is only useful on a rule that can end up as an Xbox One device
+  const canHoldXboxOneAuth =
+    currentEmulMode === 'consoleType' &&
+    hasUsbHost &&
+    (currentUsbOption === 'auto' ||
+      emulationItem?.consoleType?.forcedType === proto.ConsoleMode.ModeXboxOne ||
+      emulationItem?.consoleType?.consoleType === proto.ConsoleType.ConsoleXboxOne);
+  const updateXboxOneAuth = (value: proto.IXboxOneAuthAssignment | null) => {
+    if (value && xboxOneAuthIdx !== -1) {
+      const next = assignments.map((x, idx) =>
+        idx === xboxOneAuthIdx ? { xboxOneAuth: value } : x
+      );
+      dispatch({ ...mapping, assignments: next });
+      return;
+    }
+    const rest = assignments.filter((_, idx) => idx !== xboxOneAuthIdx);
+    dispatch({ ...mapping, assignments: value ? [...rest, { xboxOneAuth: value }] : rest });
+  };
+  const xboxOneAuthTrigger = xboxOneAuth?.trigger ?? undefined;
+  const xboxOneAuthInputSet = getSelectedInput(xboxOneAuthTrigger?.input) !== undefined;
+  const updateXboxOneAuthTrigger = (trigger: proto.IInputActivationTrigger) =>
+    updateXboxOneAuth({ ...xboxOneAuth, trigger });
 
   const currentTrigger =
     triggerItem?.input != null
@@ -8602,6 +8629,47 @@ function SantrollerAssignmentList({
                 }
               />
 
+              {(canHoldXboxOneAuth || xboxOneAuth) && (
+                <Stack gap={4}>
+                  <Switch
+                    size="xs"
+                    label={t('assignments.xboxOneAuth')}
+                    description={t('assignments.xboxOneAuthDesc')}
+                    checked={xboxOneAuth != null}
+                    onChange={(evt) => updateXboxOneAuth(evt.currentTarget.checked ? {} : null)}
+                  />
+                  {xboxOneAuth && (
+                    <Stack gap={2} ml="lg">
+                      <Text size="xs" c="dimmed">
+                        {t('assignments.xboxOneAuthInputDesc')}
+                      </Text>
+                      <Group gap="xs" grow>
+                        <Button
+                          size="xs"
+                          variant="light"
+                          leftSection={<IconPencil size={14} />}
+                          onClick={openAuthTrigger}
+                        >
+                          {xboxOneAuthInputSet
+                            ? t('assignments.trigger_edit')
+                            : t('assignments.xboxOneAuthInputPick')}
+                        </Button>
+                        {xboxOneAuthInputSet && (
+                          <Button
+                            size="xs"
+                            variant="light"
+                            color="gray"
+                            onClick={() => updateXboxOneAuth({ ...xboxOneAuth, trigger: null })}
+                          >
+                            {t('assignments.xboxOneAuthInputClear')}
+                          </Button>
+                        )}
+                      </Group>
+                    </Stack>
+                  )}
+                </Stack>
+              )}
+
               <Divider my={2} />
 
               <Stack gap={4}>
@@ -8660,6 +8728,47 @@ function SantrollerAssignmentList({
           )}
         </Card>
       </div>
+      <Modal
+        opened={authTriggerOpened && xboxOneAuth != null}
+        onClose={closeAuthTrigger}
+        size="lg"
+        title={`${t('assignments.rule_title', { num: listIdx + 1 })}: ${t('assignments.xboxOneAuth')}`}
+      >
+        <Stack gap={4}>
+          <SantrollerInput
+            axis={false}
+            button
+            type={type}
+            activationIdx={xboxOneAuthIdx !== -1 ? xboxOneAuthIdx : 0}
+            mode={mode}
+            legendMode={legendMode}
+            input={xboxOneAuthTrigger?.input ?? {}}
+            dispatch={(input) => updateXboxOneAuthTrigger({ ...(xboxOneAuthTrigger ?? {}), input })}
+          />
+          {xboxOneAuthTrigger?.input && isAnalog(xboxOneAuthTrigger.input) ? (
+            <ActivationTrigger
+              input={xboxOneAuthTrigger}
+              profileIdx={profileIdx}
+              listIdx={listIdx}
+              activationIdx={xboxOneAuthIdx !== -1 ? xboxOneAuthIdx : 0}
+              dispatch={updateXboxOneAuthTrigger}
+            />
+          ) : (
+            <Switch
+              size="xs"
+              label={t('calibration.inverted')}
+              checked={!!xboxOneAuthTrigger?.inverted}
+              onChange={(evt) =>
+                updateXboxOneAuthTrigger({
+                  ...(xboxOneAuthTrigger ?? {}),
+                  input: xboxOneAuthTrigger?.input ?? {},
+                  inverted: evt.currentTarget.checked,
+                })
+              }
+            />
+          )}
+        </Stack>
+      </Modal>
       <Modal
         opened={triggerOpened && currentTrigger !== 'always'}
         onClose={closeTrigger}

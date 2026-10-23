@@ -589,6 +589,7 @@ export function getAssignmentTriggerIds(assignments: proto.IProfileAssignmentInf
       item.joybusEmulation != null ||
       item.snesEmulation != null ||
       getHostSourceType(item) != null ||
+      item.xboxOneAuth != null ||
       hasInputTrigger;
     if (hasTrigger) {
       triggerId += 1;
@@ -599,6 +600,10 @@ export function getAssignmentTriggerIds(assignments: proto.IProfileAssignmentInf
 
 // The kind of device an assignment's slot is numbered with, or null if it isn't a slot
 export function getSlotDeviceKind(item: proto.IProfileAssignmentInfo): string | null {
+  // The Xbox One controller authenticating for the rule is claimed into a USB gamepad slot
+  if (item.xboxOneAuth != null) {
+    return 'usbHost';
+  }
   const source = getHostSourceType(item);
   if (!source) {
     return null;
@@ -624,6 +629,7 @@ export const SLOT_UNTYPED = 0xffff;
 
 export function getSlotSubtype(item: proto.IProfileAssignmentInfo): number {
   return (
+    (item.xboxOneAuth != null ? proto.SubType.Gamepad : undefined) ??
     item.usbType ??
     item.usbDevice?.subtype ??
     item.bluetoothType ??
@@ -755,6 +761,9 @@ export function getProfileSlotLabel(
   t?: (key: string) => string
 ) {
   const source = getHostSourceType(item);
+  if (item.xboxOneAuth != null) {
+    return `${t?.('assignments.slot') ?? 'Slot'} ${slotId}: ${t?.('assignments.source.xboxOneAuth') ?? 'Xbox One authentication controller'}`;
+  }
   if (!source) {
     return `${t?.('assignments.slot') ?? 'Slot'} ${slotId}`;
   }
@@ -893,6 +902,10 @@ export function getRuleSummaryParts(
 
   if (assignments.some((x) => x.localInputs != null)) {
     hostParts.push(t('assignmentType.localInputs'));
+  }
+
+  if (assignments.some((x) => x.xboxOneAuth != null)) {
+    hostParts.push(t('assignmentType.xboxOneAuth'));
   }
 
   let trig = '';

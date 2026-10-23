@@ -198,6 +198,10 @@ function RulePreviewCard({
           checked={assignments.some((x) => x.localInputs != null)}
         />
 
+        {assignments.some((x) => x.xboxOneAuth != null) && (
+          <Switch size="xs" readOnly label={t('assignments.xboxOneAuth')} checked />
+        )}
+
         <Divider my={2} />
 
         <Stack gap={4}>

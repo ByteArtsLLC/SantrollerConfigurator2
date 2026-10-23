@@ -1776,6 +1776,11 @@
     "forcedTypeDesc": "Enable to ignore console detection and always use a specific mode for this profile.",
     "localInputs": "Claim directly wired inputs",
     "localInputsDesc": "Claims the buttons and sensors wired straight to this board's pins. Controllers in this profile's rules, like a PS1/2 controller or Wii extension, are claimed already, so this is only needed for inputs that aren't on one. Only one profile can claim them at a time, and the highest one in the sidebar wins.",
+    "xboxOneAuth": "Stay active through Xbox One authentication",
+    "xboxOneAuthDesc": "Plug in an Xbox One controller to authenticate this rule with an Xbox, then swap it for the instrument. The rule stays in use until the Xbox asks to authenticate again, so the instrument doesn't need to. The controller is only used to authenticate, so put this profile above your gamepad profile.",
+    "xboxOneAuthInputDesc": "Only authenticate for this rule while an input is active, eg a button held on the controller while plugging it in, or a cycle choosing the instrument. Without one, any Xbox One controller authenticates for it.",
+    "xboxOneAuthInputPick": "Pick input (optional)",
+    "xboxOneAuthInputClear": "Clear input",
     "missingEmulation": "Missing Emulation",
     "missingDevice": "This profile is missing an emulation assignment. Without one, Santroller doesn't know when it should use this profile, so it won't be used.",
     "missing": "This profile is missing an assignment! Without one, it won't ever be assigned.",
@@ -1836,7 +1841,8 @@
       "bluetoothDevice": "Bluetooth (Specific Device)",
       "midiChannel": "MIDI Channel",
       "midiProGuitar": "MIDI Pro Guitar",
-      "midiProGuitarWithSubtype": "MIDI"
+      "midiProGuitarWithSubtype": "MIDI",
+      "xboxOneAuth": "Xbox One authentication controller"
     },
     "trigger": {
       "always": "No Extra Button Trigger (Default)",
@@ -1965,7 +1971,8 @@
     "snesEmulation": "SNES / NES Controller Emulation",
     "bluetoothType": "Bluetooth Host By Type",
     "bluetoothDevice": "Bluetooth Host Specific",
-    "localInputs": "Claims Directly Wired Inputs"
+    "localInputs": "Claims Directly Wired Inputs",
+    "xboxOneAuth": "Stays Active Through Xbox One Authentication"
   },
   "assignmentTypeDesc": {
     "wiiExt": "Match when a Wii Extension is plugged into this device",
@@ -1986,7 +1993,8 @@
     "snesEmulation": "Match when plugged into a SNES or NES via the controller port",
     "bluetoothType": "Match when a Bluetooth device type is connected to this device via Bluetooth host",
     "bluetoothDevice": "Match when a specific Bluetooth device is connected to this device via Bluetooth host",
-    "localInputs": "Claim the inputs wired to this device (pins, ADC, I2C devices etc). Matches unless an earlier profile has already claimed them, so only one of them is used at a time"
+    "localInputs": "Claim the inputs wired to this device (pins, ADC, I2C devices etc). Matches unless an earlier profile has already claimed them, so only one of them is used at a time",
+    "xboxOneAuth": "Lets the rule match without its controllers while an Xbox One controller authenticates for it, and after that until the Xbox asks to authenticate again"
   },
   "activation": {
     "usbType": "USB Controller Type",
