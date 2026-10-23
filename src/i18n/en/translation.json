@@ -2121,7 +2121,7 @@
     },
     "ccNumber": "CC {{cc}}"
   },
-  "device": "Device",
+  "device": "Source",
   "subType": {
     "Unknown": "Unknown",
     "Gamepad": "Gamepad",
