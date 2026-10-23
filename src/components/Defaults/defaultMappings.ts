@@ -587,6 +587,8 @@ export function getGpioDefaults(subType: proto.SubType): proto.IMapping[] {
         gpioButton({ gamepadButton: proto.GamepadButtonType.Gamepad_Guide }),
       ];
 
+    // Konami pads have face buttons in the corners: cross / circle at the top, triangle / square
+    // at the bottom
     case proto.SubType.Dancepad:
       return [
         gpioButton({ gamepadButton: proto.GamepadButtonType.Gamepad_DpadUp }),
@@ -595,6 +597,8 @@ export function getGpioDefaults(subType: proto.SubType): proto.IMapping[] {
         gpioButton({ gamepadButton: proto.GamepadButtonType.Gamepad_DpadRight }),
         gpioButton({ gamepadButton: proto.GamepadButtonType.Gamepad_A }),
         gpioButton({ gamepadButton: proto.GamepadButtonType.Gamepad_B }),
+        gpioButton({ gamepadButton: proto.GamepadButtonType.Gamepad_Y }),
+        gpioButton({ gamepadButton: proto.GamepadButtonType.Gamepad_X }),
         gpioButton({ gamepadButton: proto.GamepadButtonType.Gamepad_Back }),
         gpioButton({ gamepadButton: proto.GamepadButtonType.Gamepad_Start }),
         gpioButton({ gamepadButton: proto.GamepadButtonType.Gamepad_Guide }),
@@ -728,6 +732,24 @@ export function getWiiDefaults(
       }),
       wiiButton(proto.WiiButtonType.WiiButtonClassicDPadRight, deviceId, {
         gamepadButton: proto.GamepadButtonType.Gamepad_DpadRight,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicA, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_A,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicB, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_B,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicY, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Y,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicX, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_X,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicMinus, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Back,
+      }),
+      wiiButton(proto.WiiButtonType.WiiButtonClassicPlus, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Start,
       }),
     ];
   }
@@ -1721,6 +1743,24 @@ export function getPs2Defaults(
       }),
       ps2Button(proto.PS2ButtonType.PS2ButtonDpadRight, deviceId, {
         gamepadButton: proto.GamepadButtonType.Gamepad_DpadRight,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonCross, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_A,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonCircle, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_B,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonTriangle, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Y,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonSquare, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_X,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonSelect, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Back,
+      }),
+      ps2Button(proto.PS2ButtonType.PS2ButtonStart, deviceId, {
+        gamepadButton: proto.GamepadButtonType.Gamepad_Start,
       }),
     ];
   }

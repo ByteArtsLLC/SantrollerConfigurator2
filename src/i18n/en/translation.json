@@ -4219,7 +4219,7 @@
           "consolePs2": "PS2 (controller plug into the console)",
           "usbSelectLabel": "Controller",
           "usbNo": "A controller wired to the Pico",
-          "usbYes": "Also play a USB controller through a USB host port",
+          "usbYes": "A USB controller via USB host",
           "usbHelp": "The USB host option adds a USB socket, so a USB controller plugged into the Pico can be played on the console. Powered from the console, it also needs a boost converter to make 5V for the socket.",
           "powerSelectLabel": "Power the Pico From",
           "powerConsole": "The Console (3.3V through a diode)",

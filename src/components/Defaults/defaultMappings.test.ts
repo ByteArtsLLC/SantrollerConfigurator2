@@ -50,7 +50,7 @@ describe('Classic Controller trigger defaults', () => {
 });
 
 describe('Dancepad defaults', () => {
-  it('maps PS2 D-pad directions to dancepad directions', () => {
+  it('maps PS2 D-pad directions and corner face buttons', () => {
     const mappings = getPs2Defaults(proto.SubType.Dancepad, 2, {
       ps2CntType: proto.PS2ControllerType.PS2ControllerTypeDualshock2,
     });
@@ -62,11 +62,17 @@ describe('Dancepad defaults', () => {
       [proto.PS2ButtonType.PS2ButtonDpadDown, proto.GamepadButtonType.Gamepad_DpadDown],
       [proto.PS2ButtonType.PS2ButtonDpadLeft, proto.GamepadButtonType.Gamepad_DpadLeft],
       [proto.PS2ButtonType.PS2ButtonDpadRight, proto.GamepadButtonType.Gamepad_DpadRight],
+      [proto.PS2ButtonType.PS2ButtonCross, proto.GamepadButtonType.Gamepad_A],
+      [proto.PS2ButtonType.PS2ButtonCircle, proto.GamepadButtonType.Gamepad_B],
+      [proto.PS2ButtonType.PS2ButtonTriangle, proto.GamepadButtonType.Gamepad_Y],
+      [proto.PS2ButtonType.PS2ButtonSquare, proto.GamepadButtonType.Gamepad_X],
+      [proto.PS2ButtonType.PS2ButtonSelect, proto.GamepadButtonType.Gamepad_Back],
+      [proto.PS2ButtonType.PS2ButtonStart, proto.GamepadButtonType.Gamepad_Start],
     ]);
     expect(mappings.every((mapping) => mapping.input?.ps2Button?.deviceid === 2)).toBe(true);
   });
 
-  it('maps Wii Classic Controller D-pad directions when emulating a dancepad', () => {
+  it('maps Wii Classic Controller D-pad directions and face buttons when emulating a dancepad', () => {
     const mappings = getWiiDefaults(proto.SubType.Dancepad, 1, {
       wiiExtType: proto.WiiExtType.WiiClassicController,
     });
@@ -78,6 +84,12 @@ describe('Dancepad defaults', () => {
       [proto.WiiButtonType.WiiButtonClassicDPadDown, proto.GamepadButtonType.Gamepad_DpadDown],
       [proto.WiiButtonType.WiiButtonClassicDPadLeft, proto.GamepadButtonType.Gamepad_DpadLeft],
       [proto.WiiButtonType.WiiButtonClassicDPadRight, proto.GamepadButtonType.Gamepad_DpadRight],
+      [proto.WiiButtonType.WiiButtonClassicA, proto.GamepadButtonType.Gamepad_A],
+      [proto.WiiButtonType.WiiButtonClassicB, proto.GamepadButtonType.Gamepad_B],
+      [proto.WiiButtonType.WiiButtonClassicY, proto.GamepadButtonType.Gamepad_Y],
+      [proto.WiiButtonType.WiiButtonClassicX, proto.GamepadButtonType.Gamepad_X],
+      [proto.WiiButtonType.WiiButtonClassicMinus, proto.GamepadButtonType.Gamepad_Back],
+      [proto.WiiButtonType.WiiButtonClassicPlus, proto.GamepadButtonType.Gamepad_Start],
     ]);
     expect(mappings.every((mapping) => mapping.input?.wiiButton?.deviceid === 1)).toBe(true);
   });
