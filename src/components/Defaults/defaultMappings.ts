@@ -3312,6 +3312,18 @@ export function getUsbHostDefaults(
   deviceId = 0,
   emulatedType: proto.SubType = subType
 ): proto.IMapping[] {
+  // A keyboard sends its own keys, and keys mapped on their own later are left to those mappings.
+  // There's nothing sensible to map a keyboard to on anything else
+  if (subType === proto.SubType.KeyboardMouse) {
+    return emulatedType === proto.SubType.KeyboardMouse
+      ? [
+          {
+            mapping: { keyboardPassthrough: true },
+            input: { usbButton: { deviceid: deviceId, button: { keyboardPassthrough: true } } },
+          },
+        ]
+      : [];
+  }
   return getHostDefaults(subType, emulatedType, (output, analog) =>
     analog
       ? { usbAxis: { deviceid: deviceId, axis: output } }
@@ -3324,6 +3336,10 @@ export function getBluetoothDefaults(
   deviceId = 0,
   emulatedType: proto.SubType = subType
 ): proto.IMapping[] {
+  // Keyboards are only read over USB
+  if (subType === proto.SubType.KeyboardMouse) {
+    return [];
+  }
   return getHostDefaults(subType, emulatedType, (output, analog) =>
     analog
       ? { btAxis: { deviceid: deviceId, axis: output } }
@@ -3428,6 +3444,7 @@ export const USB_HOST_INPUT_SUBTYPES: proto.SubType[] = [
 const SUBTYPE_OUTPUT_KEYS: Partial<Record<keyof proto.IOutput, proto.SubType>> = (() => {
   const map: Partial<Record<keyof proto.IOutput, proto.SubType>> = {
     keycode: proto.SubType.KeyboardMouse,
+    keyboardPassthrough: proto.SubType.KeyboardMouse,
     // No defaults use a single key, so it is never picked up below
     proKeySingle: proto.SubType.ProKeys,
   };

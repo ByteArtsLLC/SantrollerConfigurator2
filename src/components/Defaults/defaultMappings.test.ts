@@ -272,6 +272,37 @@ describe('USB host defaults for a different emulated type', () => {
   });
 });
 
+describe('keyboard host defaults', () => {
+  it('passes every key through to a keyboard profile', () => {
+    expect(
+      getDefaultMappings(
+        'usbHost',
+        proto.SubType.KeyboardMouse,
+        2,
+        undefined,
+        proto.SubType.KeyboardMouse
+      )
+    ).toEqual([
+      {
+        mapping: { keyboardPassthrough: true },
+        input: { usbButton: { deviceid: 2, button: { keyboardPassthrough: true } } },
+      },
+    ]);
+  });
+
+  it('maps nothing for other profiles', () => {
+    expect(
+      getDefaultMappings(
+        'usbHost',
+        proto.SubType.Gamepad,
+        2,
+        undefined,
+        proto.SubType.KeyboardMouse
+      )
+    ).toEqual([]);
+  });
+});
+
 describe('host type of an assignment', () => {
   it.each<[proto.IProfileAssignmentInfo | undefined, proto.SubType]>([
     [{ usbType: proto.SubType.Gamepad }, proto.SubType.Gamepad],

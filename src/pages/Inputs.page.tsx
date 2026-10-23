@@ -1384,7 +1384,9 @@ function OutputBox({
               ? `axis:${mapping.mouseAxis}`
               : mapping?.consumerKey != null
                 ? 'media'
-                : 'key';
+                : mapping?.keyboardPassthrough
+                  ? 'passthrough'
+                  : 'key';
       return (
         <>
           <Select
@@ -1393,6 +1395,10 @@ function OutputBox({
             data={[
               { value: 'key', label: t('keyboard.key') },
               { value: 'media', label: t('keyboard.media') },
+              // Picked as the output, which makes the input the whole keyboard
+              ...(title !== 'input' || kind === 'passthrough'
+                ? [{ value: 'passthrough', label: t('keyboard.passthrough') }]
+                : []),
               ...Object.entries(proto.MouseButtonType)
                 .filter(([, v]) => typeof v === 'number')
                 .map(([name, v]) => ({ value: `button:${v}`, label: t(`keyboard.mouse.${name}`) })),
@@ -1422,6 +1428,8 @@ function OutputBox({
                 dispatch({ action: parseInt(id, 10) }, false, false);
               } else if (type === 'media') {
                 dispatch({ consumerKey: MEDIA_KEYS.PlayPause }, true, false);
+              } else if (type === 'passthrough') {
+                dispatch({ keyboardPassthrough: true }, false, false);
               } else {
                 dispatch({ keycode: CODE_TO_HID.KeyA }, true, false);
               }
@@ -1631,6 +1639,22 @@ function outputInput(mapping: proto.IMapping): proto.IInput {
   return mapping.input;
 }
 
+// A keyboard passthrough reads every key on the keyboard, so it replaces the single key a USB input read, and
+// goes back to a single key when something else is picked
+function passthroughInput(input: proto.IInput, output: proto.IOutput): proto.IInput {
+  const usb = input.usbButton;
+  if (!usb) {
+    return input;
+  }
+  if (output.keyboardPassthrough) {
+    return { usbButton: { ...usb, button: { keyboardPassthrough: true } } };
+  }
+  if (usb.button?.keyboardPassthrough) {
+    return { usbButton: { ...usb, button: { keycode: CODE_TO_HID.KeyA } } };
+  }
+  return input;
+}
+
 function MappingBox({
   mapping,
   type,
@@ -1663,7 +1687,7 @@ function MappingBox({
                 min: 0,
                 max: 65535,
                 ...mapping,
-                input: outputInput(mapping),
+                input: passthroughInput(outputInput(mapping), m),
                 pressed: isAnalog(mapping.input) ? undefined : (mapping.pressed ?? 65535),
                 mapping: m,
               })
@@ -4031,6 +4055,7 @@ function SantrollerMapping({
       ? (mediaKeyName(mapping.mapping.consumerKey) ??
         t('keyboard.mediaFallback', { code: mapping.mapping.consumerKey }))
       : undefined) ||
+    (mapping.mapping.keyboardPassthrough ? 'KeyboardPassthrough' : undefined) ||
     midiOutputLabel(mapping.mapping, t) ||
     proto.ActionType[mapping.mapping.action ?? -1];
   const fixedLabel = FixLabel(mode, type, label || '', legendMode);
@@ -4045,6 +4070,7 @@ function SantrollerMapping({
   const button =
     mapping.mapping.keycode != null ||
     mapping.mapping.consumerKey != null ||
+    !!mapping.mapping.keyboardPassthrough ||
     mapping.mapping.action != null ||
     mapping.mapping.midiNote != null ||
     Object.entries(mapping.mapping).find(([k, v]) => k.endsWith('Button') && v != null);

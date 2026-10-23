@@ -90,6 +90,7 @@
     "output": "Output",
     "key": "Keyboard key",
     "media": "Media key",
+    "passthrough": "All keys from this keyboard",
     "mouse": {
       "Mouse_Left": "Mouse left button",
       "Mouse_Middle": "Mouse middle button",
@@ -2157,6 +2158,7 @@
   },
   "outputs": {
     "projectDivaTouch": "Slider touch {{index}}",
+    "KeyboardPassthrough": "All keys",
     "Generic": {
       "Gamepad_DpadUp": "D-pad Up",
       "Gamepad_DpadDown": "D-pad Down",
