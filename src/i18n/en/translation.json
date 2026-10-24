@@ -292,8 +292,8 @@
       "description": "When the controller is a Rock Band 4 Wireless Legacy Adapter, gamepads get working sticks and triggers outside of Rock Band 4, eg on the Xbox dashboard. Turn this off for games other than Rock Band 4 that read the adapter's instruments directly, as the adapter has to switch report layouts for this, and only Rock Band 4 handles that."
     },
     "selectToDpadLeft": {
-      "label": "Map Select to D-pad Left on Xbox One/Series and PS4/5",
-      "description": "Send Select as D-pad Left instead when plugged into an Xbox One/Series or PS4/5. Rock Band 4 and Fortnite Festival can use D-pad Left to activate star power, which can work better than Select."
+      "label": "Map Select to D-pad Left on Xbox One/Series, PS4/5 and Switch",
+      "description": "Send Select as D-pad Left instead when plugged into an Xbox One/Series, PS4/5 or Switch.Rock Band 4 and Fortnite Festival can use D-pad Left to activate star power, which can work better than Select."
     },
     "ps3OnRpcs3": {
       "label": "Use USB passthrough with RPCS3",
@@ -1540,8 +1540,8 @@
     "colour": "Colour",
     "pressed": "Pressed Colour",
     "released": "Released Colour",
-    "copyToPressed": "Copy to Pressed Colour",
-    "copyToReleased": "Copy to Released Colour",
+    "copyToPressed": "Copy to Pressed",
+    "copyToReleased": "Copy to Released",
     "add": "Add LED Mapping",
     "test": "Test LED",
     "testing": "Testing LED...",

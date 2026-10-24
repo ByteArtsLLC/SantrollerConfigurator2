@@ -6529,6 +6529,9 @@ function SantrollerLed({
                         <Input.Wrapper label=" " description=" " error=" ">
                           <Button
                             w="100%"
+                            h="auto"
+                            mih={36}
+                            styles={{ label: { whiteSpace: 'normal', textAlign: 'center' } }}
                             onClick={() =>
                               dispatch({
                                 ...led,
@@ -6582,6 +6585,9 @@ function SantrollerLed({
                         <Input.Wrapper label=" " description=" " error=" " mr="0">
                           <Button
                             w="100%"
+                            h="auto"
+                            mih={36}
+                            styles={{ label: { whiteSpace: 'normal', textAlign: 'center' } }}
                             onClick={() =>
                               dispatch({
                                 ...led,
