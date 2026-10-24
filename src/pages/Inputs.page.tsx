@@ -95,6 +95,7 @@ import {
   isLed,
 } from '@/components/Devices/pinUtils';
 import { DeviceIdentitySettings } from '@/components/Inputs/DeviceNameSetting';
+import { XboxOneLegacyAdapterSetting } from '@/components/Inputs/XboxOneLegacyAdapterSetting';
 import { DropdownBox, StandardEnum } from '@/components/Inputs/DropdownBox';
 import { HidKeyPicker } from '@/components/Inputs/HidKeyPicker';
 import { InactivitySettings } from '@/components/Inputs/InactivitySettings';
@@ -2011,6 +2012,18 @@ function FixIcon(
     if (calcLabel === 'Gamepad_DpadDown') {
       calcLabel = 'GuitarHeroGuitar_StrumDown';
     }
+  }
+  // No GHL art of its own, so borrow the GH guitar icons where one fits
+  if (
+    icon &&
+    [
+      'GuitarHeroLiveGuitar_Whammy',
+      'GuitarHeroLiveGuitar_Tilt',
+      'GuitarHeroLiveGuitar_StrumUp',
+      'GuitarHeroLiveGuitar_StrumDown',
+    ].includes(calcLabel)
+  ) {
+    calcLabel = calcLabel.replace('GuitarHeroLiveGuitar_', 'GuitarHeroGuitar_');
   }
   if (mode === proto.FaceButtonMappingMode.PositionBased) {
     if (calcLabel === 'Gamepad_A') {
@@ -4029,6 +4042,8 @@ function SantrollerMapping({
     proto.GamepadAxisType[mapping.mapping.gamepadAxis ?? -1] ||
     proto.GuitarHeroGuitarButtonType[mapping.mapping.ghButton ?? -1] ||
     proto.GuitarHeroGuitarAxisType[mapping.mapping.ghAxis ?? -1] ||
+    proto.GuitarHeroLiveGuitarButtonType[mapping.mapping.ghlButton ?? -1] ||
+    proto.GuitarHeroLiveGuitarAxisType[mapping.mapping.ghlAxis ?? -1] ||
     proto.GuitarHeroDrumsAxisType[mapping.mapping.ghDrumAxis ?? -1] ||
     proto.RockBandGuitarButtonType[mapping.mapping.rbButton ?? -1] ||
     proto.RockBandGuitarAxisType[mapping.mapping.rbAxis ?? -1] ||
@@ -5399,6 +5414,8 @@ function SantrollerLed({
           proto.GamepadAxisType[mapping.mapping.gamepadAxis ?? -1] ||
           proto.GuitarHeroGuitarButtonType[mapping.mapping.ghButton ?? -1] ||
           proto.GuitarHeroGuitarAxisType[mapping.mapping.ghAxis ?? -1] ||
+          proto.GuitarHeroLiveGuitarButtonType[mapping.mapping.ghlButton ?? -1] ||
+          proto.GuitarHeroLiveGuitarAxisType[mapping.mapping.ghlAxis ?? -1] ||
           proto.GuitarHeroDrumsAxisType[mapping.mapping.ghDrumAxis ?? -1] ||
           proto.RockBandGuitarButtonType[mapping.mapping.rbButton ?? -1] ||
           proto.RockBandGuitarAxisType[mapping.mapping.rbAxis ?? -1] ||
@@ -5523,6 +5540,8 @@ function SantrollerLed({
       proto.GamepadAxisType[mapping.mapping.gamepadAxis ?? -1] ||
       proto.GuitarHeroGuitarButtonType[mapping.mapping.ghButton ?? -1] ||
       proto.GuitarHeroGuitarAxisType[mapping.mapping.ghAxis ?? -1] ||
+      proto.GuitarHeroLiveGuitarButtonType[mapping.mapping.ghlButton ?? -1] ||
+      proto.GuitarHeroLiveGuitarAxisType[mapping.mapping.ghlAxis ?? -1] ||
       proto.GuitarHeroDrumsAxisType[mapping.mapping.ghDrumAxis ?? -1] ||
       proto.RockBandGuitarButtonType[mapping.mapping.rbButton ?? -1] ||
       proto.RockBandGuitarAxisType[mapping.mapping.rbAxis ?? -1] ||
@@ -10053,6 +10072,8 @@ function Profile({ profileIdx }: { profileIdx: number }) {
           </Group>
           <Space h="md" />
           <DeviceIdentitySettings />
+          <Space h="md" />
+          <XboxOneLegacyAdapterSetting />
           <Space h="md" />
           <TextInput
             value={profile.opts.name}
