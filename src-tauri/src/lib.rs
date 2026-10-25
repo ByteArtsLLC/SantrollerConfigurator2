@@ -245,9 +245,56 @@ async fn hid_open(
         .lock()
         .map_err(|e| e.to_string())?
         .insert(path.clone(), OpenDevice { id, commands });
+    clear_windows_controller_cache(SANTROLLER_VID, SANTROLLER_PID);
+    clear_windows_controller_cache(SANTROLLER_VID, SANTROLLER_V1_PID);
     thread::spawn(move || run_worker(app, path, id, device, receiver));
     Ok(descriptor)
 }
+
+// DirectInput caches a pad's name and calibration per VID/PID, not per serial, so after the firmware
+// swaps a pad between HID and XInput the cached entries are stale and joy.cpl shows it blank
+#[cfg(target_os = "windows")]
+fn clear_windows_controller_cache(vid: u16, pid: u16) {
+    use winreg::enums::*;
+    use winreg::RegKey;
+
+    let device_key = format!("VID_{:04X}&PID_{:04X}", vid, pid);
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+
+    // OEMName, OEMData
+    let _ = hkcu.delete_subkey_all(format!(
+        r"System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\{}",
+        device_key
+    ));
+    // calibration
+    let _ = hkcu.delete_subkey_all(format!(
+        r"System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\{}",
+        device_key
+    ));
+    // slot assignments
+    if let Ok(settings) = hkcu.open_subkey_with_flags(
+        r"System\CurrentControlSet\Control\MediaResources\Joystick\DINPUT.DLL\CurrentJoystickSettings",
+        KEY_READ | KEY_WRITE,
+    ) {
+        let to_delete: Vec<String> = settings
+            .enum_values()
+            .filter_map(|val| val.ok())
+            .filter_map(|(name, _)| {
+                let value = settings.get_value::<String, _>(&name).ok()?;
+                value.contains(&device_key).then_some(name)
+            })
+            .collect();
+        for name in to_delete {
+            let _ = settings.delete_value(&name);
+            if name.ends_with("OEMName") {
+                let _ = settings.delete_value(name.replace("OEMName", "Configuration"));
+            }
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn clear_windows_controller_cache(_vid: u16, _pid: u16) {}
 
 #[tauri::command]
 fn hid_close(state: State<'_, HidState>, path: String) -> Result<(), String> {

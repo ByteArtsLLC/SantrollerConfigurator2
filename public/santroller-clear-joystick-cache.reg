@@ -1,0 +1,9 @@
+Windows Registry Editor Version 5.00
+
+; Clears the names and calibration DirectInput caches for Santroller devices.
+; Run this if joy.cpl shows a Santroller blank after swapping between HID and XInput, then replug it.
+
+[-HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_1209&PID_2883]
+[-HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_1209&PID_2882]
+[-HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_1209&PID_2883]
+[-HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_1209&PID_2882]

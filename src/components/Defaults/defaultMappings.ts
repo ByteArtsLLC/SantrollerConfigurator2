@@ -3319,6 +3319,15 @@ function convertToKeyboardMania(output: proto.IOutput): proto.IOutput | undefine
   return kbmButton != null ? { kbmButton } : undefined;
 }
 
+const MOTION_AXES = [
+  proto.GamepadAxisType.Gamepad_AccelX,
+  proto.GamepadAxisType.Gamepad_AccelY,
+  proto.GamepadAxisType.Gamepad_AccelZ,
+  proto.GamepadAxisType.Gamepad_GyroX,
+  proto.GamepadAxisType.Gamepad_GyroY,
+  proto.GamepadAxisType.Gamepad_GyroZ,
+];
+
 // The input side always uses the host device's own outputs, as that is how the firmware
 // decodes the host device's report, while the mapping uses the emulated type's outputs.
 function getHostDefaults(
@@ -3326,6 +3335,18 @@ function getHostDefaults(
   emulatedType: proto.SubType,
   makeInput: (output: proto.IOutput, analog: boolean) => proto.IInput
 ): proto.IMapping[] {
+  // Hosts read motion in the same scale outputs use, so it passes through uncalibrated. Controllers
+  // without motion leave it to the output's resting pose.
+  const motion: proto.IMapping[] =
+    hostType === proto.SubType.Gamepad
+      ? MOTION_AXES.map((gamepadAxis) => ({
+          mapping: { gamepadAxis },
+          input: makeInput({ gamepadAxis }, true),
+          min: 0,
+          max: 65535,
+          center: 32767,
+        }))
+      : [];
   return getGpioDefaults(hostType).flatMap((m) => {
     const mapping = convertHostOutput(m.mapping!, hostType, emulatedType);
     if (!mapping) {
@@ -3344,7 +3365,7 @@ function getHostDefaults(
       ];
     }
     return [{ mapping, input: makeInput(m.mapping!, false) }];
-  });
+  }).concat(motion);
 }
 
 export function getUsbHostDefaults(

@@ -96,6 +96,7 @@ import {
 } from '@/components/Devices/pinUtils';
 import { DeviceIdentitySettings } from '@/components/Inputs/DeviceNameSetting';
 import { XboxOneLegacyAdapterSetting } from '@/components/Inputs/XboxOneLegacyAdapterSetting';
+import { XInputOnWindowsDescription } from '@/components/Inputs/XInputOnWindowsDescription';
 import { DropdownBox, StandardEnum } from '@/components/Inputs/DropdownBox';
 import { HidKeyPicker } from '@/components/Inputs/HidKeyPicker';
 import { InactivitySettings } from '@/components/Inputs/InactivitySettings';
@@ -7196,7 +7197,7 @@ export function SantrollerAssignment({
                     <Space h="md" />
                     <Input.Wrapper
                       label={t('main.xinput_on_windows.label')}
-                      description={t('main.xinput_on_windows.description')}
+                      description={<XInputOnWindowsDescription />}
                     >
                       <SegmentedControl
                         fullWidth
@@ -8576,7 +8577,7 @@ function SantrollerAssignmentList({
                           <Input.Wrapper
                             size="xs"
                             label={t('main.xinput_on_windows.label')}
-                            description={t('main.xinput_on_windows.description')}
+                            description={<XInputOnWindowsDescription />}
                           >
                             <SegmentedControl
                               fullWidth
@@ -9507,7 +9508,7 @@ function BlankProfileWizard({
                     <Input.Wrapper
                       size="xs"
                       label={t('main.xinput_on_windows.label')}
-                      description={t('main.xinput_on_windows.description')}
+                      description={<XInputOnWindowsDescription />}
                     >
                       <SegmentedControl
                         fullWidth
