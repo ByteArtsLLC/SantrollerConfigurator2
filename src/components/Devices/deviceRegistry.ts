@@ -249,6 +249,11 @@ const deviceRegistry: DeviceDefinitions = {
     create: () => ({ i2c: i2c(400000), interrupt: -1 }),
     pins: ({ i2c }) => [i2c.sda, i2c.scl],
   },
+  oledDisplay: {
+    category: 'expansion',
+    create: () => ({ i2c: i2c(400000), address: 0x3c }),
+    pins: ({ i2c }) => [i2c.sda, i2c.scl],
+  },
   encoder: {
     category: 'expansion',
     create: () => ({ dataPin: -1 }),
@@ -393,6 +398,7 @@ const nonInputDeviceKinds = new Set<DeviceKind>([
   'powerManagement',
   'adcBattery',
   'max1704x',
+  'oledDisplay',
 ]);
 const ledDeviceKinds = new Set<DeviceKind>(['ws2812', 'apa102', 'vtechExpander', 'stp16cpc']);
 const defaultMappingDeviceKinds = new Set<DeviceKind>([

@@ -10,6 +10,7 @@ import {
   getDevicePins,
   getDeviceStatusLabel,
   getGroupedDevices,
+  isInputDeviceKind,
   isSingletonDeviceKind,
 } from './deviceRegistry';
 
@@ -102,6 +103,23 @@ describe('singleton devices', () => {
     // Non-singleton devices can always be added even if existing
     expect(canAddDeviceKind('ws2812', ['ws2812'])).toBe(true);
     expect(canAddDeviceKind('multiplexer', ['multiplexer'])).toBe(true);
+  });
+});
+
+describe('OLED display', () => {
+  it('creates the SSD1306 defaults as a non-input device and reserves its I2C pins', () => {
+    const oled = createDeviceConfig('oledDisplay', 12);
+
+    expect(oled.oledDisplay).toEqual({
+      i2c: { sda: -1, scl: -1, block: 0, clock: 400000 },
+      address: 0x3c,
+    });
+    expect(getDevicePins(oled)).toEqual([]);
+    expect(isInputDeviceKind('oledDisplay')).toBe(false);
+
+    oled.oledDisplay!.i2c.sda = 4;
+    oled.oledDisplay!.i2c.scl = 5;
+    expect(getDevicePins(oled)).toEqual([4, 5]);
   });
 });
 

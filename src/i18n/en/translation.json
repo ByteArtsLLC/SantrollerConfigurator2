@@ -48,6 +48,7 @@
     "midi": "MIDI",
     "debug": "Debug",
     "ads1115": "ADS1115 Multiplexer",
+    "oledDisplay": "SSD1306 OLED Display (128x32)",
     "accelerometer": "Accelerometer",
     "ws2812": "WS2812 LEDs",
     "apa102": "APA102 LEDs",
@@ -856,6 +857,12 @@
   "ads1115": {
     "interrupt": {
       "pin": "Interrupt Pin"
+    }
+  },
+  "oledDisplay": {
+    "address": {
+      "label": "I2C Address",
+      "description": "Enter a decimal value from 0 to 127. Default: 60 (0x3C)."
     }
   },
   "stp16cpc": {

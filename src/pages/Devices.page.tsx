@@ -901,6 +901,46 @@ function ADS1115Device({ id }: { id: string }) {
     </DeviceCard>
   );
 }
+function OLEDDisplayDevice({ id }: { id: string }) {
+  const status = useConfigStore((state) => state.deviceStatus[id]);
+  const updateDevice = useConfigStore((state) => state.updateDevice);
+  const deleteDevice = useConfigStore((state) => state.deleteDevice);
+  const device = status.device;
+  const { t } = useTranslation();
+  if (!device.oledDisplay) {
+    throw new Error('device null!');
+  }
+  const oledDisplay = device.oledDisplay;
+  const update = (changes: Partial<proto.IOLEDDisplayDevice>) =>
+    updateDevice(
+      { deviceid: parseInt(id, 10), oledDisplay: { ...oledDisplay, ...changes } },
+      id
+    );
+  return (
+    <DeviceCard
+      connected={status.connected}
+      title="devices.oledDisplay"
+      image="covers/devices/oledDisplay.svg"
+      deleteDevice={() => deleteDevice(id)}
+    >
+      <I2CDevice device={oledDisplay.i2c} dispatch={(val) => update({ i2c: val })} />
+      <NumberInput
+        label={t('oledDisplay.address.label')}
+        description={t('oledDisplay.address.description')}
+        min={0}
+        max={0x7f}
+        step={1}
+        allowDecimal={false}
+        value={oledDisplay.address ?? 0x3c}
+        onChange={(value) => {
+          if (typeof value === 'number' && value >= 0 && value <= 0x7f) {
+            update({ address: value });
+          }
+        }}
+      />
+    </DeviceCard>
+  );
+}
 function MidiSerialDevice({ id }: { id: string }) {
   const status = useConfigStore((state) => state.deviceStatus[id]);
   const updateDevice = useConfigStore((state) => state.updateDevice);
@@ -2914,6 +2954,7 @@ export const deviceEditors: Record<DeviceKind, React.FunctionComponent<{ id: str
   snesEmulation: SNESEmulationDevice,
   peripheral: PeripheralDevice,
   ads1115: ADS1115Device,
+  oledDisplay: OLEDDisplayDevice,
   debug: DebugDevice,
   ws2812: WS2812Device,
   apa102: APA102Device,
